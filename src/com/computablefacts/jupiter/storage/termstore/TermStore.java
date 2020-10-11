@@ -58,7 +58,7 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row        | Column Family   | Column Qualifier  | Visibility                               | Value
  * ============+=================+===================+==========================================+=================================
- *  <field>    | <dataset>_CARD  | (empty)           | ADM|<dataset>_CNT                        | <#documents>
+ *  <field>    | <dataset>_CARD  | (empty)           | ADM|<dataset>_CARD                       | <#documents>
  *  <field>    | <dataset>_CNT   | (empty)           | ADM|<dataset>_CNT                        | <#occurrences>
  *  <field>    | <dataset>_VIZ   | (empty)           | ADM|<dataset>_VIZ                        | viz1\0viz2\0
  *  <mret>     | <dataset>_BCARD | <field>           | ADM|<dataset>_<field>                    | <#documents>
