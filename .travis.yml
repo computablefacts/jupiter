@@ -1,0 +1,24 @@
+os: linux
+dist: trusty
+language: java
+jdk:
+  - openjdk8
+install: "/bin/true"
+script:
+  - mvn clean install -q -B
+env:
+  global:
+before_deploy:
+deploy:
+  - skip_cleanup: true
+    provider: script
+    script: chmod +x ./deploy.sh && ./deploy.sh
+    on:
+      branch: master
+  - skip_cleanup: true
+    provider: script
+    script: chmod +x ./deploy.sh && ./deploy.sh
+    on:
+      tags: true
+after_success:
+  - bash <(curl -s https://codecov.io/bash) -t dfcb8d7c-b24a-4213-9ecb-9419be66f237
