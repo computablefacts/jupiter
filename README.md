@@ -9,7 +9,7 @@ one for [blobs](/src/com/computablefacts/jupiter/storage/blobstore), one for [te
 and facts (a *fact* is a predicate expression that makes a declarative statement 
 about a problem domain) and one for [JSON objects](/src/com/computablefacts/jupiter/storage/datastore). 
 
-These data stores **are not** meant to be efficient but are intended to be easy to use.
+These data stores **are not** meant to be efficients but are intended to be easy to use.
 
 ## Adding Jupiter to your build
 
