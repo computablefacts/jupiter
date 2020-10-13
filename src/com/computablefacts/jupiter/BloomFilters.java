@@ -35,6 +35,8 @@ final public class BloomFilters<T> {
 
   public static <T> String toString(BloomFilters<T> bloomFilters) {
 
+    Preconditions.checkNotNull(bloomFilters, "bloomFilters should not be null");
+
     StringBuilder builder = new StringBuilder().append(bloomFilters.filters_.size()).append('¤');
 
     for (BloomFilter<T> filter : bloomFilters.filters_) {
