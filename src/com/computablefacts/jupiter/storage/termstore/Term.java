@@ -11,6 +11,7 @@ import javax.validation.constraints.NotNull;
 
 import org.apache.accumulo.core.util.ComparablePair;
 
+import com.computablefacts.nona.Generated;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -49,6 +50,7 @@ final public class Term implements HasTerm, Comparable<Term> {
     spans_ = new ArrayList<>(spans);
   }
 
+  @Generated
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("docId", docId_).add("field", field_)
@@ -58,8 +60,8 @@ final public class Term implements HasTerm, Comparable<Term> {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == null) {
-      return false;
+    if (obj == this) {
+      return true;
     }
     if (!(obj instanceof Term)) {
       return false;
@@ -99,22 +101,27 @@ final public class Term implements HasTerm, Comparable<Term> {
     return term_;
   }
 
+  @Generated
   public String docId() {
     return docId_;
   }
 
+  @Generated
   public String field() {
     return field_;
   }
 
+  @Generated
   public Set<String> labels() {
     return labels_;
   }
 
+  @Generated
   public long count() {
     return count_;
   }
 
+  @Generated
   public List<ComparablePair<Integer, Integer>> spans() {
     return spans_;
   }

@@ -6,20 +6,20 @@ import com.google.common.collect.Sets;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class FieldCountTest {
+public class FieldCardTest {
 
   @Test(expected = NullPointerException.class)
   public void testNullField() {
-    FieldCount fc = new FieldCount(null, Sets.newHashSet(), 0);
+    FieldCard fc = new FieldCard(null, Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabels() {
-    FieldCount fc = new FieldCount("key", null, 0);
+    FieldCard fc = new FieldCard("key", null, 0);
   }
 
   @Test
   public void testHashcodeAndEquals() {
-    EqualsVerifier.forClass(FieldCount.class).verify();
+    EqualsVerifier.forClass(FieldCard.class).verify();
   }
 }

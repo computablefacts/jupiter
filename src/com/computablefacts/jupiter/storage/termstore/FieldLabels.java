@@ -3,6 +3,7 @@ package com.computablefacts.jupiter.storage.termstore;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.computablefacts.nona.Generated;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -26,6 +27,7 @@ final public class FieldLabels implements HasField {
     labelsTerm_ = new HashSet<>(labelsTerm);
   }
 
+  @Generated
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("field", field_)
@@ -34,8 +36,8 @@ final public class FieldLabels implements HasField {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == null) {
-      return false;
+    if (obj == this) {
+      return true;
     }
     if (!(obj instanceof FieldLabels)) {
       return false;

@@ -3,6 +3,7 @@ package com.computablefacts.jupiter.storage.termstore;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.computablefacts.nona.Generated;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -28,6 +29,7 @@ final public class TermCount implements HasField, HasTerm {
     count_ = count;
   }
 
+  @Generated
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("field", field_).add("term", term_)
@@ -36,8 +38,8 @@ final public class TermCount implements HasField, HasTerm {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == null) {
-      return false;
+    if (obj == this) {
+      return true;
     }
     if (!(obj instanceof TermCount)) {
       return false;
@@ -52,20 +54,24 @@ final public class TermCount implements HasField, HasTerm {
     return Objects.hashCode(field_, term_, labels_, count_);
   }
 
+  @Generated
   @Override
   public String field() {
     return field_;
   }
 
+  @Generated
   @Override
   public String term() {
     return term_;
   }
 
+  @Generated
   public Set<String> labels() {
     return labels_;
   }
 
+  @Generated
   public long count() {
     return count_;
   }

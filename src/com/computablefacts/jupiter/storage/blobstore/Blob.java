@@ -3,6 +3,7 @@ package com.computablefacts.jupiter.storage.blobstore;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.computablefacts.nona.Generated;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -26,6 +27,7 @@ final public class Blob<T> {
     value_ = value;
   }
 
+  @Generated
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("key", key_).add("labels", labels_)
@@ -34,8 +36,8 @@ final public class Blob<T> {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == null) {
-      return false;
+    if (obj == this) {
+      return true;
     }
     if (!(obj instanceof Blob)) {
       return false;
@@ -50,14 +52,17 @@ final public class Blob<T> {
     return Objects.hashCode(key_, labels_, value_);
   }
 
+  @Generated
   public String key() {
     return key_;
   }
 
+  @Generated
   public Set<String> labels() {
     return labels_;
   }
 
+  @Generated
   public T value() {
     return value_;
   }
