@@ -6,7 +6,41 @@ import org.junit.Test;
 public class BloomFiltersTest {
 
   @Test
-  public void testSerializationOneElement() {
+  public void testInitWithNull() {
+
+    BloomFilters<Integer> bfOriginal = new BloomFilters<>(null);
+    BloomFilters<Integer> bfNew = new BloomFilters<>(bfOriginal);
+
+    Assert.assertEquals(bfOriginal, bfNew);
+
+    String strOriginal = BloomFilters.toString(bfOriginal);
+    String strNew = BloomFilters.toString(bfNew);
+
+    Assert.assertEquals(strOriginal, strNew);
+    Assert.assertEquals(2, strNew.length());
+    Assert.assertEquals("0¤", strNew);
+  }
+
+  @Test
+  public void testInitWithAnotherElement() {
+
+    BloomFilters<Integer> bfOriginal = new BloomFilters<>();
+    bfOriginal.put(1);
+
+    BloomFilters<Integer> bfNew = new BloomFilters<>(bfOriginal);
+
+    Assert.assertEquals(bfOriginal, bfNew);
+
+    String strOriginal = BloomFilters.toString(bfOriginal);
+    String strNew = BloomFilters.toString(bfNew);
+
+    Assert.assertEquals(strOriginal, strNew);
+    Assert.assertEquals(721356, strNew.length());
+    Assert.assertTrue(strNew.startsWith("1¤1¤"));
+  }
+
+  @Test
+  public void testSerializeOneElement() {
 
     BloomFilters<Integer> bloomFiltersOriginal = new BloomFilters<>();
     bloomFiltersOriginal.put(1);
@@ -18,7 +52,7 @@ public class BloomFiltersTest {
   }
 
   @Test
-  public void testSerializationMoreThanOneElement() {
+  public void testSerializeMoreThanOneElement() {
 
     BloomFilters<Integer> bloomFiltersOriginal = new BloomFilters<>();
 

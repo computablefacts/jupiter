@@ -27,8 +27,8 @@ final public class BloomFilters<T> {
   public BloomFilters(BloomFilters<T> bloomFilters) {
     if (bloomFilters != null) {
       for (BloomFilter<T> bf : bloomFilters.filters_) {
-        filters_.push(new BloomFilter<>(bf.falsePositiveProbability(),
-            bf.expectedNumberOfElements(), bf.actualNumberOfElements(), bf.bitSet()));
+        filters_.push(new BloomFilter<>(FALSE_POSITIVE_PROBABILITY_MIN, EXPECTED_NUMBER_OF_ELEMENTS,
+            bf.actualNumberOfElements(), bf.bitSet()));
       }
     }
   }
