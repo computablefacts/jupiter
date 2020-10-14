@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
+import com.computablefacts.nona.Generated;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
@@ -70,6 +71,9 @@ public abstract class AbstractStorage {
    * @return visibility label.
    */
   public static String toVisibilityLabel(String string) {
+
+    Preconditions.checkNotNull(string, "string should not be null");
+
     return string.replaceAll("\\s+|[^a-zA-Z0-9_]", "_").trim().toUpperCase();
   }
 
@@ -130,6 +134,7 @@ public abstract class AbstractStorage {
    *
    * @return the cluster configuration.
    */
+  @Generated
   public Configurations configurations() {
     return configurations_;
   }
@@ -139,6 +144,7 @@ public abstract class AbstractStorage {
    *
    * @return table name.
    */
+  @Generated
   public String tableName() {
     return tableName_;
   }

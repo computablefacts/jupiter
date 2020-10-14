@@ -8,9 +8,13 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.commons.io.FileUtils;
 
+import com.computablefacts.jupiter.storage.Constants;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CheckReturnValue;
 
@@ -26,13 +30,21 @@ final public class MiniAccumuloClusterUtils {
     return System.getProperty("os.name").startsWith("Windows");
   }
 
+  public static Configurations newConfiguration(MiniAccumuloCluster accumulo) {
+
+    Preconditions.checkNotNull(accumulo, "accumulo should not be null");
+
+    return new Configurations(accumulo.getInstanceName(), accumulo.getZooKeepers(),
+        MiniAccumuloClusterUtils.MAC_USER, MiniAccumuloClusterUtils.MAC_PASSWORD);
+  }
+
   /**
    * Creates and starts an instance of MiniAccumuloCluster, returning the new instance.
    *
-   * @return a new {@link org.apache.accumulo.minicluster.MiniAccumuloCluster}.
+   * @return a new {@link MiniAccumuloCluster}.
    */
-  public static org.apache.accumulo.minicluster.MiniAccumuloCluster create()
-      throws IOException, InterruptedException {
+  public static MiniAccumuloCluster newCluster()
+      throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException {
 
     // Create MAC directory
     File macDir = Files.createTempDirectory("mac-").toFile();
@@ -41,8 +53,7 @@ final public class MiniAccumuloClusterUtils {
     MiniAccumuloConfig config = new MiniAccumuloConfig(macDir, MAC_PASSWORD);
     config.setDefaultMemory(512, MEGABYTE);
 
-    org.apache.accumulo.minicluster.MiniAccumuloCluster accumulo =
-        new org.apache.accumulo.minicluster.MiniAccumuloCluster(config);
+    MiniAccumuloCluster accumulo = new MiniAccumuloCluster(config);
 
     if (isWindows()) {
 
@@ -83,6 +94,10 @@ final public class MiniAccumuloClusterUtils {
         // throw new IOException("Failed to clean up MAC directory", e);
       }
     }));
+
+    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations()
+        .changeUserAuthorizations(MAC_USER, Constants.AUTH_ADM);
+
     return accumulo;
   }
 }
