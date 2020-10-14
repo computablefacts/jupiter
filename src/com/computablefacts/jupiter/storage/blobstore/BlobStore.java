@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
+import com.computablefacts.jupiter.iterators.BlobStoreAnonymizingIterator;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
@@ -227,6 +229,11 @@ final public class BlobStore extends AbstractStorage {
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(dataset));
+
+    IteratorSetting setting = new IteratorSetting(21, BlobStoreAnonymizingIterator.class);
+    BlobStoreAnonymizingIterator.setAuthorizations(setting, scanner.getAuthorizations());
+
+    scanner.addScanIterator(setting);
 
     List<Range> ranges;
 
