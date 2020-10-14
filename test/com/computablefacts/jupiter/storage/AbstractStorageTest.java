@@ -161,7 +161,7 @@ public class AbstractStorageTest {
       for (int rowId = 0; rowId < 100; rowId++) {
         for (int cf = 0; cf < 100; cf++) {
           for (int cq = 0; cq < 100; cq++) {
-            storage.add(writer, new Text("row_" + rowId), new Text("cf_" + cf),
+            boolean isOk = storage.add(writer, new Text("row_" + rowId), new Text("cf_" + cf),
                 new Text("cq_" + cq), new ColumnVisibility(Constants.STRING_ADM),
                 new Value("value_" + rowId + "_" + cf + "_" + cq));
           }
@@ -175,7 +175,7 @@ public class AbstractStorageTest {
     Preconditions.checkNotNull(storage, "storage should not be null");
 
     try (BatchScanner scanner = storage.batchScanner(Constants.AUTH_ADM)) {
-      AbstractStorage.setRange(scanner, new Range());
+      boolean isOk = AbstractStorage.setRange(scanner, new Range());
       return Iterators.size(scanner.iterator());
     }
   }
