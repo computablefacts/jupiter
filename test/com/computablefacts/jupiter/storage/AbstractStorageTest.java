@@ -185,7 +185,7 @@ public class AbstractStorageTest {
     Assert.assertEquals(100, count(storage, "fourth_dataset", new Authorizations("DS_1", "DS_2")));
 
     try (BatchDeleter deleter = storage.deleter(new Authorizations("DS_1", "DS_2"))) {
-      storage.remove(deleter, Sets.newHashSet("second_dataset"));
+      Assert.assertTrue(storage.remove(deleter, Sets.newHashSet("second_dataset")));
     }
 
     Assert.assertEquals(100, count(storage, "first_dataset", new Authorizations("DS_1")));
@@ -309,7 +309,7 @@ public class AbstractStorageTest {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     try (BatchScanner scanner = storage.batchScanner(authorizations)) {
-      AbstractStorage.setRange(scanner, new Range());
+      boolean isOk = AbstractStorage.setRange(scanner, new Range());
       scanner.fetchColumnFamily(new Text(dataset));
       return Iterators.size(scanner.iterator());
     }
