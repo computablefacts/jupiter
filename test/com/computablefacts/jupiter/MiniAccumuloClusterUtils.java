@@ -12,6 +12,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.commons.io.FileUtils;
 
 import com.computablefacts.jupiter.storage.Constants;
 import com.google.common.base.Preconditions;
@@ -80,19 +81,19 @@ final public class MiniAccumuloClusterUtils {
     accumulo.start();
 
     // Add shutdown hook to stop MAC and cleanup temporary files
-    // Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-    // try {
-    // accumulo.stop();
-    // } catch (IOException | InterruptedException e) {
-    // Thread.currentThread().interrupt();
-    // // throw new InterruptedException("Failed to shut down MAC instance", e);
-    // }
-    // try {
-    // FileUtils.forceDelete(macDir);
-    // } catch (IOException e) {
-    // // throw new IOException("Failed to clean up MAC directory", e);
-    // }
-    // }));
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      try {
+        accumulo.stop();
+      } catch (IOException | InterruptedException e) {
+        Thread.currentThread().interrupt();
+        // throw new InterruptedException("Failed to shut down MAC instance", e);
+      }
+      try {
+        FileUtils.forceDelete(macDir);
+      } catch (IOException e) {
+        // throw new IOException("Failed to clean up MAC directory", e);
+      }
+    }));
 
     accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations()
         .changeUserAuthorizations(MAC_USER, Constants.AUTH_ADM);
