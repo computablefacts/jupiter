@@ -77,7 +77,7 @@ final public class BlobStore extends AbstractStorage {
     Map<String, Set<Text>> groups =
         Tables.getLocalityGroups(configurations().tableOperations(), tableName());
 
-    if (groups.containsKey(dataset)) {
+    if (!groups.containsKey(dataset)) {
 
       groups.put(dataset, Sets.newHashSet(new Text(dataset)));
 
