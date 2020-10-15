@@ -59,7 +59,7 @@ final public class MiniAccumuloClusterUtils {
 
       Preconditions.checkState(new File("C:\\a_bin\\winutils-master\\hadoop-2.8.3").exists());
 
-      // https://issues.apache.org/jira/browse/ACCUMULO-3293?focusedCommentId=14204851&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-14204851
+      // See https://issues.apache.org/jira/browse/ACCUMULO-3293 for details
       File binDir = new File(macDir.getAbsolutePath() + "/bin");
 
       if (!binDir.exists()) {
