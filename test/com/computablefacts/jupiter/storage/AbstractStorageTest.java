@@ -1,15 +1,9 @@
 package com.computablefacts.jupiter.storage;
 
-import java.io.IOException;
-
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -77,8 +71,7 @@ public class AbstractStorageTest {
   }
 
   @Test
-  public void testCreateAndIsReady()
-      throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException {
+  public void testCreateAndIsReady() throws Exception {
 
     MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
     Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
@@ -89,8 +82,7 @@ public class AbstractStorageTest {
   }
 
   @Test
-  public void testCreateAndDestroy()
-      throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException {
+  public void testCreateAndDestroy() throws Exception {
 
     MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
     Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
@@ -104,8 +96,7 @@ public class AbstractStorageTest {
   }
 
   @Test
-  public void testCreateFillAndTruncate()
-      throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException {
+  public void testCreateFillAndTruncate() throws Exception {
 
     MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
     Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
@@ -122,8 +113,7 @@ public class AbstractStorageTest {
   }
 
   @Test
-  public void testCreateFillAndRemove() throws IOException, InterruptedException, AccumuloException,
-      AccumuloSecurityException, TableNotFoundException {
+  public void testCreateFillAndRemove() throws Exception {
 
     MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
     Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
@@ -153,7 +143,7 @@ public class AbstractStorageTest {
     }
   }
 
-  private void fill(AbstractStorage storage) throws MutationsRejectedException {
+  private void fill(AbstractStorage storage) throws Exception {
 
     Preconditions.checkNotNull(storage, "storage should not be null");
 

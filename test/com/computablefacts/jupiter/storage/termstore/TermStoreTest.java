@@ -1,9 +1,5 @@
 package com.computablefacts.jupiter.storage.termstore;
 
-import java.io.IOException;
-
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.junit.Assert;
 import org.junit.Test;
@@ -14,8 +10,7 @@ import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 public class TermStoreTest {
 
   @Test
-  public void testCreateThenDestroyTermStore()
-      throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException {
+  public void testCreateThenDestroyTermStore() throws Exception {
 
     MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
     Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
