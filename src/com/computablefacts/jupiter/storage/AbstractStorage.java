@@ -241,6 +241,9 @@ public abstract class AbstractStorage {
           .formatInfo());
     }
 
+    deleter.clearColumns();
+    deleter.clearScanIterators();
+
     try {
       deleter.setRanges(Collections.singleton(new Range()));
       for (String cf : cfs) {
@@ -273,6 +276,9 @@ public abstract class AbstractStorage {
       logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName()).add("row", row)
           .add("cf", cf).add("cq", cq).formatInfo());
     }
+
+    deleter.clearColumns();
+    deleter.clearScanIterators();
 
     try {
       deleter.setRanges(Collections.singleton(row == null ? new Range() : Range.exact(row)));
