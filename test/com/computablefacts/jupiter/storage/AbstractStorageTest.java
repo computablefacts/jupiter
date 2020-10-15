@@ -1,9 +1,13 @@
 package com.computablefacts.jupiter.storage;
 
+import java.util.Iterator;
+import java.util.Map;
+
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -107,7 +111,7 @@ public class AbstractStorageTest {
   }
 
   @Test
-  public void testCreateFillAndTruncate() throws Exception {
+  public void testCreateAndTruncate() throws Exception {
 
     MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
     Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
@@ -118,45 +122,26 @@ public class AbstractStorageTest {
 
     fill(storage);
 
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
     MiniAccumuloClusterUtils.setUserAuths(accumulo, new Authorizations("DS_1", "DS_2"));
 
-    Assert.assertEquals(100, count(storage, "first_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(0, count(storage, "second_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(0, count(storage, "fourth_dataset", new Authorizations("DS_1")));
-
-    Assert.assertEquals(0, count(storage, "first_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(100, count(storage, "second_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(0, count(storage, "fourth_dataset", new Authorizations("DS_2")));
-
-    Assert.assertEquals(100, count(storage, "first_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "second_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "fourth_dataset", new Authorizations("DS_1", "DS_2")));
+    Assert.assertEquals(10, countFirst(storage, auths));
+    Assert.assertEquals(10, countSecond(storage, auths));
+    Assert.assertEquals(10, countThird(storage, auths));
+    Assert.assertEquals(10, countFourth(storage, auths));
 
     Assert.assertTrue(storage.truncate());
 
-    Assert.assertEquals(0, count(storage, "first_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(0, count(storage, "second_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(0, count(storage, "third_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(0, count(storage, "fourth_dataset", new Authorizations("DS_1")));
-
-    Assert.assertEquals(0, count(storage, "first_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(0, count(storage, "second_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(0, count(storage, "third_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(0, count(storage, "fourth_dataset", new Authorizations("DS_2")));
-
-    Assert.assertEquals(0, count(storage, "first_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(0, count(storage, "second_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(0, count(storage, "third_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(0, count(storage, "fourth_dataset", new Authorizations("DS_1", "DS_2")));
+    Assert.assertEquals(0, countFirst(storage, auths));
+    Assert.assertEquals(0, countSecond(storage, auths));
+    Assert.assertEquals(0, countThird(storage, auths));
+    Assert.assertEquals(0, countFourth(storage, auths));
 
     MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 
   @Test
-  public void testCreateFillAndRemoveDataset() throws Exception {
+  public void testCreateAndRemoveDataset() throws Exception {
 
     MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
     Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
@@ -167,47 +152,29 @@ public class AbstractStorageTest {
 
     fill(storage);
 
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, new Authorizations("DS_1", "DS_2"));
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
 
-    Assert.assertEquals(100, count(storage, "first_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(0, count(storage, "second_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(0, count(storage, "fourth_dataset", new Authorizations("DS_1")));
+    Assert.assertEquals(10, countFirst(storage, auths));
+    Assert.assertEquals(10, countSecond(storage, auths));
+    Assert.assertEquals(10, countThird(storage, auths));
+    Assert.assertEquals(10, countFourth(storage, auths));
 
-    Assert.assertEquals(0, count(storage, "first_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(100, count(storage, "second_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(0, count(storage, "fourth_dataset", new Authorizations("DS_2")));
-
-    Assert.assertEquals(100, count(storage, "first_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "second_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "fourth_dataset", new Authorizations("DS_1", "DS_2")));
-
-    try (BatchDeleter deleter = storage.deleter(new Authorizations("DS_1", "DS_2"))) {
+    try (BatchDeleter deleter = storage.deleter(auths)) {
+      Assert.assertTrue(storage.remove(deleter, Sets.newHashSet("first_dataset")));
       Assert.assertTrue(storage.remove(deleter, Sets.newHashSet("second_dataset")));
     }
 
-    Assert.assertEquals(100, count(storage, "first_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(0, count(storage, "second_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_1")));
-    Assert.assertEquals(0, count(storage, "fourth_dataset", new Authorizations("DS_1")));
-
-    Assert.assertEquals(0, count(storage, "first_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(0, count(storage, "second_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_2")));
-    Assert.assertEquals(0, count(storage, "fourth_dataset", new Authorizations("DS_2")));
-
-    Assert.assertEquals(100, count(storage, "first_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(0, count(storage, "second_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "fourth_dataset", new Authorizations("DS_1", "DS_2")));
+    Assert.assertEquals(0, countFirst(storage, auths));
+    Assert.assertEquals(0, countSecond(storage, auths));
+    Assert.assertEquals(10, countThird(storage, auths));
+    Assert.assertEquals(10, countFourth(storage, auths));
 
     MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 
   @Test
-  public void testCreateFillAndRemoveRow() throws Exception {
+  public void testCreateAndRemoveRows() throws Exception {
 
     MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
     Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
@@ -218,58 +185,143 @@ public class AbstractStorageTest {
 
     fill(storage);
 
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, new Authorizations("DS_1", "DS_2"));
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
 
-    Assert.assertEquals(100, count(storage, "first_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "second_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "fourth_dataset", new Authorizations("DS_1", "DS_2")));
+    Assert.assertEquals(10, countFirst(storage, auths));
+    Assert.assertEquals(10, countSecond(storage, auths));
+    Assert.assertEquals(10, countThird(storage, auths));
+    Assert.assertEquals(10, countFourth(storage, auths));
 
-    try (BatchDeleter deleter = storage.deleter(new Authorizations("DS_1", "DS_2"))) {
-      for (int i = 0; i < 100; i++) { // remove even rows in dataset 1
-        if (i % 2 == 0) {
+    try (BatchDeleter deleter = storage.deleter(auths)) {
+      for (int i = 0; i < 100; i++) {
+        if (i % 2 == 0) { // remove even rows from dataset 1
           Assert.assertTrue(storage.remove(deleter, "row_" + i, "first_dataset", null));
-        } else { // remove odd rows in dataset 2
+        } else { // remove odd rows from dataset 2
           Assert.assertTrue(storage.remove(deleter, "row_" + i, "second_dataset", null));
         }
       }
     }
 
-    Assert.assertEquals(50, count(storage, "first_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(50, count(storage, "second_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "third_dataset", new Authorizations("DS_1", "DS_2")));
-    Assert.assertEquals(100, count(storage, "fourth_dataset", new Authorizations("DS_1", "DS_2")));
+    Assert.assertEquals(5, countFirst(storage, auths));
+    Assert.assertEquals(5, countSecond(storage, auths));
+    Assert.assertEquals(10, countThird(storage, auths));
+    Assert.assertEquals(10, countFourth(storage, auths));
 
-    try (Scanner scanner = storage.scanner(new Authorizations("DS_1", "DS_2"))) {
-      for (int i = 1; i < 100; i += 2) { // ensure odd rows exist
-        Assert.assertTrue(
-            AbstractStorage.setRange(scanner, Range.exact("row_" + i, "first_dataset")));
-        Assert.assertEquals(1, Iterators.size(scanner.iterator()));
-      }
+    // Ensure odd rows remain in dataset 1
+    Iterator<Map.Entry<Key, Value>> iterator1 = firstDataset(storage, auths);
+
+    while (iterator1.hasNext()) {
+      Assert
+          .assertEquals(1,
+              Integer.parseInt(
+                  iterator1.next().getKey().getRow().toString().substring("row_".length()), 10)
+                  % 2);
     }
 
-    try (Scanner scanner = storage.scanner(new Authorizations("DS_1", "DS_2"))) {
-      for (int i = 0; i < 100; i += 2) { // ensure even rows exist
-        Assert.assertTrue(
-            AbstractStorage.setRange(scanner, Range.exact("row_" + i, "second_dataset")));
-        Assert.assertEquals(1, Iterators.size(scanner.iterator()));
-      }
+    // Ensure even rows remain in dataset 2
+    Iterator<Map.Entry<Key, Value>> iterator2 = secondDataset(storage, auths);
+
+    while (iterator2.hasNext()) {
+      Assert
+          .assertEquals(0,
+              Integer.parseInt(
+                  iterator2.next().getKey().getRow().toString().substring("row_".length()), 10)
+                  % 2);
     }
 
-    try (Scanner scanner = storage.scanner(new Authorizations("DS_1", "DS_2"))) {
-      for (int i = 0; i < 100; i++) { // ensure all rows exist
-        Assert.assertTrue(
-            AbstractStorage.setRange(scanner, Range.exact("row_" + i, "third_dataset")));
-        Assert.assertEquals(1, Iterators.size(scanner.iterator()));
-      }
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
+  }
+
+  @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
+  public void testVisibilityLabelsUserHasMissingAuths() throws Exception {
+
+    MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
+    Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
+    AbstractStorage storage = new SimpleStorage(configurations, "table");
+
+    Assert.assertTrue(storage.create());
+    Assert.assertTrue(storage.isReady());
+
+    fill(storage);
+
+    Authorizations authsDS1 = new Authorizations("DS_1");
+    Authorizations authsDS2 = new Authorizations("DS_2");
+
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, authsDS1);
+
+    Assert.assertEquals(10, countFirst(storage, authsDS1));
+    Assert.assertEquals(10, countFirst(storage, authsDS2)); // Throws an exception
+  }
+
+  @Test
+  public void testVisibilityLabelsUserHasAllAuths() throws Exception {
+
+    MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
+    Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
+    AbstractStorage storage = new SimpleStorage(configurations, "table");
+
+    Assert.assertTrue(storage.create());
+    Assert.assertTrue(storage.isReady());
+
+    fill(storage);
+
+    Authorizations authsDS1DS2 = new Authorizations("DS_1", "DS_2");
+    Authorizations authsDS1 = new Authorizations("DS_1");
+    Authorizations authsDS2 = new Authorizations("DS_2");
+
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, authsDS1DS2);
+
+    Assert.assertEquals(10, countFirst(storage, authsDS1DS2));
+    Assert.assertEquals(10, countSecond(storage, authsDS1DS2));
+    Assert.assertEquals(10, countThird(storage, authsDS1DS2));
+    Assert.assertEquals(10, countFourth(storage, authsDS1DS2));
+
+    Assert.assertEquals(10, countFirst(storage, authsDS1));
+    Assert.assertEquals(0, countSecond(storage, authsDS1));
+    Assert.assertEquals(10, countThird(storage, authsDS1));
+    Assert.assertEquals(0, countFourth(storage, authsDS1));
+
+    Assert.assertEquals(0, countFirst(storage, authsDS2));
+    Assert.assertEquals(10, countSecond(storage, authsDS2));
+    Assert.assertEquals(10, countThird(storage, authsDS2));
+    Assert.assertEquals(0, countFourth(storage, authsDS2));
+
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
+  }
+
+  @Test
+  public void testScanners() throws Exception {
+
+    MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
+    Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
+    AbstractStorage storage = new SimpleStorage(configurations, "table");
+
+    Assert.assertTrue(storage.create());
+    Assert.assertTrue(storage.isReady());
+
+    fill(storage);
+
+    Authorizations authsDS1 = new Authorizations("DS_1");
+
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, authsDS1);
+
+    try (Scanner scanner = storage.scanner(authsDS1)) { // keep order
+
+      Assert.assertTrue(AbstractStorage.setRange(scanner, new Range()));
+      scanner.fetchColumnFamily(new Text("first_dataset"));
+      Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
+
+      Assert.assertEquals(10, Iterators.size(iterator));
     }
 
-    try (Scanner scanner = storage.scanner(new Authorizations("DS_1", "DS_2"))) {
-      for (int i = 0; i < 100; i++) { // ensure all rows exist
-        Assert.assertTrue(
-            AbstractStorage.setRange(scanner, Range.exact("row_" + i, "fourth_dataset")));
-        Assert.assertEquals(1, Iterators.size(scanner.iterator()));
-      }
+    try (BatchScanner scanner = storage.batchScanner(authsDS1)) { // out of order
+
+      Assert.assertTrue(AbstractStorage.setRange(scanner, new Range()));
+      scanner.fetchColumnFamily(new Text("first_dataset"));
+      Iterator<Map.Entry<Key, Value>> iterator = scanner.iterator();
+
+      Assert.assertEquals(10, Iterators.size(iterator));
     }
 
     MiniAccumuloClusterUtils.destroyCluster(accumulo);
@@ -281,37 +333,79 @@ public class AbstractStorageTest {
 
     try (BatchWriter writer = storage.writer()) {
 
-      for (int i = 0; i < 100; i++) {
-        boolean isOk = storage.add(writer, new Text("row_" + i), new Text("first_dataset"), null,
-            new ColumnVisibility("DS_1"), new Value());
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(storage.add(writer, new Text("row_" + i), new Text("first_dataset"), null,
+            new ColumnVisibility("DS_1"), new Value()));
       }
 
-      for (int i = 0; i < 100; i++) {
-        boolean isOk = storage.add(writer, new Text("row_" + i), new Text("second_dataset"), null,
-            new ColumnVisibility("DS_2"), new Value());
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(storage.add(writer, new Text("row_" + i), new Text("second_dataset"),
+            null, new ColumnVisibility("DS_2"), new Value()));
       }
 
-      for (int i = 0; i < 100; i++) {
-        boolean isOk = storage.add(writer, new Text("row_" + i), new Text("third_dataset"), null,
-            new ColumnVisibility("DS_1|DS_2"), new Value());
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(storage.add(writer, new Text("row_" + i), new Text("third_dataset"), null,
+            new ColumnVisibility("DS_1|DS_2"), new Value()));
       }
 
-      for (int i = 0; i < 100; i++) {
-        boolean isOk = storage.add(writer, new Text("row_" + i), new Text("fourth_dataset"), null,
-            new ColumnVisibility("DS_1&DS_2"), new Value());
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(storage.add(writer, new Text("row_" + i), new Text("fourth_dataset"),
+            null, new ColumnVisibility("DS_1&DS_2"), new Value()));
       }
     }
   }
 
+  private int countFirst(AbstractStorage storage, Authorizations authorizations) {
+    return count(storage, "first_dataset", authorizations);
+  }
+
+  private int countSecond(AbstractStorage storage, Authorizations authorizations) {
+    return count(storage, "second_dataset", authorizations);
+  }
+
+  private int countThird(AbstractStorage storage, Authorizations authorizations) {
+    return count(storage, "third_dataset", authorizations);
+  }
+
+  private int countFourth(AbstractStorage storage, Authorizations authorizations) {
+    return count(storage, "fourth_dataset", authorizations);
+  }
+
   private int count(AbstractStorage storage, String dataset, Authorizations authorizations) {
+    Iterator<Map.Entry<Key, Value>> iterator = all(storage, dataset, authorizations);
+    return iterator.hasNext() ? Iterators.size(iterator) : 0;
+  }
+
+  private Iterator<Map.Entry<Key, Value>> firstDataset(AbstractStorage storage,
+      Authorizations authorizations) {
+    return all(storage, "first_dataset", authorizations);
+  }
+
+  private Iterator<Map.Entry<Key, Value>> secondDataset(AbstractStorage storage,
+      Authorizations authorizations) {
+    return all(storage, "second_dataset", authorizations);
+  }
+
+  private Iterator<Map.Entry<Key, Value>> thirdDataset(AbstractStorage storage,
+      Authorizations authorizations) {
+    return all(storage, "third_dataset", authorizations);
+  }
+
+  private Iterator<Map.Entry<Key, Value>> fourthDataset(AbstractStorage storage,
+      Authorizations authorizations) {
+    return all(storage, "fourth_dataset", authorizations);
+  }
+
+  private Iterator<Map.Entry<Key, Value>> all(AbstractStorage storage, String dataset,
+      Authorizations authorizations) {
 
     Preconditions.checkNotNull(storage, "storage should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    try (BatchScanner scanner = storage.batchScanner(authorizations)) {
-      boolean isOk = AbstractStorage.setRange(scanner, new Range());
+    try (Scanner scanner = storage.scanner(authorizations)) { // keep order
+      Assert.assertTrue(AbstractStorage.setRange(scanner, new Range()));
       scanner.fetchColumnFamily(new Text(dataset));
-      return Iterators.size(scanner.iterator());
+      return scanner.iterator();
     }
   }
 
