@@ -79,6 +79,8 @@ public class AbstractStorageTest {
 
     Assert.assertTrue(storage.create());
     Assert.assertTrue(storage.isReady());
+
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 
   @Test
@@ -93,6 +95,8 @@ public class AbstractStorageTest {
 
     Assert.assertTrue(storage.destroy());
     Assert.assertFalse(storage.isReady());
+
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 
   @Test
@@ -110,6 +114,8 @@ public class AbstractStorageTest {
     Assert.assertEquals(1000000, count(storage));
     Assert.assertTrue(storage.truncate());
     Assert.assertEquals(0, count(storage));
+
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 
   @Test
@@ -141,6 +147,8 @@ public class AbstractStorageTest {
         Assert.assertEquals(10000, Iterators.size(scanner.iterator()));
       }
     }
+
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 
   private void fill(AbstractStorage storage) throws Exception {

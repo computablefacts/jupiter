@@ -23,5 +23,7 @@ public class BlobStoreTest {
     Assert.assertTrue(blobStore.destroy());
     Assert.assertFalse(blobStore.isReady());
     Assert.assertEquals("blobs", blobStore.tableName());
+
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 }

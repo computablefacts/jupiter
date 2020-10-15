@@ -21,5 +21,7 @@ public class DataStoreTest {
 
     Assert.assertTrue(dataStore.destroy());
     Assert.assertFalse(dataStore.isReady());
+
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 }

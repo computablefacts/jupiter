@@ -23,5 +23,7 @@ public class TermStoreTest {
     Assert.assertTrue(termStore.destroy());
     Assert.assertFalse(termStore.isReady());
     Assert.assertEquals("terms", termStore.tableName());
+
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 }

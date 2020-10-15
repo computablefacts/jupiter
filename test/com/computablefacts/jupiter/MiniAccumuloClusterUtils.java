@@ -8,8 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.commons.io.FileUtils;
@@ -43,8 +41,7 @@ final public class MiniAccumuloClusterUtils {
    *
    * @return a new {@link MiniAccumuloCluster}.
    */
-  public static MiniAccumuloCluster newCluster()
-      throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException {
+  public static MiniAccumuloCluster newCluster() throws Exception {
 
     // Create MAC directory
     File macDir = Files.createTempDirectory("mac-").toFile();
@@ -99,5 +96,18 @@ final public class MiniAccumuloClusterUtils {
         .changeUserAuthorizations(MAC_USER, Constants.AUTH_ADM);
 
     return accumulo;
+  }
+
+  /**
+   * Destroy an existing MiniAccumuloCluster. Force removal of the underlying MAC directory.
+   *
+   * @param accumulo a {@link MiniAccumuloCluster}.
+   */
+  public static void destroyCluster(MiniAccumuloCluster accumulo) throws Exception {
+
+    Preconditions.checkNotNull(accumulo, "accumulo should not be null");
+
+    accumulo.stop();
+    FileUtils.forceDelete(accumulo.getConfig().getDir());
   }
 }
