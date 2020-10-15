@@ -2,31 +2,31 @@ os: linux
 dist: trusty
 language: java
 jdk:
-- openjdk8
+  - openjdk8
 install: "/bin/true"
 script:
-- mvn clean install -q -B
+  - mvn clean install -q -B
 env:
   global:
-  - secure: cQDWyy4G1J8jihK1kF2gGXe3NM5uUq5QVf7rNn/zqszPwiR9Z5I1io/8ycN4YOp0j4tY/8aoXSFGJyoEk/+tWt5+t5Pe0iP8T6FQUQV9LdNfqJvZyrNoath4Rr4Erb4WLlLih4oIjozmroLihXovHBouTnbb3N10fgf8lyrMJzIRbKVt9HhQB23HvcGhYqwG3NuHlKo/h1/rqwpvuezQt1tiLjtOq1fqXQiijqojroVcLzR40k2jgowGV6HUthjL8K9TIyo9UiuVTss1PxsJcmnuD0VLYCokkvvETGXC7L8aIYUxhGS+/Jl+GjgUzHKd8llJQJRemOvcLZqqk1QG1O+FJhTlBrMyJcsYSnr244hV4/b9zrSsDuIcLnmkK6bUehmCZJeFradlF4H0wnUCBK6uACBukPy0YFjgqPphG28GjEy8K19kabrLci8jIJAkGs4PpJ+ByB0INiRwqaJsXJnbd60zZGGyZ/1CQKAAQkmsGdJa4xUyUh0rhEp0fuyRPBK6tOUaBK3CiTFiWukDFvUCs+KPkBzk6xvN2X7UPm1ro7zZDyWcEWYTh7Fd/HMaYTGG/t4hPCGXqL75zN/An2l7yd3fdgOl7x36dHPzOcA+sbAREATwV6H6+1+CCnnCQV1ubi4B3RK/8ZptSVSsABeDPoNfVYr/ymw5iP3wpT8=
-  - secure: a+lXZtgOEfgBqo/PX/0Rcto4h9Cm6whfYsUSP5btqTK8nXyuTGg7eXPIjm2joTVH1gb0IWRi8rpfon0JbCjNVdZJ+9pyNtcEndYOnLeGnSv90Jef85URHltwC2rzCx3eh/1BnuiSZICXjyXZGalxQMkr0PpeWsF7jyoRDdn5PrL/rc8jMrnDZkymiliCNKC2twvgZjgoTBYAA42zsTrRZZ7ohHlAxhfBoGc1Z9WlDwMuvXUuCmxu3FJZ4nDr989QzHNR/W+2jUMY5VuZQGauKkur7SiXcv075rKFfm6+DnBuu+hmIvfsrioQoez/fEXyE5LjbNX1eGO6gT7XPVuBD+Kc3sQ6dWOOsM0suBbAUuQfE7Ms/J7qkUoVxIql8W2GLymejL6HuaGQIJmOAEortfZvrd/QpYRV+g/Wgwod2T1g1/p3xKVi3I+KV4MbCOm7IHDGGkloFy1n4xQIyNiaTTe1LwKZae+qOk5Lf8UPBSbGzhcT7gU9mAafVF2YmrjfN//z80HRAEdJiwb82sbxKxCzzqWVlO6S/XHyxiqJyML2qBZbauq1iRLAgrXxsdqYBpe8VHjBN/74Oz8TI8WcBQ7sEXjsPTR+j2OjozvpluLfZ2x3EaneHiLlvszugs+iU2rscv1uB/P/zD12C2zTXfYN93XHTwsq90Z+gHCwOSE=
-  - secure: heDeE3/eaYs0gAMnGNXptiA8m3hel1r56MxqCG7nL43JkZdr44uDQIdprxZ+YQZHjiVC2+Wz0A6AX29jqauTbLpQMdKxBmrqXeoLwap10l2wlEoL9HBqL4jxBll8/EPBOnH5UtRZZoEsVC2IrGKXeXJFpbgTCDJ/0qaFr+LDD0zSm1zlQySmIyv9+Lw/g2SZNaf/ksRx7kD5Pxp17ebKxSZfqEzzRdD340vQB1IYeQmUQ/oFnWl018in6leqFsjTFdF9Nb280AKD2eAtD05SSa/gIU98LAkOkD3KOCs/PXeASH0B1xI3nATWMp1l7qi5zQ1QjTr3Unf3LKUZDa5S2/AFVpg1/4f6kbRoeK2R8kUwVUqKYrdELzywI5oE5+Ri06A4ecWaLei+fszV/Qq4I4SPoTm3jXyaglX2YN0kRmkVlHZmdVXK+rssyOkmVwRbr0eYqI3MDQZpkOSHZjB0DyDGBln9ngS2C1tJeqeczDz/uFIWm6DCMYBz5UAOizf/NmqVxfVrE0Vu146pssyDekL6x8iio1ElokyxMVmsVGt6Dy0BhglVxelWyv5g1ilrDXWESHyuaJJUMPgH+pxLLuuAJnfIcxykXau5n1ha1leixlOzOcNK7drPmvIP0Yb+bnf+D3p1xt7evabcRSEFcrFrGtDNrENzk5e5+UCVAhU=
-  - secure: F9eNUvh/K6BbeViKd7026+CNNACkYEsi5Eh/tPP9NPqaVTqMguQzPxWO2zhIy8Yy1jmXThcd0iSpsMQzy4od5b2RMzR4/oKLSaJN7eVY1cLuK5dc4G9rp63R1kwqcKzev1pSlHNJqAI5clIVR3nMEZvqZx5U2t8TV5OG9NB5ZzrZn2OU1yzPqyenAomd3K3oEYuCREnqr44K5DKqHZyhEPdWZXpTWdxM7xQtdxfBhKDD4kyQXPLWVgVubRNUEWMpSt76s8YU+Qq9+Y/KuHx7iNYbKlF5EdbPYtOEO321wTH1njchS+3L0Yn9RcWzH1bXiUEv3AP39pnCSnLzOIRHz1ANd2A+RyiIA2E00gJxVVlpbjRD/ZqePVBYCk/mIVMLV3j93qaRQF5WfC97t9aaD8gi36a67DVdpl4bvXvMFmBK/foV7q8Fy8CM5Lz4RTuQTzvX8qONlAul3GaVYIl9RgG378/4/EjxrRg9HKnSJEZ0MNRIHG9SNBBUK6f8F3V1tUZqUUqf3k30DJZ4y/J0z+K0Mr9AgHi0OEvfD2fg2ZTWG0OHYeusaoRFKgv03ZlgR2YYk9KwPQNlIYLhVlkklGnm0dKO6UDb1vuXyQvjklmQPOnPp+FRk+Ev3w14+OS8h3CIpdvYODq3SqZAOYqv0I2w8FkqYIe2HS5kXCBpDgI=
+    - secure: cQDWyy4G1J8jihK1kF2gGXe3NM5uUq5QVf7rNn/zqszPwiR9Z5I1io/8ycN4YOp0j4tY/8aoXSFGJyoEk/+tWt5+t5Pe0iP8T6FQUQV9LdNfqJvZyrNoath4Rr4Erb4WLlLih4oIjozmroLihXovHBouTnbb3N10fgf8lyrMJzIRbKVt9HhQB23HvcGhYqwG3NuHlKo/h1/rqwpvuezQt1tiLjtOq1fqXQiijqojroVcLzR40k2jgowGV6HUthjL8K9TIyo9UiuVTss1PxsJcmnuD0VLYCokkvvETGXC7L8aIYUxhGS+/Jl+GjgUzHKd8llJQJRemOvcLZqqk1QG1O+FJhTlBrMyJcsYSnr244hV4/b9zrSsDuIcLnmkK6bUehmCZJeFradlF4H0wnUCBK6uACBukPy0YFjgqPphG28GjEy8K19kabrLci8jIJAkGs4PpJ+ByB0INiRwqaJsXJnbd60zZGGyZ/1CQKAAQkmsGdJa4xUyUh0rhEp0fuyRPBK6tOUaBK3CiTFiWukDFvUCs+KPkBzk6xvN2X7UPm1ro7zZDyWcEWYTh7Fd/HMaYTGG/t4hPCGXqL75zN/An2l7yd3fdgOl7x36dHPzOcA+sbAREATwV6H6+1+CCnnCQV1ubi4B3RK/8ZptSVSsABeDPoNfVYr/ymw5iP3wpT8=
+    - secure: a+lXZtgOEfgBqo/PX/0Rcto4h9Cm6whfYsUSP5btqTK8nXyuTGg7eXPIjm2joTVH1gb0IWRi8rpfon0JbCjNVdZJ+9pyNtcEndYOnLeGnSv90Jef85URHltwC2rzCx3eh/1BnuiSZICXjyXZGalxQMkr0PpeWsF7jyoRDdn5PrL/rc8jMrnDZkymiliCNKC2twvgZjgoTBYAA42zsTrRZZ7ohHlAxhfBoGc1Z9WlDwMuvXUuCmxu3FJZ4nDr989QzHNR/W+2jUMY5VuZQGauKkur7SiXcv075rKFfm6+DnBuu+hmIvfsrioQoez/fEXyE5LjbNX1eGO6gT7XPVuBD+Kc3sQ6dWOOsM0suBbAUuQfE7Ms/J7qkUoVxIql8W2GLymejL6HuaGQIJmOAEortfZvrd/QpYRV+g/Wgwod2T1g1/p3xKVi3I+KV4MbCOm7IHDGGkloFy1n4xQIyNiaTTe1LwKZae+qOk5Lf8UPBSbGzhcT7gU9mAafVF2YmrjfN//z80HRAEdJiwb82sbxKxCzzqWVlO6S/XHyxiqJyML2qBZbauq1iRLAgrXxsdqYBpe8VHjBN/74Oz8TI8WcBQ7sEXjsPTR+j2OjozvpluLfZ2x3EaneHiLlvszugs+iU2rscv1uB/P/zD12C2zTXfYN93XHTwsq90Z+gHCwOSE=
+    - secure: heDeE3/eaYs0gAMnGNXptiA8m3hel1r56MxqCG7nL43JkZdr44uDQIdprxZ+YQZHjiVC2+Wz0A6AX29jqauTbLpQMdKxBmrqXeoLwap10l2wlEoL9HBqL4jxBll8/EPBOnH5UtRZZoEsVC2IrGKXeXJFpbgTCDJ/0qaFr+LDD0zSm1zlQySmIyv9+Lw/g2SZNaf/ksRx7kD5Pxp17ebKxSZfqEzzRdD340vQB1IYeQmUQ/oFnWl018in6leqFsjTFdF9Nb280AKD2eAtD05SSa/gIU98LAkOkD3KOCs/PXeASH0B1xI3nATWMp1l7qi5zQ1QjTr3Unf3LKUZDa5S2/AFVpg1/4f6kbRoeK2R8kUwVUqKYrdELzywI5oE5+Ri06A4ecWaLei+fszV/Qq4I4SPoTm3jXyaglX2YN0kRmkVlHZmdVXK+rssyOkmVwRbr0eYqI3MDQZpkOSHZjB0DyDGBln9ngS2C1tJeqeczDz/uFIWm6DCMYBz5UAOizf/NmqVxfVrE0Vu146pssyDekL6x8iio1ElokyxMVmsVGt6Dy0BhglVxelWyv5g1ilrDXWESHyuaJJUMPgH+pxLLuuAJnfIcxykXau5n1ha1leixlOzOcNK7drPmvIP0Yb+bnf+D3p1xt7evabcRSEFcrFrGtDNrENzk5e5+UCVAhU=
+    - secure: F9eNUvh/K6BbeViKd7026+CNNACkYEsi5Eh/tPP9NPqaVTqMguQzPxWO2zhIy8Yy1jmXThcd0iSpsMQzy4od5b2RMzR4/oKLSaJN7eVY1cLuK5dc4G9rp63R1kwqcKzev1pSlHNJqAI5clIVR3nMEZvqZx5U2t8TV5OG9NB5ZzrZn2OU1yzPqyenAomd3K3oEYuCREnqr44K5DKqHZyhEPdWZXpTWdxM7xQtdxfBhKDD4kyQXPLWVgVubRNUEWMpSt76s8YU+Qq9+Y/KuHx7iNYbKlF5EdbPYtOEO321wTH1njchS+3L0Yn9RcWzH1bXiUEv3AP39pnCSnLzOIRHz1ANd2A+RyiIA2E00gJxVVlpbjRD/ZqePVBYCk/mIVMLV3j93qaRQF5WfC97t9aaD8gi36a67DVdpl4bvXvMFmBK/foV7q8Fy8CM5Lz4RTuQTzvX8qONlAul3GaVYIl9RgG378/4/EjxrRg9HKnSJEZ0MNRIHG9SNBBUK6f8F3V1tUZqUUqf3k30DJZ4y/J0z+K0Mr9AgHi0OEvfD2fg2ZTWG0OHYeusaoRFKgv03ZlgR2YYk9KwPQNlIYLhVlkklGnm0dKO6UDb1vuXyQvjklmQPOnPp+FRk+Ev3w14+OS8h3CIpdvYODq3SqZAOYqv0I2w8FkqYIe2HS5kXCBpDgI=
 before_deploy:
-- openssl aes-256-cbc -K $encrypted_4f0d00631887_key -iv $encrypted_4f0d00631887_iv
-  -in .travis/gpg.asc.enc -out .travis/gpg.asc -d
+  - openssl aes-256-cbc -K $encrypted_4f0d00631887_key -iv $encrypted_4f0d00631887_iv
+    -in .travis/gpg.asc.enc -out .travis/gpg.asc -d
 deploy:
-- skip_cleanup: true
-  provider: script
-  script: chmod +x ./deploy.sh && ./deploy.sh
-  on:
-    branch: master
-- skip_cleanup: true
-  provider: script
-  script: chmod +x ./deploy.sh && ./deploy.sh
-  on:
-    tags: true
+  - skip_cleanup: true
+    provider: script
+    script: chmod +x ./deploy.sh && ./deploy.sh
+    on:
+      branch: master
+  - skip_cleanup: true
+    provider: script
+    script: chmod +x ./deploy.sh && ./deploy.sh
+    on:
+      tags: true
 after_success:
-- bash <(curl -s https://codecov.io/bash) -t dfcb8d7c-b24a-4213-9ecb-9419be66f237
+  - bash <(curl -s https://codecov.io/bash) -t dfcb8d7c-b24a-4213-9ecb-9419be66f237
 after_failure:
   - find /tmp/mac-*/logs -type f -exec cat {} +
