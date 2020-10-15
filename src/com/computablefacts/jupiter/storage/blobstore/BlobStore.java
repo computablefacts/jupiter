@@ -69,8 +69,8 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("add_locality_group", tableName())
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatterManager.logFormatter().add("add_locality_group", tableName())
           .add("dataset", dataset).formatInfo());
     }
 
@@ -112,7 +112,7 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(deleter, "deleter should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+      logger_.debug(LogFormatterManager.logFormatter().add("table_name", tableName())
           .add("dataset", dataset).add("keys", keys).formatDebug());
     }
 
@@ -167,7 +167,7 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(value, "value should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+      logger_.debug(LogFormatterManager.logFormatter().add("table_name", tableName())
           .add("dataset", dataset).add("key", key).add("labels", labels).formatDebug());
     }
 
@@ -249,8 +249,7 @@ final public class BlobStore extends AbstractStorage {
     }
     return Iterators.transform(scanner.iterator(), entry -> {
       String cv = entry.getKey().getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(
-          Splitter.on(Constants.SEPARATOR_PIPE).split(cv.substring(1, cv.length() - 1)));
+      Set<String> labels = Sets.newHashSet(Splitter.on(Constants.SEPARATOR_PIPE).split(cv));
       return new Blob<>(entry.getKey().getRow().toString(), labels, entry.getValue());
     });
   }
