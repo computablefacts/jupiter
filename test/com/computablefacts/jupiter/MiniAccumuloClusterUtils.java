@@ -8,12 +8,14 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.commons.io.FileUtils;
 
 import com.computablefacts.jupiter.storage.Constants;
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
@@ -34,6 +36,18 @@ final public class MiniAccumuloClusterUtils {
 
     return new Configurations(accumulo.getInstanceName(), accumulo.getZooKeepers(),
         MiniAccumuloClusterUtils.MAC_USER, MiniAccumuloClusterUtils.MAC_PASSWORD);
+  }
+
+  @CanIgnoreReturnValue
+  public static MiniAccumuloCluster setUserAuths(MiniAccumuloCluster accumulo, Authorizations auths)
+      throws Exception {
+
+    Preconditions.checkNotNull(accumulo, "accumulo should not be null");
+
+    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations()
+        .changeUserAuthorizations(MAC_USER, auths);
+
+    return accumulo;
   }
 
   /**
@@ -91,11 +105,7 @@ final public class MiniAccumuloClusterUtils {
         // throw new IOException("Failed to clean up MAC directory", e);
       }
     }));
-
-    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations()
-        .changeUserAuthorizations(MAC_USER, Constants.AUTH_ADM);
-
-    return accumulo;
+    return setUserAuths(accumulo, Constants.AUTH_ADM);
   }
 
   /**
