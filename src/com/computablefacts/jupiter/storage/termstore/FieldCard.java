@@ -51,15 +51,18 @@ final public class FieldCard implements HasField {
     return Objects.hashCode(field_, labels_, cardinality_);
   }
 
+  @Generated
   @Override
   public String field() {
     return field_;
   }
 
+  @Generated
   public Set<String> labels() {
     return labels_;
   }
 
+  @Generated
   public long cardinality() {
     return cardinality_;
   }

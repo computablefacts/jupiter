@@ -53,15 +53,18 @@ final public class FieldLabels implements HasField {
     return Objects.hashCode(field_, labelsAccumulo_, labelsTerm_);
   }
 
+  @Generated
   @Override
   public String field() {
     return field_;
   }
 
+  @Generated
   public Set<String> accumuloLabels() {
     return labelsAccumulo_;
   }
 
+  @Generated
   public Set<String> termLabels() {
     return labelsTerm_;
   }
