@@ -249,7 +249,8 @@ final public class BlobStore extends AbstractStorage {
     }
     return Iterators.transform(scanner.iterator(), entry -> {
       String cv = entry.getKey().getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(Splitter.on(Constants.SEPARATOR_PIPE).split(cv));
+      Set<String> labels = Sets.newHashSet(
+          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
       return new Blob<>(entry.getKey().getRow().toString(), labels, entry.getValue());
     });
   }

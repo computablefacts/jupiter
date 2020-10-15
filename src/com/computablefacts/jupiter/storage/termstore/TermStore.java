@@ -472,7 +472,8 @@ final public class TermStore extends AbstractStorage {
 
       // Extract visibility labels
       String cv = key.getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(Splitter.on(Constants.SEPARATOR_PIPE).split(cv));
+      Set<String> labels = Sets.newHashSet(
+          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
       return new FieldCount(field, labels, count);
     });
@@ -521,7 +522,8 @@ final public class TermStore extends AbstractStorage {
 
       // Extract visibility labels
       String cv = key.getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(Splitter.on(Constants.SEPARATOR_PIPE).split(cv));
+      Set<String> labels = Sets.newHashSet(
+          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
       return new FieldCard(field, labels, cardinality);
     });
@@ -572,7 +574,8 @@ final public class TermStore extends AbstractStorage {
 
       // Extract visibility labels
       String cv = key.getColumnVisibility().toString();
-      Set<String> labelsAccumulo = Sets.newHashSet(Splitter.on(Constants.SEPARATOR_PIPE).split(cv));
+      Set<String> labelsAccumulo = Sets.newHashSet(
+          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
       return new FieldLabels(field, labelsAccumulo, labelsTerm);
     });
@@ -669,7 +672,8 @@ final public class TermStore extends AbstractStorage {
 
       // Extract visibility labels
       String cv = key.getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(Splitter.on(Constants.SEPARATOR_PIPE).split(cv));
+      Set<String> labels = Sets.newHashSet(
+          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
       return new TermCount(field, termm, labels, count);
     });
@@ -766,7 +770,8 @@ final public class TermStore extends AbstractStorage {
 
       // Extract visibility labels
       String cv = key.getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(Splitter.on(Constants.SEPARATOR_PIPE).split(cv));
+      Set<String> labels = Sets.newHashSet(
+          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
       return new TermCard(field, termm, labels, cardinality);
     });
@@ -900,7 +905,8 @@ final public class TermStore extends AbstractStorage {
 
       // Extract visibility labels
       String cv = key.getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(Splitter.on(Constants.SEPARATOR_PIPE).split(cv));
+      Set<String> labels = Sets.newHashSet(
+          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
       return new Term(docId, field, termm, labels, count, ranges);
     });
