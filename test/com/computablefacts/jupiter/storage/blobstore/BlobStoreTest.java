@@ -205,6 +205,8 @@ public class BlobStoreTest {
       Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), blob.labels());
       Assert.assertEquals(json(1), blob.value().toString());
     }
+
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 
   @Test
@@ -250,6 +252,8 @@ public class BlobStoreTest {
         i++;
       }
     }
+
+    MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 
   private void fill(BlobStore blobStore) throws Exception {
