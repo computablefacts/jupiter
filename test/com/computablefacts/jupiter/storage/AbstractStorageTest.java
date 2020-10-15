@@ -111,7 +111,7 @@ public class AbstractStorageTest {
 
     fill(storage);
 
-    Assert.assertEquals(1000000, count(storage));
+    Assert.assertEquals(1000, count(storage));
     Assert.assertTrue(storage.truncate());
     Assert.assertEquals(0, count(storage));
 
@@ -130,21 +130,21 @@ public class AbstractStorageTest {
 
     fill(storage);
 
-    Assert.assertEquals(1000000, count(storage));
+    Assert.assertEquals(1000, count(storage));
 
     try (BatchDeleter deleter = storage.deleter(Constants.AUTH_ADM)) {
-      for (int rowId = 0; rowId < 100; rowId += 2) { // remove even rows
+      for (int rowId = 0; rowId < 10; rowId += 2) { // remove even rows
         Assert.assertTrue(AbstractStorage.setRange(deleter, Range.exact("row_" + rowId)));
         deleter.delete();
       }
     }
 
-    Assert.assertEquals(500000, count(storage));
+    Assert.assertEquals(500, count(storage));
 
     try (Scanner scanner = storage.scanner(Constants.AUTH_ADM)) {
-      for (int rowId = 1; rowId < 100; rowId += 2) { // ensure odd rows exist
+      for (int rowId = 1; rowId < 10; rowId += 2) { // ensure odd rows exist
         Assert.assertTrue(AbstractStorage.setRange(scanner, Range.exact("row_" + rowId)));
-        Assert.assertEquals(10000, Iterators.size(scanner.iterator()));
+        Assert.assertEquals(100, Iterators.size(scanner.iterator()));
       }
     }
 
@@ -156,9 +156,9 @@ public class AbstractStorageTest {
     Preconditions.checkNotNull(storage, "storage should not be null");
 
     try (BatchWriter writer = storage.writer()) {
-      for (int rowId = 0; rowId < 100; rowId++) {
-        for (int cf = 0; cf < 100; cf++) {
-          for (int cq = 0; cq < 100; cq++) {
+      for (int rowId = 0; rowId < 10; rowId++) {
+        for (int cf = 0; cf < 10; cf++) {
+          for (int cq = 0; cq < 10; cq++) {
             boolean isOk = storage.add(writer, new Text("row_" + rowId), new Text("cf_" + cf),
                 new Text("cq_" + cq), new ColumnVisibility(Constants.STRING_ADM),
                 new Value("value_" + rowId + "_" + cf + "_" + cq));
