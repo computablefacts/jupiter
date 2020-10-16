@@ -270,8 +270,8 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
-                    <parallel>methods</parallel>
-                    <threadCount>2</threadCount>
+                    <parallel>classes</parallel>
+                    <threadCount>5</threadCount>
                     <skipTests>false</skipTests>
                 </configuration>
             </plugin>
