@@ -5,8 +5,10 @@ import static org.apache.accumulo.minicluster.MemoryUnit.MEGABYTE;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -77,15 +79,17 @@ final public class MiniAccumuloClusterUtils {
         binDir.mkdirs();
       }
 
-      Files.walk(Paths.get("C:\\a_bin\\winutils-master\\hadoop-2.8.3")).filter(Files::isRegularFile)
-          .forEach(file -> {
-            try {
-              Files.copy(file, Paths.get(macDir.getAbsolutePath() + "/bin/" + file.getFileName()),
-                  StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-              // TODO
-            }
-          });
+      try (
+          Stream<Path> stream = Files.walk(Paths.get("C:\\a_bin\\winutils-master\\hadoop-2.8.3"))) {
+        stream.forEach(file -> {
+          try {
+            Files.copy(file, Paths.get(macDir.getAbsolutePath() + "/bin/" + file.getFileName()),
+                StandardCopyOption.REPLACE_EXISTING);
+          } catch (IOException e) {
+            // TODO
+          }
+        });
+      }
     }
 
     // Start MAC and connect to it
