@@ -12,6 +12,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
+import com.computablefacts.nona.Generated;
 import com.google.common.base.Strings;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
@@ -50,6 +51,7 @@ public class AgeOffPeriodFilter extends Filter {
     }
   }
 
+  @Generated
   @Override
   public IteratorOptions describeOptions() {
 

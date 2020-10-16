@@ -12,6 +12,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.computablefacts.jupiter.BloomFilters;
+import com.computablefacts.nona.Generated;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
@@ -45,6 +46,7 @@ public class BloomFilterFilter extends Filter {
     }
   }
 
+  @Generated
   @Override
   public IteratorOptions describeOptions() {
 

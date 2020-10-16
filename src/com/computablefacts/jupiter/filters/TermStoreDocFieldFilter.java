@@ -15,6 +15,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.computablefacts.jupiter.BloomFilters;
+import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -42,6 +43,7 @@ public class TermStoreDocFieldFilter extends Filter {
     }
   }
 
+  @Generated
   @Override
   public IteratorOptions describeOptions() {
 
@@ -76,9 +78,15 @@ public class TermStoreDocFieldFilter extends Filter {
 
     super.init(source, options, env);
 
-    keepDocs_ =
-        options.containsKey(DOCS_CRITERION) ? BloomFilters.fromString(options.get(DOCS_CRITERION))
-            : null;
+    if (!options.containsKey(DOCS_CRITERION)) {
+      keepDocs_ = null;
+    } else {
+      keepDocs_ = BloomFilters.fromString(options.get(DOCS_CRITERION));
+      if (keepDocs_ == null) {
+        keepDocs_ = new BloomFilters<>();
+      }
+    }
+
     keepFields_ = options.containsKey(FIELDS_CRITERION)
         ? Sets.newHashSet(Splitter.on(SEPARATOR_NUL).split(options.get(FIELDS_CRITERION)))
         : null;
