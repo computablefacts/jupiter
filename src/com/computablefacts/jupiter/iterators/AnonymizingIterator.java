@@ -3,6 +3,7 @@ package com.computablefacts.jupiter.iterators;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -130,9 +131,10 @@ public abstract class AnonymizingIterator
    */
   protected Set<String> parsedAuths() {
     if (auths_ == null) {
-      auths_ = Sets.newHashSet(Splitter.on(',').split(options_.get("auths")));
+      auths_ = Sets.newHashSet(
+          Splitter.on(',').trimResults().omitEmptyStrings().split(options_.get("auths")));
     }
-    return auths_;
+    return new HashSet<>(auths_);
   }
 
   /**
