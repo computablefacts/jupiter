@@ -271,7 +271,7 @@
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <parallel>classes</parallel>
-                    <threadCount>2</threadCount>
+                    <threadCount>5</threadCount>
                     <skipTests>false</skipTests>
                 </configuration>
             </plugin>
