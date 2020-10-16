@@ -1,8 +1,8 @@
 package com.computablefacts.jupiter.storage.termstore;
 
-import static com.computablefacts.jupiter.storage.termstore.ComparablePair.compare;
-
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -16,6 +16,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -124,5 +125,31 @@ final public class Term implements HasTerm, Comparable<Term> {
   @Generated
   public List<ComparablePair<Integer, Integer>> spans() {
     return spans_;
+  }
+
+  private <T extends Comparable<T>> int compare(Collection<T> l1, Collection<T> l2) {
+
+    @Var
+    int cmp = Integer.compare(l1.size(), l2.size());
+
+    if (cmp != 0) {
+      return cmp;
+    }
+
+    List<T> tmp1 = Lists.newArrayList(l1);
+    List<T> tmp2 = Lists.newArrayList(l2);
+
+    Collections.sort(tmp1);
+    Collections.sort(tmp2);
+
+    for (int i = 0; i < tmp1.size(); i++) {
+
+      cmp = tmp1.get(i).compareTo(tmp2.get(i));
+
+      if (cmp != 0) {
+        return cmp;
+      }
+    }
+    return 0;
   }
 }
