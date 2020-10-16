@@ -9,6 +9,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.junit.AfterClass;
@@ -223,6 +224,21 @@ public class TermStoreTest {
     if (termStore.create()) {
       fill();
     }
+  }
+
+  @Test
+  public void testAddLocalityGroup() {
+
+    Assert.assertTrue(
+        Tables.getLocalityGroups(termStore.configurations().tableOperations(), "terms").isEmpty());
+
+    Assert.assertTrue(termStore.addLocalityGroup("third_dataset"));
+    Assert.assertEquals(6,
+        Tables.getLocalityGroups(termStore.configurations().tableOperations(), "terms").size());
+
+    Assert.assertTrue(termStore.addLocalityGroup("third_dataset")); // ensure reentrant
+    Assert.assertEquals(6,
+        Tables.getLocalityGroups(termStore.configurations().tableOperations(), "terms").size());
   }
 
   @Test
@@ -848,17 +864,117 @@ public class TermStoreTest {
   }
 
   @Test
-  public void testAddLocalityGroup() {
+  public void testTermScanExactMatch() throws Exception {
 
-    Assert.assertTrue(
-        Tables.getLocalityGroups(termStore.configurations().tableOperations(), "terms").isEmpty());
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
 
-    Assert.assertTrue(termStore.addLocalityGroup("third_dataset"));
-    Assert.assertEquals(6,
-        Tables.getLocalityGroups(termStore.configurations().tableOperations(), "terms").size());
+    try (Scanner scanner = termStore.scanner(auths)) {
 
-    Assert.assertTrue(termStore.addLocalityGroup("third_dataset")); // ensure reentrant
-    Assert.assertEquals(6,
-        Tables.getLocalityGroups(termStore.configurations().tableOperations(), "terms").size());
+      List<Pair<String, List<Term>>> list = new ArrayList<>();
+      termStore.termScan(scanner, "third_dataset", "term_1", null, null)
+          .forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals("term_1", list.get(0).getFirst());
+      Assert.assertEquals(1, list.get(0).getSecond().size());
+
+      Term term = list.get(0).getSecond().get(0);
+
+      Assert.assertEquals("row_1", term.docId());
+      Assert.assertEquals("field_1", term.field());
+      Assert.assertEquals("term_1", term.term());
+      Assert.assertEquals(2, term.count());
+      Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), term.labels());
+      Assert.assertEquals(Lists.newArrayList(new ComparablePair<>(0, "term_1".length()),
+          new ComparablePair<>(10, 10 + "term_1".length())), term.spans());
+    }
+  }
+
+  @Test
+  public void testTermScanPrefixMatch() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<Pair<String, List<Term>>> list = new ArrayList<>();
+      termStore.termScan(scanner, "third_dataset", "term_*", null, null)
+          .forEachRemaining(list::add);
+
+      Assert.assertEquals(10, list.size());
+
+      for (int i = 0; i < 10; i++) {
+
+        Assert.assertEquals("term_" + i, list.get(i).getFirst());
+        Assert.assertEquals(1, list.get(i).getSecond().size());
+
+        Term term = list.get(i).getSecond().get(0);
+
+        Assert.assertEquals("row_" + i, term.docId());
+        Assert.assertEquals("field_" + i, term.field());
+        Assert.assertEquals("term_" + i, term.term());
+        Assert.assertEquals(2, term.count());
+        Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), term.labels());
+        Assert.assertEquals(Lists.newArrayList(new ComparablePair<>(0, ("term_" + i).length()),
+            new ComparablePair<>(10, 10 + ("term_" + i).length())), term.spans());
+      }
+    }
+  }
+
+  @Test
+  public void testTermScanSuffixMatch() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<Pair<String, List<Term>>> list = new ArrayList<>();
+      termStore.termScan(scanner, "third_dataset", "*_1", null, null).forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals("term_1", list.get(0).getFirst());
+      Assert.assertEquals(1, list.get(0).getSecond().size());
+
+      Term term = list.get(0).getSecond().get(0);
+
+      Assert.assertEquals("row_1", term.docId());
+      Assert.assertEquals("field_1", term.field());
+      Assert.assertEquals("term_1", term.term());
+      Assert.assertEquals(2, term.count());
+      Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), term.labels());
+      Assert.assertEquals(Lists.newArrayList(new ComparablePair<>(0, "term_1".length()),
+          new ComparablePair<>(10, 10 + "term_1".length())), term.spans());
+    }
+  }
+
+  @Test
+  public void testTermScanInfixMatch() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<Pair<String, List<Term>>> list = new ArrayList<>();
+      termStore.termScan(scanner, "third_dataset", "term?1", null, null)
+          .forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals("term_1", list.get(0).getFirst());
+      Assert.assertEquals(1, list.get(0).getSecond().size());
+
+      Term term = list.get(0).getSecond().get(0);
+
+      Assert.assertEquals("row_1", term.docId());
+      Assert.assertEquals("field_1", term.field());
+      Assert.assertEquals("term_1", term.term());
+      Assert.assertEquals(2, term.count());
+      Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), term.labels());
+      Assert.assertEquals(Lists.newArrayList(new ComparablePair<>(0, "term_1".length()),
+          new ComparablePair<>(10, 10 + "term_1".length())), term.spans());
+    }
   }
 }
