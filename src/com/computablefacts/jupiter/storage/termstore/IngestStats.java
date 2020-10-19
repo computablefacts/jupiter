@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -148,5 +149,11 @@ final public class IngestStats implements AutoCloseable {
     }
 
     card_.clear();
+
+    try {
+      writer_.flush();
+    } catch (MutationsRejectedException e) {
+      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+    }
   }
 }

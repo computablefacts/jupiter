@@ -246,8 +246,8 @@ public class Shell {
     AtomicInteger count = new AtomicInteger(0);
     AtomicInteger ignored = new AtomicInteger(0);
 
-    try (IngestStats stats = ds.newIngestStats()) {
-      try (Writers writers = ds.writers()) {
+    try (Writers writers = ds.writers()) {
+      try (IngestStats stats = ds.newIngestStats()) {
         Files.compressedLineStream(f, StandardCharsets.UTF_8).forEach(line -> {
 
           String row = line.getValue();
@@ -284,8 +284,6 @@ public class Shell {
           }
         });
       }
-
-      stats.flush();
     }
 
     stopwatch.stop();
