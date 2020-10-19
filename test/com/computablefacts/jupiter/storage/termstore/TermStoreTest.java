@@ -24,7 +24,6 @@ import com.computablefacts.jupiter.Tables;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.errorprone.annotations.Var;
 
 /**
  * This class is not thread-safe because {@link MiniAccumuloClusterUtils#setUserAuths} is used. Do
@@ -53,43 +52,38 @@ public class TermStoreTest {
 
     Preconditions.checkNotNull(termStore, "termStore should not be null");
 
-    @Var
-    IngestStats stats = null;
-
     try (BatchWriter writer = termStore.writer()) {
+      try (IngestStats stats = new IngestStats(termStore, writer)) {
 
-      stats = new IngestStats(termStore, writer);
+        for (int i = 0; i < 10; i++) {
 
-      for (int i = 0; i < 10; i++) {
+          stats.card("first_dataset", "field_" + i, 1);
 
-        stats.card("first_dataset", "field_" + i, 1);
+          Assert.assertTrue(termStore.add(writer, stats, "first_dataset", "row_" + i, "field_" + i,
+              "term_" + i, Lists.newArrayList(new Pair<>(0, ("term_" + i).length())),
+              Sets.newHashSet("DS_1"), Sets.newHashSet()));
+        }
 
-        Assert.assertTrue(termStore.add(writer, stats, "first_dataset", "row_" + i, "field_" + i,
-            "term_" + i, Lists.newArrayList(new Pair<>(0, ("term_" + i).length())),
-            Sets.newHashSet("DS_1"), Sets.newHashSet()));
+        for (int i = 0; i < 10; i++) {
+
+          stats.card("second_dataset", "field_" + i, 1);
+
+          Assert.assertTrue(termStore.add(writer, stats, "second_dataset", "row_" + i, "field_" + i,
+              "term_" + i, Lists.newArrayList(new Pair<>(0, ("term_" + i).length())),
+              Sets.newHashSet("DS_2"), Sets.newHashSet()));
+        }
+
+        for (int i = 0; i < 10; i++) {
+
+          stats.card("third_dataset", "field_" + i, 1);
+
+          Assert.assertTrue(
+              termStore.add(writer, stats, "third_dataset", "row_" + i, "field_" + i, "term_" + i,
+                  Lists.newArrayList(new Pair<>(0, ("term_" + i).length()),
+                      new Pair<>(10, 10 + ("term_" + i).length())),
+                  Sets.newHashSet("DS_1"), Sets.newHashSet("DS_2")));
+        }
       }
-
-      for (int i = 0; i < 10; i++) {
-
-        stats.card("second_dataset", "field_" + i, 1);
-
-        Assert.assertTrue(termStore.add(writer, stats, "second_dataset", "row_" + i, "field_" + i,
-            "term_" + i, Lists.newArrayList(new Pair<>(0, ("term_" + i).length())),
-            Sets.newHashSet("DS_2"), Sets.newHashSet()));
-      }
-
-      for (int i = 0; i < 10; i++) {
-
-        stats.card("third_dataset", "field_" + i, 1);
-
-        Assert.assertTrue(
-            termStore.add(writer, stats, "third_dataset", "row_" + i, "field_" + i, "term_" + i,
-                Lists.newArrayList(new Pair<>(0, ("term_" + i).length()),
-                    new Pair<>(10, 10 + ("term_" + i).length())),
-                Sets.newHashSet("DS_1"), Sets.newHashSet("DS_2")));
-      }
-
-      stats.flush();
     }
   }
 
