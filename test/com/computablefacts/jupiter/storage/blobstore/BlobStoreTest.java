@@ -129,7 +129,7 @@ public class BlobStoreTest {
         + "      \"photo\": \"https://jsonformatter.org/img/tom-cruise.jpg\","
         + "      \"wife\": null," + "      \"weight\": 67.5," + "      \"hasChildren\": true,"
         + "      \"hasGreyHair\": false," + "      \"children\": [" + "        \"Suri\","
-        + "        \"Isabella Jane\"," + "        \"Connor\"" + "      ]" + "    }";
+        + "        \"Isabella Jane\"," + "        \"Connor\"" + "      ]" + "    }]}";
   }
 
   @Before
