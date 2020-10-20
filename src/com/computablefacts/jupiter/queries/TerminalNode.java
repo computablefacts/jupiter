@@ -202,7 +202,8 @@ final public class TerminalNode extends AbstractNode {
 
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset).add("key", key_)
-          .add("value", value_).add("hasKeepDocs", keepDocs != null).formatInfo());
+          .add("value", value_).add("hasKeepDocs", keepDocs != null).add("form", form_.toString())
+          .formatInfo());
     }
 
     // TODO : backport NOT implementation
