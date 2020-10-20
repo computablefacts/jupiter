@@ -18,6 +18,7 @@ import org.junit.Test;
 
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
+import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.termstore.FieldCard;
@@ -62,23 +63,23 @@ public class DataStoreTest {
 
         for (int i = 0; i < 10; i++) {
           Assert
-              .assertTrue(dataStore.persist(writers, stats, "first_dataset", "row_" + i, json(i)));
+              .assertTrue(dataStore.persist(writers, stats, "first_dataset", "row_" + i, json1(i)));
+        }
+
+        for (int i = 0; i < 10; i++) {
+          Assert.assertTrue(
+              dataStore.persist(writers, stats, "second_dataset", "row_" + i, json1(i)));
         }
 
         for (int i = 0; i < 10; i++) {
           Assert
-              .assertTrue(dataStore.persist(writers, stats, "second_dataset", "row_" + i, json(i)));
-        }
-
-        for (int i = 0; i < 10; i++) {
-          Assert
-              .assertTrue(dataStore.persist(writers, stats, "third_dataset", "row_" + i, json(i)));
+              .assertTrue(dataStore.persist(writers, stats, "third_dataset", "row_" + i, json1(i)));
         }
       }
     }
   }
 
-  private static String json(int i) {
+  private static String json1(int i) {
     return "{" + "  \"Actors\": [" + "    {" + "      \"uuid\": " + i + ","
         + "      \"name\": \"Tom Cruise\"," + "      \"age\": 56,"
         + "      \"Born At\": \"Syracuse, NY\"," + "      \"Birthdate\": \"July 3, 1962\","
@@ -86,6 +87,26 @@ public class DataStoreTest {
         + "      \"wife\": null," + "      \"weight\": 67.5," + "      \"hasChildren\": true,"
         + "      \"hasGreyHair\": false," + "      \"children\": [" + "        \"Suri\","
         + "        \"Isabella Jane\"," + "        \"Connor\"" + "      ]" + "    }]}";
+  }
+
+  private static String json2(int i) {
+    return "{\n" + "  \"uuid\": " + i + ",\n" + "  \"Actors\": [\n" + "    {\n"
+        + "      \"uuid\": \"item" + i + "0\",\n" + "      \"name\": \"Tom Cruise\",\n"
+        + "      \"age\": 56,\n" + "      \"Born At\": \"Syracuse, NY\",\n"
+        + "      \"Birthdate\": \"July 3, 1962\",\n"
+        + "      \"photo\": \"https://jsonformatter.org/img/tom-cruise.jpg\",\n"
+        + "      \"wife\": null,\n" + "      \"weight\": 67.5,\n" + "      \"hasChildren\": true,\n"
+        + "      \"hasGreyHair\": false,\n" + "      \"children\": [\n" + "        \"Suri\",\n"
+        + "        \"Isabella Jane\",\n" + "        \"Connor\"\n" + "      ]\n" + "    },\n"
+        + "    {\n" + "      \"uuid\": \"item" + i + "1\",\n"
+        + "      \"name\": \"Robert Downey Jr.\",\n" + "      \"age\": 53,\n"
+        + "      \"Born At\": \"New York City, NY\",\n"
+        + "      \"Birthdate\": \"April 4, 1965\",\n"
+        + "      \"photo\": \"https://jsonformatter.org/img/Robert-Downey-Jr.jpg\",\n"
+        + "      \"wife\": \"Susan Downey\",\n" + "      \"weight\": 77.1,\n"
+        + "      \"hasChildren\": true,\n" + "      \"hasGreyHair\": false,\n"
+        + "      \"children\": [\n" + "        \"Indio Falconer\",\n" + "        \"Avri Roel\",\n"
+        + "        \"Exton Elias\"\n" + "      ]\n" + "    }\n" + "  ]\n" + "}";
   }
 
   private static int countFirst(Authorizations authorizations) {
@@ -455,10 +476,10 @@ public class DataStoreTest {
 
     try (Scanners scanners = dataStore.scanners(auths2)) { // keep order
 
-      Iterator<Blob<Value>> iterator1 = dataStore.blobScan(scanners, "first_dataset");
+      Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, "first_dataset");
 
-      while (iterator1.hasNext()) {
-        Blob<Value> blob = iterator1.next();
+      while (iterator.hasNext()) {
+        Blob<Value> blob = iterator.next();
         list1.add(blob);
         Assert.assertEquals("row_" + (list1.size() - 1), blob.key());
       }
@@ -469,15 +490,134 @@ public class DataStoreTest {
 
     try (Scanners scanners = new Scanners(configurations, dataStore.name(), auths1, 2)) { // out-of-order
 
-      Iterator<Blob<Value>> iterator2 = dataStore.blobScan(scanners, "first_dataset",
+      Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, "first_dataset",
           Sets.newHashSet("row_0", "row_1", "row_2", "row_3", "row_4"));
 
-      while (iterator2.hasNext()) {
-        Blob<Value> blob = iterator2.next();
+      while (iterator.hasNext()) {
+        Blob<Value> blob = iterator.next();
         list2.add(blob);
       }
     }
 
     Assert.assertEquals(list1, list2);
+  }
+
+  @Test
+  public void testSearchTerms() throws Exception {
+
+    Authorizations auths = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+        "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+      try (Writers writers = dataStore.writers()) {
+
+        List<String> list = new ArrayList<>();
+        dataStore
+            .searchByTerms(scanners, writers, "first_dataset",
+                Sets.newHashSet(normalize("Connor"), normalize("56"), normalize("67.5")), null)
+            .forEachRemaining(list::add);
+
+        Assert.assertEquals(10, list.size());
+
+        for (int i = 0; i < 10; i++) {
+          Assert.assertEquals("row_" + i, list.get(i));
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testExecuteQuery() throws Exception {
+
+    Authorizations auths = new Authorizations("FOURTH_DATASET_ROW_0", "FOURTH_DATASET_ROW_1",
+        "FOURTH_DATASET_ROW_2", "FOURTH_DATASET_ROW_3", "FOURTH_DATASET_ROW_4",
+        "FOURTH_DATASET_ROW_5", "FOURTH_DATASET_ROW_6", "FOURTH_DATASET_ROW_7",
+        "FOURTH_DATASET_ROW_8", "FOURTH_DATASET_ROW_9");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+      try (Writers writers = dataStore.writers()) {
+
+        // Create a new dataset
+        try (IngestStats stats = dataStore.newIngestStats()) {
+          for (int i = 0; i < 10; i++) {
+            Assert.assertTrue(dataStore.persist(writers, stats, "fourth_dataset", "row_" + i,
+                json2(i), null, Codecs.defaultTokenizer));
+          }
+        }
+
+        writers.flush();
+
+        // Test three simple queries
+        List<String> list = new ArrayList<>();
+        QueryBuilder.build("uuid:\"5\"")
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .forEachRemaining(list::add);
+
+        Assert.assertEquals(0, list.size()); // triggers "Discard small terms"...
+
+        list.clear();
+
+        QueryBuilder.build("Actors[*]¤uuid:\"item1*\"")
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .forEachRemaining(list::add);
+
+        Assert.assertEquals(1, list.size());
+        Assert.assertEquals("row_1", list.get(0));
+
+        list.clear();
+
+        QueryBuilder.build("Actors[*]¤uuid:\"item5?\"")
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .forEachRemaining(list::add);
+
+        Assert.assertEquals(1, list.size());
+        Assert.assertEquals("row_5", list.get(0));
+
+        list.clear();
+
+        // Test an array query
+        QueryBuilder.build("Actors[*]¤children[*]:\"Suri\"")
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .forEachRemaining(list::add);
+
+        Assert.assertEquals(10, list.size());
+
+        for (int i = 0; i < 10; i++) {
+          Assert.assertEquals("row_" + i, list.get(i));
+        }
+
+        list.clear();
+
+        // Test an AND query
+        QueryBuilder.build(
+            "Actors[*]¤children[*]:\"Suri\" AND Actors[0]¤uuid:\"item?0\" AND Actors[1]¤uuid:\"item5?\"")
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .forEachRemaining(list::add);
+
+        Assert.assertEquals(1, list.size());
+        Assert.assertEquals("row_5", list.get(0));
+
+        list.clear();
+
+        // Test an OR query
+        QueryBuilder.build(
+            "Actors[*]¤children[*]:\"Roel\" AND (Actors[0]¤uuid:\"item4?\" OR Actors[0]¤uuid:\"item5?\")")
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .forEachRemaining(list::add);
+
+        Assert.assertEquals(2, list.size());
+        Assert.assertEquals("row_4", list.get(0));
+        Assert.assertEquals("row_5", list.get(1));
+
+        list.clear();
+
+        // Cleanup
+        MiniAccumuloClusterUtils.setUserAuths(accumulo, Constants.AUTH_ADM);
+        Assert.assertTrue(dataStore.remove("fourth_dataset"));
+      }
+    }
   }
 }
