@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -358,7 +359,7 @@ public class DataStoreTest {
 
     for (int i = 0; i < 5; i++) {
       Blob<Value> blob = iterator1.get(i);
-      Assert.assertEquals(2 * i + 1, Integer.parseInt(blob.key().substring("row_".length()), 10));
+      Assert.assertEquals("row_" + (2 * i + 1), blob.key());
     }
 
     // Ensure even rows remain in dataset 2
@@ -366,7 +367,7 @@ public class DataStoreTest {
 
     for (int i = 0; i < 5; i++) {
       Blob<Value> blob = iterator2.get(i);
-      Assert.assertEquals(2 * i + 1, Integer.parseInt(blob.key().substring("row_".length()), 10));
+      Assert.assertEquals("row_" + (2 * i + 1), blob.key());
     }
   }
 
@@ -436,5 +437,47 @@ public class DataStoreTest {
         countSecond(normalize("Suri"), Sets.newHashSet("Actors[0]¤children[0]"), auths));
     Assert.assertEquals(0,
         countThird(normalize("Suri"), Sets.newHashSet("Actors[0]¤children[0]"), auths));
+  }
+
+  @Test
+  public void testBlobScan() throws Exception {
+
+    Authorizations auths1 = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+        "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9");
+    Authorizations auths2 = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+        "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4");
+
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths1);
+
+    // Use the Scanner auths to filter data
+    Set<Blob<Value>> list1 = new HashSet<>();
+
+    try (Scanners scanners = dataStore.scanners(auths2)) { // keep order
+
+      Iterator<Blob<Value>> iterator1 = dataStore.blobScan(scanners, "first_dataset");
+
+      while (iterator1.hasNext()) {
+        Blob<Value> blob = iterator1.next();
+        list1.add(blob);
+        Assert.assertEquals("row_" + (list1.size() - 1), blob.key());
+      }
+    }
+
+    // Use the doc ids to filter data
+    Set<Blob<Value>> list2 = new HashSet<>();
+
+    try (Scanners scanners = new Scanners(configurations, dataStore.name(), auths1, 2)) { // out-of-order
+
+      Iterator<Blob<Value>> iterator2 = dataStore.blobScan(scanners, "first_dataset",
+          Sets.newHashSet("row_0", "row_1", "row_2", "row_3", "row_4"));
+
+      while (iterator2.hasNext()) {
+        Blob<Value> blob = iterator2.next();
+        list2.add(blob);
+      }
+    }
+
+    Assert.assertEquals(list1, list2);
   }
 }
