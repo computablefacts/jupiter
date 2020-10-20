@@ -319,4 +319,33 @@ public class QueryBuilderTest {
     AbstractNode node = QueryBuilder.build("(firstname:john AND lastname:doe) OR username:jdoe");
     assertEquals(Sets.newHashSet("john", "doe", "jdoe"), node.terms());
   }
+
+  @Test
+  public void testParseArrayPredicate() {
+
+    TerminalNode node = (TerminalNode) QueryBuilder.build("Actors[0]¤children[0]:\"Suri\"");
+
+    Assert.assertEquals("Actors[0]¤children[0]:\"Suri\"", node.toString());
+    Assert.assertEquals(TerminalNode.eTermForms.Literal, node.form());
+    Assert.assertEquals("Actors[0]¤children[0]", node.key());
+    Assert.assertEquals("Suri", node.value());
+  }
+
+  @Test
+  public void testParseArrayValue() {
+
+    InternalNode node = (InternalNode) QueryBuilder.build("children[0]");
+
+    Assert.assertEquals("children And 0", node.toString());
+
+    Assert.assertEquals(TerminalNode.eTermForms.Inflectional,
+        ((TerminalNode) node.child1()).form());
+    Assert.assertEquals("", ((TerminalNode) node.child1()).key());
+    Assert.assertEquals("children", ((TerminalNode) node.child1()).value());
+
+    Assert.assertEquals(TerminalNode.eTermForms.Inflectional,
+        ((TerminalNode) node.child2()).form());
+    Assert.assertEquals("", ((TerminalNode) node.child2()).key());
+    Assert.assertEquals("0", ((TerminalNode) node.child2()).value());
+  }
 }

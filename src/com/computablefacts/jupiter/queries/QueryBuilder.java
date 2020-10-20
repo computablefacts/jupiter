@@ -1,6 +1,8 @@
 package com.computablefacts.jupiter.queries;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.computablefacts.nona.helpers.StringIterator;
@@ -80,10 +82,27 @@ final public class QueryBuilder {
         int start = iterator.position();
         iterator.moveAhead();
 
+        List<Integer> arrays = new ArrayList<>();
+
         while (!iterator.isEndOfText()
-            && (keepPunctuationMarks_ || PUNCTUATION.indexOf(iterator.peek()) < 0)
+            && (keepPunctuationMarks_ || PUNCTUATION.indexOf(iterator.peek()) < 0
+                || "[]".indexOf(iterator.peek()) >= 0 /* array index */)
             && !Character.isWhitespace(iterator.peek())) {
+
+          if (iterator.peek() == '[' || iterator.peek() == ']') {
+            arrays.add(iterator.position());
+          }
           iterator.moveAhead();
+        }
+
+        // Ensure we are dealing with a predicate if arrays were found
+        if (!arrays.isEmpty() && iterator.peek() != ':') {
+
+          iterator.reset(query);
+
+          while (!iterator.isEndOfText() && iterator.position() < arrays.get(0)) {
+            char c = iterator.next();
+          }
         }
 
         // Allow trailing wildcards
