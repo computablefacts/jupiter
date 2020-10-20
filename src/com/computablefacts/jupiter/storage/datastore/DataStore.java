@@ -893,7 +893,7 @@ final public class DataStore {
     // First, fill a Bloom filter with the UUIDs of the documents. Then, filter subsequent
     // terms using the Bloom filter created with the previous term.
     @Var
-    BloomFilters<String> newKeepDocs = new BloomFilters<>(keepDocs);
+    BloomFilters<String> newKeepDocs = keepDocs == null ? null : new BloomFilters<>(keepDocs);
 
     for (int i = 0; i < newTerms.size() - 1; i++) {
 
