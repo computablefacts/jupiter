@@ -21,6 +21,7 @@ import org.junit.Test;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.Tables;
+import com.computablefacts.jupiter.storage.Constants;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -588,15 +589,18 @@ public class TermStoreTest {
       FieldCard fc3 = fieldCardThird(i, auths);
 
       Assert.assertEquals("field_" + i, fc1.field());
-      Assert.assertEquals(Sets.newHashSet("ADM", "FIRST_DATASET_CARD"), fc1.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_CARD"),
+          fc1.labels());
       Assert.assertEquals(1, fc1.cardinality());
 
       Assert.assertEquals("field_" + i, fc2.field());
-      Assert.assertEquals(Sets.newHashSet("ADM", "SECOND_DATASET_CARD"), fc2.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_CARD"),
+          fc2.labels());
       Assert.assertEquals(1, fc2.cardinality());
 
       Assert.assertEquals("field_" + i, fc3.field());
-      Assert.assertEquals(Sets.newHashSet("ADM", "THIRD_DATASET_CARD"), fc3.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_CARD"),
+          fc3.labels());
       Assert.assertEquals(1, fc3.cardinality());
     }
   }
@@ -616,15 +620,16 @@ public class TermStoreTest {
       FieldCount fc3 = fieldCountThird(i, auths);
 
       Assert.assertEquals("field_" + i, fc1.field());
-      Assert.assertEquals(Sets.newHashSet("ADM", "FIRST_DATASET_CNT"), fc1.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_CNT"), fc1.labels());
       Assert.assertEquals(1, fc1.count());
 
       Assert.assertEquals("field_" + i, fc2.field());
-      Assert.assertEquals(Sets.newHashSet("ADM", "SECOND_DATASET_CNT"), fc2.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_CNT"),
+          fc2.labels());
       Assert.assertEquals(1, fc2.count());
 
       Assert.assertEquals("field_" + i, fc3.field());
-      Assert.assertEquals(Sets.newHashSet("ADM", "THIRD_DATASET_CNT"), fc3.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_CNT"), fc3.labels());
       Assert.assertEquals(2, fc3.count());
     }
   }
@@ -644,15 +649,18 @@ public class TermStoreTest {
       FieldLabels fl3 = fieldLabelsThird(i, auths);
 
       Assert.assertEquals("field_" + i, fl1.field());
-      Assert.assertEquals(Sets.newHashSet("ADM", "FIRST_DATASET_VIZ"), fl1.accumuloLabels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_VIZ"),
+          fl1.accumuloLabels());
       Assert.assertEquals(Sets.newHashSet("DS_1"), fl1.termLabels());
 
       Assert.assertEquals("field_" + i, fl2.field());
-      Assert.assertEquals(Sets.newHashSet("ADM", "SECOND_DATASET_VIZ"), fl2.accumuloLabels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_VIZ"),
+          fl2.accumuloLabels());
       Assert.assertEquals(Sets.newHashSet("DS_2"), fl2.termLabels());
 
       Assert.assertEquals("field_" + i, fl3.field());
-      Assert.assertEquals(Sets.newHashSet("ADM", "THIRD_DATASET_VIZ"), fl3.accumuloLabels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_VIZ"),
+          fl3.accumuloLabels());
       Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), fl3.termLabels());
     }
   }

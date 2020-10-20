@@ -33,7 +33,8 @@ public class BlobStoreAnonymizingIteratorTest {
   @Test
   public void testExactValue() throws Exception {
 
-    BlobStoreAnonymizingIterator iterator = iterator(new Authorizations("ADM", "DS1", "DS2"));
+    BlobStoreAnonymizingIterator iterator =
+        iterator(new Authorizations(Constants.STRING_ADM, "DS1", "DS2"));
 
     @Var
     int countDataset1 = 0;
@@ -64,7 +65,8 @@ public class BlobStoreAnonymizingIteratorTest {
   @Test
   public void testMaskedValue() throws Exception {
 
-    BlobStoreAnonymizingIterator iterator = iterator(new Authorizations("ADM", "DS1"));
+    BlobStoreAnonymizingIterator iterator =
+        iterator(new Authorizations(Constants.STRING_ADM, "DS1"));
 
     @Var
     int countDataset1 = 0;

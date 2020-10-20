@@ -173,8 +173,7 @@ public class AbstractStorageTest {
   @Test
   public void testNullToEmpty() {
     Assert.assertEquals(Authorizations.EMPTY, AbstractStorage.nullToEmpty(null));
-    Assert.assertEquals(new Authorizations("ADM"),
-        AbstractStorage.nullToEmpty(new Authorizations("ADM")));
+    Assert.assertEquals(Constants.AUTH_ADM, AbstractStorage.nullToEmpty(Constants.AUTH_ADM));
   }
 
   @Test
