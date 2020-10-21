@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
@@ -381,6 +382,8 @@ public class DataStoreTest {
 
       Assert.assertEquals(10, list.size());
     }
+
+    Assert.assertTrue(dataStore.revokeReadPermissions("jdoe"));
   }
 
   @Test
@@ -408,6 +411,43 @@ public class DataStoreTest {
       scanner.iterator().forEachRemaining(list::add);
 
       Assert.assertEquals(120, list.size());
+    }
+
+    Assert.assertTrue(dataStore.revokeReadPermissions("jdoe"));
+  }
+
+  @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
+  public void testWriteBlobStoreWithoutTablesPermissions() throws Exception {
+
+    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
+
+    Configurations confs = new Configurations(configurations.instanceName(),
+        configurations.zooKeepers(), "jdoe", "azerty");
+    DataStore ds = new DataStore(confs, dataStore.name());
+
+    try (Writers writers = ds.writers()) {
+      Mutation m = new Mutation("test_row");
+      m.put(new Text("first_dataset"), Constants.TEXT_EMPTY, Constants.VALUE_EMPTY);
+      writers.blob().addMutation(m); // An exception is thrown here
+      writers.flush();
+    }
+  }
+
+  @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
+  public void testWriteTermStoreWithoutTablesPermissions() throws Exception {
+
+    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
+
+    Configurations confs = new Configurations(configurations.instanceName(),
+        configurations.zooKeepers(), "jdoe", "azerty");
+    DataStore ds = new DataStore(confs, dataStore.name());
+
+    try (Writers writers = ds.writers()) {
+      Mutation m = new Mutation("test");
+      m.put(new Text("first_dataset_FIDX"), new Text("000|0000-00-00T00:00:00.000Z\0field"),
+          Constants.VALUE_EMPTY);
+      writers.index().addMutation(m); // An exception is thrown here
+      writers.flush();
     }
   }
 
