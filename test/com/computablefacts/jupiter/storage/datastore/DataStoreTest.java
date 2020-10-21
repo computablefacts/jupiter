@@ -348,7 +348,7 @@ public class DataStoreTest {
     try (Scanners scanners = ds.scanners(new Authorizations(auths))) {
 
       ScannerBase scanner = scanners.index();
-      scanner.fetchColumnFamily(new Text("first_dataset"));
+      scanner.fetchColumnFamily(new Text("first_dataset_FIDX"));
 
       List<Map.Entry<Key, Value>> list = new ArrayList<>();
       scanner.iterator().forEachRemaining(list::add); // An exception is thrown here
