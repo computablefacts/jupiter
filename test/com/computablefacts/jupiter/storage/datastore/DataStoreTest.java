@@ -384,6 +384,7 @@ public class DataStoreTest {
     }
 
     Assert.assertTrue(dataStore.revokeReadPermissions("jdoe"));
+    Assert.assertTrue(Users.delete(configurations.connector(), "jdoe"));
   }
 
   @Test
@@ -414,6 +415,7 @@ public class DataStoreTest {
     }
 
     Assert.assertTrue(dataStore.revokeReadPermissions("jdoe"));
+    Assert.assertTrue(Users.delete(configurations.connector(), "jdoe"));
   }
 
   @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
