@@ -418,7 +418,7 @@ public class DataStoreTest {
     Assert.assertTrue(Users.delete(configurations.connector(), "jdoe"));
   }
 
-  @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
+  @Test
   public void testWriteBlobStoreWithoutTablesPermissions() throws Exception {
 
     Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
@@ -428,14 +428,16 @@ public class DataStoreTest {
     DataStore ds = new DataStore(confs, dataStore.name());
 
     try (Writers writers = ds.writers()) {
+
       Mutation m = new Mutation("test_row");
       m.put(new Text("first_dataset"), Constants.TEXT_EMPTY, Constants.VALUE_EMPTY);
-      writers.blob().addMutation(m); // An exception is thrown here
-      writers.flush();
+      writers.blob().addMutation(m);
+
+      Assert.assertFalse(writers.flush());
     }
   }
 
-  @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
+  @Test
   public void testWriteTermStoreWithoutTablesPermissions() throws Exception {
 
     Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
@@ -445,11 +447,13 @@ public class DataStoreTest {
     DataStore ds = new DataStore(confs, dataStore.name());
 
     try (Writers writers = ds.writers()) {
+
       Mutation m = new Mutation("test");
       m.put(new Text("first_dataset_FIDX"), new Text("000|0000-00-00T00:00:00.000Z\0field"),
           Constants.VALUE_EMPTY);
-      writers.index().addMutation(m); // An exception is thrown here
-      writers.flush();
+      writers.index().addMutation(m);
+
+      Assert.assertFalse(writers.flush());
     }
   }
 
@@ -701,7 +705,7 @@ public class DataStoreTest {
           }
         }
 
-        writers.flush();
+        Assert.assertTrue(writers.flush());
 
         // Test three simple queries
         List<String> list = new ArrayList<>();

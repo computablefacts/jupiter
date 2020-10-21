@@ -17,6 +17,7 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
@@ -64,12 +65,15 @@ public class Writers implements AutoCloseable {
     }
   }
 
-  public void flush() {
+  @CanIgnoreReturnValue
+  public boolean flush() {
     try {
       writer_.flush();
+      return true;
     } catch (MutationsRejectedException e) {
       logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
     }
+    return false;
   }
 
   public BatchWriter blob() {
