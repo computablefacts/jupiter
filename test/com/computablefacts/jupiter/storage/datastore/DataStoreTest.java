@@ -4,12 +4,16 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -18,6 +22,7 @@ import org.junit.Test;
 
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
+import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
@@ -298,6 +303,112 @@ public class DataStoreTest {
   @Test
   public void testAddLocalityGroup() {
     // TODO
+  }
+
+  @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
+  public void testReadBlobStoreWithoutTablesPermissions() {
+
+    String[] auths = new String[] {"FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+        "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9"};
+
+    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
+    Assert.assertTrue(
+        Users.setAuthorizations(configurations.connector(), "jdoe", Sets.newHashSet(auths)));
+
+    Configurations confs = new Configurations(configurations.instanceName(),
+        configurations.zooKeepers(), "jdoe", "azerty");
+    DataStore ds = new DataStore(confs, dataStore.name());
+
+    try (Scanners scanners = ds.scanners(new Authorizations(auths))) {
+
+      ScannerBase scanner = scanners.blob();
+      scanner.fetchColumnFamily(new Text("first_dataset"));
+
+      List<Map.Entry<Key, Value>> list = new ArrayList<>();
+      scanner.iterator().forEachRemaining(list::add); // An exception is thrown here
+    }
+  }
+
+  @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
+  public void testReadTermStoreWithoutTablesPermissions() {
+
+    String[] auths = new String[] {"FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+        "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9"};
+
+    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
+    Assert.assertTrue(
+        Users.setAuthorizations(configurations.connector(), "jdoe", Sets.newHashSet(auths)));
+
+    Configurations confs = new Configurations(configurations.instanceName(),
+        configurations.zooKeepers(), "jdoe", "azerty");
+    DataStore ds = new DataStore(confs, dataStore.name());
+
+    try (Scanners scanners = ds.scanners(new Authorizations(auths))) {
+
+      ScannerBase scanner = scanners.index();
+      scanner.fetchColumnFamily(new Text("first_dataset"));
+
+      List<Map.Entry<Key, Value>> list = new ArrayList<>();
+      scanner.iterator().forEachRemaining(list::add); // An exception is thrown here
+    }
+  }
+
+  @Test
+  public void testReadBlobStoreWithTablesPermissions() {
+
+    String[] auths = new String[] {"FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+        "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9"};
+
+    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
+    Assert.assertTrue(
+        Users.setAuthorizations(configurations.connector(), "jdoe", Sets.newHashSet(auths)));
+    Assert.assertTrue(dataStore.grantReadPermissions("jdoe"));
+
+    Configurations confs = new Configurations(configurations.instanceName(),
+        configurations.zooKeepers(), "jdoe", "azerty");
+    DataStore ds = new DataStore(confs, dataStore.name());
+
+    try (Scanners scanners = ds.scanners(new Authorizations(auths))) {
+
+      ScannerBase scanner = scanners.blob();
+      scanner.fetchColumnFamily(new Text("first_dataset"));
+
+      List<Map.Entry<Key, Value>> list = new ArrayList<>();
+      scanner.iterator().forEachRemaining(list::add);
+
+      Assert.assertEquals(10, list.size());
+    }
+  }
+
+  @Test
+  public void testReadTermStoreWithTablesPermissions() {
+
+    String[] auths = new String[] {"FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+        "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9"};
+
+    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
+    Assert.assertTrue(
+        Users.setAuthorizations(configurations.connector(), "jdoe", Sets.newHashSet(auths)));
+    Assert.assertTrue(dataStore.grantReadPermissions("jdoe"));
+
+    Configurations confs = new Configurations(configurations.instanceName(),
+        configurations.zooKeepers(), "jdoe", "azerty");
+    DataStore ds = new DataStore(confs, dataStore.name());
+
+    try (Scanners scanners = ds.scanners(new Authorizations(auths))) {
+
+      ScannerBase scanner = scanners.index();
+      scanner.fetchColumnFamily(new Text("first_dataset_FIDX"));
+
+      List<Map.Entry<Key, Value>> list = new ArrayList<>();
+      scanner.iterator().forEachRemaining(list::add);
+
+      Assert.assertEquals(120, list.size());
+    }
   }
 
   @Test
