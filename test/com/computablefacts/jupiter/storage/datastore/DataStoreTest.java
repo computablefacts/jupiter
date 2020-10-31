@@ -852,6 +852,62 @@ public class DataStoreTest {
   }
 
   @Test
+  public void testWriteReadCacheSync() {
+    try (Scanners scanners = dataStore.scanners(Authorizations.EMPTY)) { // keep order
+      try (Writers writers = dataStore.writers()) {
+
+        Set<String> set = new HashSet<>();
+
+        for (int i = 0; i < 10; i++) {
+          set.add(Integer.toString(i, 10));
+        }
+
+        String cacheId = dataStore.writeCache(writers, set.iterator());
+
+        Set<String> setNew = new HashSet<>();
+        dataStore.readCache(scanners, cacheId).forEachRemaining(setNew::add);
+
+        Assert.assertEquals(Sets.newHashSet("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"),
+            setNew);
+
+        setNew.clear();
+        dataStore.readCache(scanners, cacheId, "5").forEachRemaining(setNew::add);
+
+        Assert.assertEquals(Sets.newHashSet("5", "6", "7", "8", "9"), setNew);
+      }
+    }
+  }
+
+  @Test
+  public void testWriteReadCacheAsync() throws Exception {
+    try (Scanners scanners = dataStore.scanners(Authorizations.EMPTY)) { // keep order
+      try (Writers writers = dataStore.writers()) {
+
+        Set<String> set = new HashSet<>();
+
+        for (int i = 0; i < 10; i++) {
+          set.add(Integer.toString(i, 10));
+        }
+
+        String cacheId = dataStore.writeCache(writers, set.iterator(), 5);
+
+        Thread.sleep(1000);
+
+        Set<String> setNew = new HashSet<>();
+        dataStore.readCache(scanners, cacheId).forEachRemaining(setNew::add);
+
+        Assert.assertEquals(Sets.newHashSet("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"),
+            setNew);
+
+        setNew.clear();
+        dataStore.readCache(scanners, cacheId, "5").forEachRemaining(setNew::add);
+
+        Assert.assertEquals(Sets.newHashSet("5", "6", "7", "8", "9"), setNew);
+      }
+    }
+  }
+
+  @Test
   public void testTermCount() {
     // TODO
   }
