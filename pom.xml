@@ -45,7 +45,7 @@
         <zookeeper.version>3.4.9</zookeeper.version>
         <jsonflattener.version>0.8.1</jsonflattener.version>
         <error-prone.version>2.3.1</error-prone.version>
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <equalsverifier.version>3.4.2</equalsverifier.version>
         <jcip.version>1.0-1</jcip.version>
         <maven-shade-plugin.version>3.1.1</maven-shade-plugin.version>
