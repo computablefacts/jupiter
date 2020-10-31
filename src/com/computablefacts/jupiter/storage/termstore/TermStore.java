@@ -598,7 +598,7 @@ final public class TermStore extends AbstractStorage {
    * Get the number of occurrences of each term for each field.
    *
    * @param scanner scanner.
-   * @param dataset dataset.
+   * @param dataset dataset (optional).
    * @param term term. Might contain wildcard characters.
    * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
@@ -607,7 +607,6 @@ final public class TermStore extends AbstractStorage {
   public Iterator<TermCount> termCount(ScannerBase scanner, String dataset, String term) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkArgument(
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
@@ -630,16 +629,20 @@ final public class TermStore extends AbstractStorage {
 
     if (isTermBackward) {
       newTerm = reverse(term);
-      newDataset = backwardCount(dataset);
+      newDataset = dataset == null ? null : backwardCount(dataset);
     } else {
       newTerm = term;
-      newDataset = forwardCount(dataset);
+      newDataset = dataset == null ? null : forwardCount(dataset);
     }
 
     Range range;
 
     if (!WildcardMatcher.hasWildcards(newTerm)) {
-      range = Range.exact(newTerm, newDataset);
+      if (newDataset == null) {
+        range = Range.exact(newTerm);
+      } else {
+        range = Range.exact(newTerm, newDataset);
+      }
     } else {
 
       range = Range.prefix(WildcardMatcher.prefix(newTerm));
@@ -651,8 +654,16 @@ final public class TermStore extends AbstractStorage {
       scanner.addScanIterator(setting);
     }
 
-    scanner.fetchColumnFamily(new Text(newDataset));
+    if (newDataset != null) {
+      scanner.fetchColumnFamily(new Text(newDataset));
+    } else {
 
+      IteratorSetting setting = new IteratorSetting(22, "WildcardFilter", WildcardFilter.class);
+      WildcardFilter.applyOnColumnFamily(setting);
+      WildcardFilter.addWildcard(setting, isTermBackward ? "*_BCNT" : "*_FCNT");
+
+      scanner.addScanIterator(setting);
+    }
     if (!setRange(scanner, range)) {
       return Constants.ITERATOR_EMPTY;
     }
@@ -696,7 +707,7 @@ final public class TermStore extends AbstractStorage {
    * Get the number of documents of each matching term for each field.
    *
    * @param scanner scanner.
-   * @param dataset dataset.
+   * @param dataset dataset (optional).
    * @param term term. Might contain wildcard characters.
    * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
@@ -705,7 +716,6 @@ final public class TermStore extends AbstractStorage {
   public Iterator<TermCard> termCard(ScannerBase scanner, String dataset, String term) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkArgument(
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
@@ -728,16 +738,20 @@ final public class TermStore extends AbstractStorage {
 
     if (isTermBackward) {
       newTerm = reverse(term);
-      newDataset = backwardCard(dataset);
+      newDataset = dataset == null ? null : backwardCard(dataset);
     } else {
       newTerm = term;
-      newDataset = forwardCard(dataset);
+      newDataset = dataset == null ? null : forwardCard(dataset);
     }
 
     Range range;
 
     if (!WildcardMatcher.hasWildcards(newTerm)) {
-      range = Range.exact(newTerm, newDataset);
+      if (newDataset == null) {
+        range = Range.exact(newTerm);
+      } else {
+        range = Range.exact(newTerm, newDataset);
+      }
     } else {
 
       range = Range.prefix(WildcardMatcher.prefix(newTerm));
@@ -749,8 +763,16 @@ final public class TermStore extends AbstractStorage {
       scanner.addScanIterator(setting);
     }
 
-    scanner.fetchColumnFamily(new Text(newDataset));
+    if (newDataset != null) {
+      scanner.fetchColumnFamily(new Text(newDataset));
+    } else {
 
+      IteratorSetting setting = new IteratorSetting(22, "WildcardFilter", WildcardFilter.class);
+      WildcardFilter.applyOnColumnFamily(setting);
+      WildcardFilter.addWildcard(setting, isTermBackward ? "*_BCARD" : "*_FCARD");
+
+      scanner.addScanIterator(setting);
+    }
     if (!setRange(scanner, range)) {
       return Constants.ITERATOR_EMPTY;
     }
@@ -781,7 +803,7 @@ final public class TermStore extends AbstractStorage {
    * Get documents, fields and spans aggregated by term.
    *
    * @param scanner scanner.
-   * @param dataset dataset.
+   * @param dataset dataset (optional).
    * @param term term. Might contain wildcard characters.
    * @param keepFields fields patterns to keep (optional).
    * @param keepDocs document ids to keep (optional).
@@ -797,7 +819,7 @@ final public class TermStore extends AbstractStorage {
    * Get documents, fields and spans.
    *
    * @param scanner scanner.
-   * @param dataset dataset.
+   * @param dataset dataset (optional).
    * @param term term. Might contain wildcard characters.
    * @param keepFields fields patterns to keep (optional).
    * @param keepDocs document ids to keep (optional).
@@ -809,7 +831,6 @@ final public class TermStore extends AbstractStorage {
       Set<String> keepFields, BloomFilters<String> keepDocs) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkArgument(
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
@@ -831,16 +852,20 @@ final public class TermStore extends AbstractStorage {
 
     if (isTermBackward) {
       newTerm = reverse(term);
-      newDataset = backwardIndex(dataset);
+      newDataset = dataset == null ? null : backwardIndex(dataset);
     } else {
       newTerm = term;
-      newDataset = forwardIndex(dataset);
+      newDataset = dataset == null ? null : forwardIndex(dataset);
     }
 
     Range range;
 
     if (!WildcardMatcher.hasWildcards(newTerm)) {
-      range = Range.exact(newTerm, newDataset);
+      if (newDataset == null) {
+        range = Range.exact(newTerm);
+      } else {
+        range = Range.exact(newTerm, newDataset);
+      }
     } else {
 
       range = Range.prefix(WildcardMatcher.prefix(newTerm));
@@ -869,8 +894,16 @@ final public class TermStore extends AbstractStorage {
       scanner.addScanIterator(setting);
     }
 
-    scanner.fetchColumnFamily(new Text(newDataset));
+    if (newDataset != null) {
+      scanner.fetchColumnFamily(new Text(newDataset));
+    } else {
 
+      IteratorSetting settings = new IteratorSetting(23, "WildcardFilter", WildcardFilter.class);
+      WildcardFilter.applyOnColumnFamily(settings);
+      WildcardFilter.addWildcard(settings, isTermBackward ? "*_BIDX" : "*_FIDX");
+
+      scanner.addScanIterator(settings);
+    }
     if (!setRange(scanner, range)) {
       return Constants.ITERATOR_EMPTY;
     }

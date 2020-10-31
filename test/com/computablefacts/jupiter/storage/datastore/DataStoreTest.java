@@ -32,10 +32,13 @@ import com.computablefacts.jupiter.storage.termstore.FieldCount;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
 import com.computablefacts.jupiter.storage.termstore.IngestStats;
 import com.computablefacts.jupiter.storage.termstore.Term;
+import com.computablefacts.jupiter.storage.termstore.TermCard;
+import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.Var;
 
 /**
  * This class is not thread-safe because {@link MiniAccumuloClusterUtils#setUserAuths} is used. Do
@@ -908,17 +911,223 @@ public class DataStoreTest {
   }
 
   @Test
-  public void testTermCount() {
-    // TODO
+  public void testTermCount() throws Exception {
+
+    Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
+        "THIRD_DATASET_ACTORS_0_");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+
+      // Single dataset, hits forward index
+      List<Pair<String, List<TermCount>>> list = new ArrayList<>();
+      dataStore.termCount(scanners, "first_dataset", normalize("Conno?"))
+          .forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals(1, list.get(0).getSecond().size());
+
+      @Var
+      TermCount tc = list.get(0).getSecond().get(0);
+
+      Assert.assertEquals("Actors[0]¤children[2]", tc.field());
+      Assert.assertEquals("connor", tc.term());
+      Assert.assertEquals(10, tc.count());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
+          tc.labels());
+
+      // Single dataset, hits backward index
+      list.clear();
+      dataStore.termCount(scanners, "first_dataset", normalize("?onnor"))
+          .forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals(1, list.get(0).getSecond().size());
+
+      tc = list.get(0).getSecond().get(0);
+
+      Assert.assertEquals("Actors[0]¤children[2]", tc.field());
+      Assert.assertEquals("connor", tc.term());
+      Assert.assertEquals(10, tc.count());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
+          tc.labels());
+
+      // Cross datasets
+      list.clear();
+      dataStore.termCount(scanners, null, normalize("Connor")).forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals(3, list.get(0).getSecond().size());
+
+      for (int i = 0; i < 3; i++) {
+
+        tc = list.get(0).getSecond().get(i);
+
+        Assert.assertEquals("Actors[0]¤children[2]", tc.field());
+        Assert.assertEquals("connor", tc.term());
+        Assert.assertEquals(10, tc.count());
+
+        if (i == 0) {
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
+              tc.labels());
+        } else if (i == 1) {
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_"),
+              tc.labels());
+        } else {
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_"),
+              tc.labels());
+        }
+      }
+    }
   }
 
   @Test
-  public void testTermCard() {
-    // TODO
+  public void testTermCard() throws Exception {
+
+    Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
+        "THIRD_DATASET_ACTORS_0_");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+
+      // Single dataset, hits forward index
+      List<Pair<String, List<TermCard>>> list = new ArrayList<>();
+      dataStore.termCard(scanners, "first_dataset", normalize("Conno?"))
+          .forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals(1, list.get(0).getSecond().size());
+
+      @Var
+      TermCard tc = list.get(0).getSecond().get(0);
+
+      Assert.assertEquals("Actors[0]¤children[2]", tc.field());
+      Assert.assertEquals("connor", tc.term());
+      Assert.assertEquals(10, tc.cardinality());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
+          tc.labels());
+
+      // Single dataset, hits backward index
+      list.clear();
+      dataStore.termCard(scanners, "first_dataset", normalize("?onnor"))
+          .forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals(1, list.get(0).getSecond().size());
+
+      tc = list.get(0).getSecond().get(0);
+
+      Assert.assertEquals("Actors[0]¤children[2]", tc.field());
+      Assert.assertEquals("connor", tc.term());
+      Assert.assertEquals(10, tc.cardinality());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
+          tc.labels());
+
+      // Cross datasets
+      list.clear();
+      dataStore.termCard(scanners, null, normalize("Connor")).forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals(3, list.get(0).getSecond().size());
+
+      for (int i = 0; i < 3; i++) {
+
+        tc = list.get(0).getSecond().get(i);
+
+        Assert.assertEquals("Actors[0]¤children[2]", tc.field());
+        Assert.assertEquals("connor", tc.term());
+        Assert.assertEquals(10, tc.cardinality());
+
+        if (i == 0) {
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
+              tc.labels());
+        } else if (i == 1) {
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_"),
+              tc.labels());
+        } else {
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_"),
+              tc.labels());
+        }
+      }
+    }
   }
 
   @Test
-  public void testTermScan() {
-    // TODO
+  public void testTermScan() throws Exception {
+
+    Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
+        "THIRD_DATASET_ACTORS_0_");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+
+      // Single dataset, hits forward index
+      List<Pair<String, List<Term>>> list = new ArrayList<>();
+      dataStore.termScan(scanners, "first_dataset", normalize("Conno?"))
+          .forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals(10, list.get(0).getSecond().size());
+
+      for (int i = 0; i < 10; i++) {
+
+        Term term = list.get(0).getSecond().get(i);
+
+        Assert.assertEquals("row_" + i, term.docId());
+        Assert.assertEquals("Actors[0]¤children[2]", term.field());
+        Assert.assertEquals("connor", term.term());
+        Assert.assertEquals(1, term.count());
+        Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
+            "FIRST_DATASET_ROW_" + i), term.labels());
+      }
+
+      // Single dataset, hits backward index
+      list.clear();
+      dataStore.termScan(scanners, "first_dataset", normalize("?onnor"))
+          .forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals(10, list.get(0).getSecond().size());
+
+      for (int i = 0; i < 10; i++) {
+
+        Term term = list.get(0).getSecond().get(i);
+
+        Assert.assertEquals("row_" + i, term.docId());
+        Assert.assertEquals("Actors[0]¤children[2]", term.field());
+        Assert.assertEquals("connor", term.term());
+        Assert.assertEquals(1, term.count());
+        Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
+            "FIRST_DATASET_ROW_" + i), term.labels());
+      }
+
+      // Cross datasets
+      list.clear();
+      dataStore.termScan(scanners, null, normalize("Connor")).forEachRemaining(list::add);
+
+      Assert.assertEquals(1, list.size());
+      Assert.assertEquals(30, list.get(0).getSecond().size());
+
+      for (int i = 0; i < 30; i++) {
+
+        Term term = list.get(0).getSecond().get(i);
+
+        Assert.assertEquals("row_" + (i % 10), term.docId());
+        Assert.assertEquals("Actors[0]¤children[2]", term.field());
+        Assert.assertEquals("connor", term.term());
+        Assert.assertEquals(1, term.count());
+
+        if (i < 10) {
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
+              "FIRST_DATASET_ROW_" + (i % 10)), term.labels());
+        } else if (i < 20) {
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_",
+              "SECOND_DATASET_ROW_" + (i % 10)), term.labels());
+        } else {
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_",
+              "THIRD_DATASET_ROW_" + (i % 10)), term.labels());
+        }
+      }
+    }
   }
 }

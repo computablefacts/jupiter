@@ -676,7 +676,7 @@ final public class DataStore {
    * Get count by term.
    *
    * @param scanners scanners.
-   * @param dataset dataset.
+   * @param dataset dataset (optional).
    * @param term term.
    * @return count.
    */
@@ -684,7 +684,6 @@ final public class DataStore {
       String term) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkArgument(scanners.index() instanceof Scanner,
         "index scanner must guarantee the result order");
@@ -696,7 +695,7 @@ final public class DataStore {
    * Get cardinality by term.
    *
    * @param scanners scanners.
-   * @param dataset dataset.
+   * @param dataset dataset (optional).
    * @param term term.
    * @return count.
    */
@@ -704,7 +703,6 @@ final public class DataStore {
       String term) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkArgument(scanners.index() instanceof Scanner,
         "index scanner must guarantee the result order");
@@ -716,7 +714,7 @@ final public class DataStore {
    * Get UUIDs grouped by terms.
    *
    * @param scanners scanners.
-   * @param dataset dataset.
+   * @param dataset dataset (optional).
    * @param term term.
    * @return iterator.
    */
@@ -724,7 +722,6 @@ final public class DataStore {
       String term) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
 
     return termScan(scanners, dataset, term, null, null);
@@ -734,7 +731,7 @@ final public class DataStore {
    * Get UUIDs grouped by terms.
    *
    * @param scanners scanners.
-   * @param dataset dataset.
+   * @param dataset dataset (optional).
    * @param term term.
    * @param keepFields fields patterns to keep (optional).
    * @param keepDocs document ids to keep (optional).
@@ -744,7 +741,6 @@ final public class DataStore {
       Set<String> keepFields, BloomFilters<String> keepDocs) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkArgument(scanners.index() instanceof Scanner,
         "index scanner must guarantee the result order");
