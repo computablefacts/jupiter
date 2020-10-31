@@ -419,9 +419,10 @@ public class DataStoreTest {
   }
 
   @Test
-  public void testWriteBlobStoreWithoutTablesPermissions() throws Exception {
+  public void testGrantWriteOnBlobStoreThenRevoke() throws Exception {
 
     Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
+    Assert.assertTrue(dataStore.grantWritePermissionOnBlobStore("jdoe"));
 
     Configurations confs = new Configurations(configurations.instanceName(),
         configurations.zooKeepers(), "jdoe", "azerty");
@@ -433,14 +434,28 @@ public class DataStoreTest {
       m.put(new Text("first_dataset"), Constants.TEXT_EMPTY, Constants.VALUE_EMPTY);
       writers.blob().addMutation(m);
 
+      Assert.assertTrue(writers.flush());
+    }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore("jdoe"));
+
+    try (Writers writers = ds.writers()) {
+
+      Mutation m = new Mutation("test_row");
+      m.put(new Text("second_dataset"), Constants.TEXT_EMPTY, Constants.VALUE_EMPTY);
+      writers.blob().addMutation(m);
+
       Assert.assertFalse(writers.flush());
     }
+
+    Assert.assertTrue(Users.delete(configurations.connector(), "jdoe"));
   }
 
   @Test
-  public void testWriteTermStoreWithoutTablesPermissions() throws Exception {
+  public void testGrantWriteOnTermStoreThenRevoke() throws Exception {
 
     Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
+    Assert.assertTrue(dataStore.grantWritePermissionOnTermStore("jdoe"));
 
     Configurations confs = new Configurations(configurations.instanceName(),
         configurations.zooKeepers(), "jdoe", "azerty");
@@ -453,8 +468,22 @@ public class DataStoreTest {
           Constants.VALUE_EMPTY);
       writers.index().addMutation(m);
 
+      Assert.assertTrue(writers.flush());
+    }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore("jdoe"));
+
+    try (Writers writers = ds.writers()) {
+
+      Mutation m = new Mutation("test");
+      m.put(new Text("second_dataset_FIDX"), new Text("000|0000-00-00T00:00:00.000Z\0field"),
+          Constants.VALUE_EMPTY);
+      writers.index().addMutation(m);
+
       Assert.assertFalse(writers.flush());
     }
+
+    Assert.assertTrue(Users.delete(configurations.connector(), "jdoe"));
   }
 
   @Test
