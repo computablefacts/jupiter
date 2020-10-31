@@ -689,6 +689,50 @@ public class DataStoreTest {
   }
 
   @Test
+  public void testSearchTerm() throws Exception {
+
+    Authorizations auths = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+        "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9");
+    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+      try (Writers writers = dataStore.writers()) {
+
+        List<String> list = new ArrayList<>();
+        dataStore.searchByTerm(scanners, writers, "first_dataset", normalize("Connor"), null)
+            .forEachRemaining(list::add);
+
+        Assert.assertEquals(10, list.size());
+
+        for (int i = 0; i < 10; i++) {
+          Assert.assertEquals("row_" + i, list.get(i));
+        }
+
+        list.clear();
+        dataStore.searchByTerm(scanners, writers, "first_dataset", normalize("56"), null, null)
+            .forEachRemaining(list::add);
+
+        Assert.assertEquals(10, list.size());
+
+        for (int i = 0; i < 10; i++) {
+          Assert.assertEquals("row_" + i, list.get(i));
+        }
+
+        list.clear();
+        dataStore.searchByTerm(scanners, writers, "first_dataset", normalize("67.5"), null, null)
+            .forEachRemaining(list::add);
+
+        Assert.assertEquals(10, list.size());
+
+        for (int i = 0; i < 10; i++) {
+          Assert.assertEquals("row_" + i, list.get(i));
+        }
+      }
+    }
+  }
+
+  @Test
   public void testSearchTerms() throws Exception {
 
     Authorizations auths = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
@@ -805,5 +849,20 @@ public class DataStoreTest {
         Assert.assertTrue(dataStore.remove("fourth_dataset"));
       }
     }
+  }
+
+  @Test
+  public void testTermCount() {
+    // TODO
+  }
+
+  @Test
+  public void testTermCard() {
+    // TODO
+  }
+
+  @Test
+  public void testTermScan() {
+    // TODO
   }
 }
