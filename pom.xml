@@ -39,7 +39,7 @@
     </developers>
 
     <properties>
-        <nona.version>1.15</nona.version>
+        <nona.version>1.16</nona.version>
         <accumulo.version>1.9.2</accumulo.version>
         <hadoop.version>2.7.3</hadoop.version>
         <zookeeper.version>3.4.9</zookeeper.version>
