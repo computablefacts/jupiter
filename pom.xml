@@ -39,7 +39,7 @@
     </developers>
 
     <properties>
-        <nona.version>1.16</nona.version>
+        <nona.version>1.17-SNAPSHOT</nona.version>
         <accumulo.version>1.9.2</accumulo.version>
         <hadoop.version>2.7.3</hadoop.version>
         <zookeeper.version>3.4.9</zookeeper.version>
@@ -152,6 +152,21 @@
                         </goals>
                         <configuration>
                             <rules>
+                                <restrictImports
+                                        implementation="de.skuzzle.enforcer.restrictimports.rule.RestrictImports">
+                                    <reason>Jupiter must not inherit from Decima</reason>
+                                    <bannedImport>com.computablefacts.decima.**</bannedImport>
+                                </restrictImports>
+                                <restrictImports
+                                        implementation="de.skuzzle.enforcer.restrictimports.rule.RestrictImports">
+                                    <reason>Jupiter must not inherit from Morta</reason>
+                                    <bannedImport>com.computablefacts.morta.**</bannedImport>
+                                </restrictImports>
+                                <restrictImports
+                                        implementation="de.skuzzle.enforcer.restrictimports.rule.RestrictImports">
+                                    <reason>Jupiter must not inherit from Junon</reason>
+                                    <bannedImport>com.computablefacts.junon.**</bannedImport>
+                                </restrictImports>
                                 <restrictImports
                                         implementation="de.skuzzle.enforcer.restrictimports.rule.RestrictImports">
                                     <reason>Use SLF4j for logging</reason>
