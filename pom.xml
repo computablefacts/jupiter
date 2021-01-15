@@ -40,6 +40,7 @@
 
     <properties>
         <nona.version>1.17-SNAPSHOT</nona.version>
+        <guava.version>28.0-jre</guava.version>
         <accumulo.version>1.9.2</accumulo.version>
         <hadoop.version>2.7.3</hadoop.version>
         <zookeeper.version>3.4.9</zookeeper.version>
@@ -60,6 +61,13 @@
     </properties>
 
     <dependencies>
+        <!-- Must keep because accumulo-core depends on Guava 14.0.1 -->
+        <!-- Must match version in project logfmt -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.computablefacts</groupId>
             <artifactId>nona</artifactId>
