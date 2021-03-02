@@ -10,7 +10,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.commons.io.FileUtils;
@@ -36,18 +39,87 @@ final public class MiniAccumuloClusterUtils {
 
     Preconditions.checkNotNull(accumulo, "accumulo should not be null");
 
-    return new Configurations(accumulo.getInstanceName(), accumulo.getZooKeepers(),
-        MiniAccumuloClusterUtils.MAC_USER, MiniAccumuloClusterUtils.MAC_PASSWORD);
+    return newConfiguration(accumulo, MiniAccumuloClusterUtils.MAC_USER,
+        MiniAccumuloClusterUtils.MAC_PASSWORD);
+  }
+
+  public static Configurations newConfiguration(MiniAccumuloCluster accumulo, String username) {
+
+    Preconditions.checkNotNull(accumulo, "accumulo should not be null");
+    Preconditions.checkNotNull(username, "username should not be null");
+
+    return newConfiguration(accumulo, username, username);
+  }
+
+  public static Configurations newConfiguration(MiniAccumuloCluster accumulo, String username,
+      String password) {
+
+    Preconditions.checkNotNull(accumulo, "accumulo should not be null");
+    Preconditions.checkNotNull(username, "username should not be null");
+    Preconditions.checkNotNull(password, "password should not be null");
+
+    return new Configurations(accumulo.getInstanceName(), accumulo.getZooKeepers(), username,
+        password);
+  }
+
+  @CanIgnoreReturnValue
+  public static MiniAccumuloCluster newUser(MiniAccumuloCluster accumulo, String user)
+      throws Exception {
+
+    Preconditions.checkNotNull(accumulo, "accumulo should not be null");
+
+    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations().createLocalUser(user,
+        new PasswordToken(user));
+
+    return accumulo;
   }
 
   @CanIgnoreReturnValue
   public static MiniAccumuloCluster setUserAuths(MiniAccumuloCluster accumulo, Authorizations auths)
       throws Exception {
+    return setUserAuths(accumulo, MAC_USER, auths);
+  }
+
+  @CanIgnoreReturnValue
+  public static MiniAccumuloCluster setUserAuths(MiniAccumuloCluster accumulo, String username,
+      Authorizations auths) throws Exception {
 
     Preconditions.checkNotNull(accumulo, "accumulo should not be null");
+    Preconditions.checkNotNull(username, "username should not be null");
 
     accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations()
-        .changeUserAuthorizations(MAC_USER, auths);
+        .changeUserAuthorizations(username, auths);
+
+    return accumulo;
+  }
+
+  @CanIgnoreReturnValue
+  public static MiniAccumuloCluster setUserTablePermissions(MiniAccumuloCluster accumulo,
+      String username, String table) throws Exception {
+
+    Preconditions.checkNotNull(accumulo, "accumulo should not be null");
+    Preconditions.checkNotNull(username, "username should not be null");
+    Preconditions.checkNotNull(table, "table should not be null");
+
+    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations()
+        .grantTablePermission(username, table, TablePermission.READ);
+    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations()
+        .grantTablePermission(username, table, TablePermission.WRITE);
+
+    return accumulo;
+  }
+
+  @CanIgnoreReturnValue
+  public static MiniAccumuloCluster setUserSystemPermissions(MiniAccumuloCluster accumulo,
+      String username) throws Exception {
+
+    Preconditions.checkNotNull(accumulo, "accumulo should not be null");
+    Preconditions.checkNotNull(username, "username should not be null");
+
+    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations()
+        .grantSystemPermission(username, SystemPermission.CREATE_TABLE);
+    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations()
+        .grantSystemPermission(username, SystemPermission.DROP_TABLE);
 
     return accumulo;
   }
