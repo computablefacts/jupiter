@@ -75,7 +75,7 @@ public class AbstractStorageTest extends MiniAccumuloClusterTest {
   }
 
   @Test
-  public void testCreateAndIsReady() {
+  public void testCreateAndIsReady() throws Exception {
 
     String tableName = nextTableName();
     Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo());
@@ -89,7 +89,7 @@ public class AbstractStorageTest extends MiniAccumuloClusterTest {
   }
 
   @Test
-  public void testCreateAndDestroy() {
+  public void testCreateAndDestroy() throws Exception {
 
     String tableName = nextTableName();
     Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo());
