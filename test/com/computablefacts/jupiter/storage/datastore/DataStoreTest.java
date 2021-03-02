@@ -13,17 +13,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
-import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
@@ -34,274 +30,16 @@ import com.computablefacts.jupiter.storage.termstore.IngestStats;
 import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.jupiter.storage.termstore.TermCard;
 import com.computablefacts.jupiter.storage.termstore.TermCount;
-import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
 
-/**
- * This class is not thread-safe because {@link MiniAccumuloClusterUtils#setUserAuths} is used. Do
- * not execute methods in parallel.
- */
-@net.jcip.annotations.NotThreadSafe
-public class DataStoreTest {
-
-  private static MiniAccumuloCluster accumulo;
-  private static Configurations configurations;
-  private static DataStore dataStore;
-
-  @BeforeClass
-  public static void initClass() throws Exception {
-    accumulo = MiniAccumuloClusterUtils.newCluster();
-    configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
-    dataStore = new DataStore(configurations, "data_store");
-  }
-
-  @AfterClass
-  public static void uinitClass() throws Exception {
-    MiniAccumuloClusterUtils.destroyCluster(accumulo);
-  }
-
-  private static void fill() {
-
-    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
-
-    try (Writers writers = dataStore.writers()) {
-      try (IngestStats stats = dataStore.newIngestStats()) {
-
-        for (int i = 0; i < 10; i++) {
-          Assert
-              .assertTrue(dataStore.persist(writers, stats, "first_dataset", "row_" + i, json1(i)));
-        }
-
-        for (int i = 0; i < 10; i++) {
-          Assert.assertTrue(
-              dataStore.persist(writers, stats, "second_dataset", "row_" + i, json1(i)));
-        }
-
-        for (int i = 0; i < 10; i++) {
-          Assert
-              .assertTrue(dataStore.persist(writers, stats, "third_dataset", "row_" + i, json1(i)));
-        }
-      }
-    }
-  }
-
-  private static String json1(int i) {
-    return "{" + "  \"Actors\": [" + "    {" + "      \"uuid\": " + i + ","
-        + "      \"name\": \"Tom Cruise\"," + "      \"age\": 56,"
-        + "      \"Born At\": \"Syracuse, NY\"," + "      \"Birthdate\": \"July 3, 1962\","
-        + "      \"photo\": \"https://jsonformatter.org/img/tom-cruise.jpg\","
-        + "      \"wife\": null," + "      \"weight\": 67.5," + "      \"hasChildren\": true,"
-        + "      \"hasGreyHair\": false," + "      \"children\": [" + "        \"Suri\","
-        + "        \"Isabella Jane\"," + "        \"Connor\"" + "      ]" + "    }]}";
-  }
-
-  private static String json2(int i) {
-    return "{\n" + "  \"uuid\": " + i + ",\n" + "  \"Actors\": [\n" + "    {\n"
-        + "      \"uuid\": \"item" + i + "0\",\n" + "      \"name\": \"Tom Cruise\",\n"
-        + "      \"age\": 56,\n" + "      \"Born At\": \"Syracuse, NY\",\n"
-        + "      \"Birthdate\": \"July 3, 1962\",\n"
-        + "      \"photo\": \"https://jsonformatter.org/img/tom-cruise.jpg\",\n"
-        + "      \"wife\": null,\n" + "      \"weight\": 67.5,\n" + "      \"hasChildren\": true,\n"
-        + "      \"hasGreyHair\": false,\n" + "      \"children\": [\n" + "        \"Suri\",\n"
-        + "        \"Isabella Jane\",\n" + "        \"Connor\"\n" + "      ]\n" + "    },\n"
-        + "    {\n" + "      \"uuid\": \"item" + i + "1\",\n"
-        + "      \"name\": \"Robert Downey Jr.\",\n" + "      \"age\": 53,\n"
-        + "      \"Born At\": \"New York City, NY\",\n"
-        + "      \"Birthdate\": \"April 4, 1965\",\n"
-        + "      \"photo\": \"https://jsonformatter.org/img/Robert-Downey-Jr.jpg\",\n"
-        + "      \"wife\": \"Susan Downey\",\n" + "      \"weight\": 77.1,\n"
-        + "      \"hasChildren\": true,\n" + "      \"hasGreyHair\": false,\n"
-        + "      \"children\": [\n" + "        \"Indio Falconer\",\n" + "        \"Avri Roel\",\n"
-        + "        \"Exton Elias\"\n" + "      ]\n" + "    }\n" + "  ]\n" + "}";
-  }
-
-  private static int countFirst(Authorizations authorizations) {
-    return count("first_dataset", authorizations);
-  }
-
-  private static int countSecond(Authorizations authorizations) {
-    return count("second_dataset", authorizations);
-  }
-
-  private static int countThird(Authorizations authorizations) {
-    return count("third_dataset", authorizations);
-  }
-
-  private static int count(String dataset, Authorizations authorizations) {
-    return all(dataset, authorizations).size();
-  }
-
-  private static List<Blob<Value>> firstDataset(Authorizations authorizations) {
-    return all("first_dataset", authorizations);
-  }
-
-  private static List<Blob<Value>> secondDataset(Authorizations authorizations) {
-    return all("second_dataset", authorizations);
-  }
-
-  private static List<Blob<Value>> thirdDataset(Authorizations authorizations) {
-    return all("third_dataset", authorizations);
-  }
-
-  private static List<Blob<Value>> all(String dataset, Authorizations authorizations) {
-
-    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    try (Scanners scanners = dataStore.scanners(authorizations)) { // keep order
-
-      List<Blob<Value>> list = new ArrayList<>();
-      Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, dataset);
-
-      while (iterator.hasNext()) {
-        list.add(iterator.next());
-      }
-      return list;
-    }
-  }
-
-  private static int countFirst(String term, Set<String> fields, Authorizations authorizations) {
-    return count("first_dataset", term, fields, authorizations);
-  }
-
-  private static int countSecond(String term, Set<String> fields, Authorizations authorizations) {
-    return count("second_dataset", term, fields, authorizations);
-  }
-
-  private static int countThird(String term, Set<String> fields, Authorizations authorizations) {
-    return count("third_dataset", term, fields, authorizations);
-  }
-
-  private static int count(String dataset, String term, Set<String> fields,
-      Authorizations authorizations) {
-    return all(dataset, term, fields, authorizations).size();
-  }
-
-  private static List<Pair<String, List<Term>>> firstDataset(String term, Set<String> fields,
-      Authorizations authorizations) {
-    return all("first_dataset", term, fields, authorizations);
-  }
-
-  private static List<Pair<String, List<Term>>> secondDataset(String term, Set<String> fields,
-      Authorizations authorizations) {
-    return all("second_dataset", term, fields, authorizations);
-  }
-
-  private static List<Pair<String, List<Term>>> thirdDataset(String term, Set<String> fields,
-      Authorizations authorizations) {
-    return all("third_dataset", term, fields, authorizations);
-  }
-
-  private static List<Pair<String, List<Term>>> all(String dataset, String term, Set<String> fields,
-      Authorizations authorizations) {
-
-    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-
-    try (Scanners scanners = dataStore.scanners(authorizations)) { // keep order
-
-      List<Pair<String, List<Term>>> list = new ArrayList<>();
-      Iterator<Pair<String, List<Term>>> iterator =
-          dataStore.termScan(scanners, dataset, term, fields, null);
-
-      while (iterator.hasNext()) {
-        list.add(iterator.next());
-      }
-      return list;
-    }
-  }
-
-  private static FieldCard fieldCardFirst(String field, Authorizations authorizations) {
-    return fieldCard("first_dataset", field, authorizations);
-  }
-
-  private static FieldCard fieldCardSecond(String field, Authorizations authorizations) {
-    return fieldCard("second_dataset", field, authorizations);
-  }
-
-  private static FieldCard fieldCardThird(String field, Authorizations authorizations) {
-    return fieldCard("third_dataset", field, authorizations);
-  }
-
-  private static FieldCard fieldCard(String dataset, String field, Authorizations authorizations) {
-
-    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(field, "field should not be null");
-
-    try (Scanners scanners = dataStore.scanners(authorizations)) {
-      Iterator<FieldCard> iterator = dataStore.fieldCard(scanners, dataset, field);
-      return iterator.hasNext() ? iterator.next() : null;
-    }
-  }
-
-  private static FieldCount fieldCountFirst(String field, Authorizations authorizations) {
-    return fieldCount("first_dataset", field, authorizations);
-  }
-
-  private static FieldCount fieldCountSecond(String field, Authorizations authorizations) {
-    return fieldCount("second_dataset", field, authorizations);
-  }
-
-  private static FieldCount fieldCountThird(String field, Authorizations authorizations) {
-    return fieldCount("third_dataset", field, authorizations);
-  }
-
-  private static FieldCount fieldCount(String dataset, String field,
-      Authorizations authorizations) {
-
-    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(field, "field should not be null");
-
-    try (Scanners scanners = dataStore.scanners(authorizations)) {
-      Iterator<FieldCount> iterator = dataStore.fieldCount(scanners, dataset, field);
-      return iterator.hasNext() ? iterator.next() : null;
-    }
-  }
-
-  private static FieldLabels fieldLabelsFirst(String field, Authorizations authorizations) {
-    return fieldLabels("first_dataset", field, authorizations);
-  }
-
-  private static FieldLabels fieldLabelsSecond(String field, Authorizations authorizations) {
-    return fieldLabels("second_dataset", field, authorizations);
-  }
-
-  private static FieldLabels fieldLabelsThird(String field, Authorizations authorizations) {
-    return fieldLabels("third_dataset", field, authorizations);
-  }
-
-  private static FieldLabels fieldLabels(String dataset, String field,
-      Authorizations authorizations) {
-
-    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(field, "field should not be null");
-
-    try (Scanners scanners = dataStore.scanners(authorizations)) {
-      Iterator<FieldLabels> iterator = dataStore.fieldLabels(scanners, dataset, field);
-      return iterator.hasNext() ? iterator.next() : null;
-    }
-  }
+public class DataStoreTest extends MiniAccumuloClusterTest {
 
   private static String normalize(String str) {
     String token = Codecs.nopTokenizer.apply(str).span(0).text();
     return Codecs.nopLexicoder.apply(token).text();
-  }
-
-  @Before
-  public void initMethods() {
-    if (dataStore.isReady()) {
-      boolean isOk = dataStore.destroy();
-    }
-    if (dataStore.create()) {
-      fill();
-    }
   }
 
   @Test
@@ -309,22 +47,49 @@ public class DataStoreTest {
     // TODO
   }
 
+  @Test
+  public void testCreateAndIsReady() throws Exception {
+
+    String tableName = nextTableName();
+    Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo());
+    DataStore dataStore = new DataStore(configurations, tableName);
+
+    Assert.assertTrue(dataStore.create());
+    Assert.assertTrue(dataStore.isReady());
+
+    Assert.assertTrue(dataStore.create()); // ensure create is reentrant
+    Assert.assertTrue(dataStore.isReady());
+  }
+
+  @Test
+  public void testCreateAndDestroy() throws Exception {
+
+    String tableName = nextTableName();
+    Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo());
+    DataStore dataStore = new DataStore(configurations, tableName);
+
+    Assert.assertTrue(dataStore.create());
+    Assert.assertTrue(dataStore.isReady());
+
+    Assert.assertTrue(dataStore.destroy());
+    Assert.assertFalse(dataStore.isReady());
+
+    Assert.assertTrue(dataStore.destroy()); // ensure destroy is reentrant
+    Assert.assertFalse(dataStore.isReady());
+  }
+
   @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
-  public void testReadBlobStoreWithoutTablesPermissions() {
+  public void testReadBlobStoreWithoutTablesPermissions() throws Exception {
 
-    String[] auths = new String[] {"FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+    Authorizations auths = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
         "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
-        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9"};
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9");
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(auths, username);
 
-    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
-    Assert.assertTrue(
-        Users.setAuthorizations(configurations.connector(), "jdoe", Sets.newHashSet(auths)));
+    Assert.assertTrue(dataStore.revokeReadPermissions(username));
 
-    Configurations confs = new Configurations(configurations.instanceName(),
-        configurations.zooKeepers(), "jdoe", "azerty");
-    DataStore ds = new DataStore(confs, dataStore.name());
-
-    try (Scanners scanners = ds.scanners(new Authorizations(auths))) {
+    try (Scanners scanners = dataStore.scanners(auths)) {
 
       ScannerBase scanner = scanners.blob();
       scanner.fetchColumnFamily(new Text("first_dataset"));
@@ -335,21 +100,17 @@ public class DataStoreTest {
   }
 
   @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
-  public void testReadTermStoreWithoutTablesPermissions() {
+  public void testReadTermStoreWithoutTablesPermissions() throws Exception {
 
-    String[] auths = new String[] {"FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+    Authorizations auths = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
         "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
-        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9"};
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9");
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(auths, username);
 
-    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
-    Assert.assertTrue(
-        Users.setAuthorizations(configurations.connector(), "jdoe", Sets.newHashSet(auths)));
+    Assert.assertTrue(dataStore.revokeReadPermissions(username));
 
-    Configurations confs = new Configurations(configurations.instanceName(),
-        configurations.zooKeepers(), "jdoe", "azerty");
-    DataStore ds = new DataStore(confs, dataStore.name());
-
-    try (Scanners scanners = ds.scanners(new Authorizations(auths))) {
+    try (Scanners scanners = dataStore.scanners(auths)) {
 
       ScannerBase scanner = scanners.index();
       scanner.fetchColumnFamily(new Text("first_dataset_FIDX"));
@@ -360,78 +121,54 @@ public class DataStoreTest {
   }
 
   @Test
-  public void testReadBlobStoreWithTablesPermissions() {
+  public void testReadBlobStoreWithTablesPermissions() throws Exception {
 
-    String[] auths = new String[] {"FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+    Authorizations auths = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
         "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
-        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9"};
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9");
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(auths, username);
 
-    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
-    Assert.assertTrue(
-        Users.setAuthorizations(configurations.connector(), "jdoe", Sets.newHashSet(auths)));
-    Assert.assertTrue(dataStore.grantReadPermissions("jdoe"));
-
-    Configurations confs = new Configurations(configurations.instanceName(),
-        configurations.zooKeepers(), "jdoe", "azerty");
-    DataStore ds = new DataStore(confs, dataStore.name());
-
-    try (Scanners scanners = ds.scanners(new Authorizations(auths))) {
+    try (Scanners scanners = dataStore.scanners(auths)) {
 
       ScannerBase scanner = scanners.blob();
       scanner.fetchColumnFamily(new Text("first_dataset"));
 
       List<Map.Entry<Key, Value>> list = new ArrayList<>();
-      scanner.iterator().forEachRemaining(list::add);
+      scanner.iterator().forEachRemaining(list::add); // An exception is thrown here
 
       Assert.assertEquals(10, list.size());
     }
-
-    Assert.assertTrue(dataStore.revokeReadPermissions("jdoe"));
-    Assert.assertTrue(Users.delete(configurations.connector(), "jdoe"));
   }
 
   @Test
-  public void testReadTermStoreWithTablesPermissions() {
+  public void testReadTermStoreWithTablesPermissions() throws Exception {
 
-    String[] auths = new String[] {"FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
+    Authorizations auths = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
         "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
-        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9"};
+        "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9");
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(auths, username);
 
-    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
-    Assert.assertTrue(
-        Users.setAuthorizations(configurations.connector(), "jdoe", Sets.newHashSet(auths)));
-    Assert.assertTrue(dataStore.grantReadPermissions("jdoe"));
-
-    Configurations confs = new Configurations(configurations.instanceName(),
-        configurations.zooKeepers(), "jdoe", "azerty");
-    DataStore ds = new DataStore(confs, dataStore.name());
-
-    try (Scanners scanners = ds.scanners(new Authorizations(auths))) {
+    try (Scanners scanners = dataStore.scanners(auths)) {
 
       ScannerBase scanner = scanners.index();
       scanner.fetchColumnFamily(new Text("first_dataset_FIDX"));
 
       List<Map.Entry<Key, Value>> list = new ArrayList<>();
-      scanner.iterator().forEachRemaining(list::add);
+      scanner.iterator().forEachRemaining(list::add); // An exception is thrown here
 
       Assert.assertEquals(120, list.size());
     }
-
-    Assert.assertTrue(dataStore.revokeReadPermissions("jdoe"));
-    Assert.assertTrue(Users.delete(configurations.connector(), "jdoe"));
   }
 
   @Test
   public void testGrantWriteOnBlobStoreThenRevoke() throws Exception {
 
-    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
-    Assert.assertTrue(dataStore.grantWritePermissionOnBlobStore("jdoe"));
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(Constants.AUTH_ADM, username);
 
-    Configurations confs = new Configurations(configurations.instanceName(),
-        configurations.zooKeepers(), "jdoe", "azerty");
-    DataStore ds = new DataStore(confs, dataStore.name());
-
-    try (Writers writers = ds.writers()) {
+    try (Writers writers = dataStore.writers()) {
 
       Mutation m = new Mutation("test_row");
       m.put(new Text("first_dataset"), Constants.TEXT_EMPTY, Constants.VALUE_EMPTY);
@@ -440,9 +177,9 @@ public class DataStoreTest {
       Assert.assertTrue(writers.flush());
     }
 
-    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore("jdoe"));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
 
-    try (Writers writers = ds.writers()) {
+    try (Writers writers = dataStore.writers()) {
 
       Mutation m = new Mutation("test_row");
       m.put(new Text("second_dataset"), Constants.TEXT_EMPTY, Constants.VALUE_EMPTY);
@@ -450,21 +187,15 @@ public class DataStoreTest {
 
       Assert.assertFalse(writers.flush());
     }
-
-    Assert.assertTrue(Users.delete(configurations.connector(), "jdoe"));
   }
 
   @Test
   public void testGrantWriteOnTermStoreThenRevoke() throws Exception {
 
-    Assert.assertTrue(Users.create(configurations.connector(), "jdoe", "azerty"));
-    Assert.assertTrue(dataStore.grantWritePermissionOnTermStore("jdoe"));
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(Constants.AUTH_ADM, username);
 
-    Configurations confs = new Configurations(configurations.instanceName(),
-        configurations.zooKeepers(), "jdoe", "azerty");
-    DataStore ds = new DataStore(confs, dataStore.name());
-
-    try (Writers writers = ds.writers()) {
+    try (Writers writers = dataStore.writers()) {
 
       Mutation m = new Mutation("test");
       m.put(new Text("first_dataset_FIDX"), new Text("000|0000-00-00T00:00:00.000Z\0field"),
@@ -474,9 +205,9 @@ public class DataStoreTest {
       Assert.assertTrue(writers.flush());
     }
 
-    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore("jdoe"));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    try (Writers writers = ds.writers()) {
+    try (Writers writers = dataStore.writers()) {
 
       Mutation m = new Mutation("test");
       m.put(new Text("second_dataset_FIDX"), new Text("000|0000-00-00T00:00:00.000Z\0field"),
@@ -485,72 +216,35 @@ public class DataStoreTest {
 
       Assert.assertFalse(writers.flush());
     }
-
-    Assert.assertTrue(Users.delete(configurations.connector(), "jdoe"));
-  }
-
-  @Test
-  public void testCreateAndIsReady() throws Exception {
-
-    MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
-    Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
-    TermStore termStore = new TermStore(configurations, "data_store");
-
-    Assert.assertTrue(termStore.create());
-    Assert.assertTrue(termStore.isReady());
-
-    Assert.assertTrue(termStore.create()); // ensure create is reentrant
-    Assert.assertTrue(termStore.isReady());
-
-    MiniAccumuloClusterUtils.destroyCluster(accumulo);
-  }
-
-  @Test
-  public void testCreateAndDestroy() throws Exception {
-
-    MiniAccumuloCluster accumulo = MiniAccumuloClusterUtils.newCluster();
-    Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo);
-    TermStore termStore = new TermStore(configurations, "data_store");
-
-    Assert.assertTrue(termStore.create());
-    Assert.assertTrue(termStore.isReady());
-
-    Assert.assertTrue(termStore.destroy());
-    Assert.assertFalse(termStore.isReady());
-
-    Assert.assertTrue(termStore.destroy()); // ensure destroy is reentrant
-    Assert.assertFalse(termStore.isReady());
-
-    MiniAccumuloClusterUtils.destroyCluster(accumulo);
   }
 
   @Test
   public void testRemoveDataset() throws Exception {
 
     Authorizations auths = Constants.AUTH_ADM;
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+    DataStore dataStore = newDataStore(auths);
 
-    Assert.assertEquals(10, countFirst(auths));
-    Assert.assertEquals(10, countSecond(auths));
-    Assert.assertEquals(10, countThird(auths));
+    Assert.assertEquals(10, countEntitiesInFirstDataset(dataStore, auths));
+    Assert.assertEquals(10, countEntitiesInSecondDataset(dataStore, auths));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(dataStore, auths));
 
     Assert.assertTrue(dataStore.remove("first_dataset"));
     Assert.assertTrue(dataStore.remove("second_dataset"));
 
-    Assert.assertEquals(0, countFirst(auths));
-    Assert.assertEquals(0, countSecond(auths));
-    Assert.assertEquals(10, countThird(auths));
+    Assert.assertEquals(0, countEntitiesInFirstDataset(dataStore, auths));
+    Assert.assertEquals(0, countEntitiesInSecondDataset(dataStore, auths));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(dataStore, auths));
   }
 
   @Test
   public void testRemoveRows() throws Exception {
 
     Authorizations auths = Constants.AUTH_ADM;
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+    DataStore dataStore = newDataStore(auths);
 
-    Assert.assertEquals(10, countFirst(auths));
-    Assert.assertEquals(10, countSecond(auths));
-    Assert.assertEquals(10, countThird(auths));
+    Assert.assertEquals(10, countEntitiesInFirstDataset(dataStore, auths));
+    Assert.assertEquals(10, countEntitiesInSecondDataset(dataStore, auths));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(dataStore, auths));
 
     for (int i = 0; i < 100; i++) {
       if (i % 2 == 0) { // remove even rows from dataset 1
@@ -560,12 +254,12 @@ public class DataStoreTest {
       }
     }
 
-    Assert.assertEquals(5, countFirst(auths));
-    Assert.assertEquals(5, countSecond(auths));
-    Assert.assertEquals(10, countThird(auths));
+    Assert.assertEquals(5, countEntitiesInFirstDataset(dataStore, auths));
+    Assert.assertEquals(5, countEntitiesInSecondDataset(dataStore, auths));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(dataStore, auths));
 
     // Ensure odd rows remain in dataset 1
-    List<Blob<Value>> iterator1 = firstDataset(auths);
+    List<Blob<Value>> iterator1 = entitiesInFirstDataset(dataStore, auths);
 
     for (int i = 0; i < 5; i++) {
       Blob<Value> blob = iterator1.get(i);
@@ -573,7 +267,7 @@ public class DataStoreTest {
     }
 
     // Ensure even rows remain in dataset 2
-    List<Blob<Value>> iterator2 = firstDataset(auths);
+    List<Blob<Value>> iterator2 = entitiesInFirstDataset(dataStore, auths);
 
     for (int i = 0; i < 5; i++) {
       Blob<Value> blob = iterator2.get(i);
@@ -595,58 +289,61 @@ public class DataStoreTest {
         "THIRD_DATASET_ROW_7", "THIRD_DATASET_ROW_8", "THIRD_DATASET_ROW_9", "FIRST_DATASET_CNT",
         "FIRST_DATASET_CARD", "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT", "SECOND_DATASET_CARD",
         "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_CARD", "THIRD_DATASET_VIZ");
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+    DataStore dataStore = newDataStore(auths);
 
     // BlobStore
-    Assert.assertEquals(10, countFirst(auths));
-    Assert.assertEquals(10, countSecond(auths));
-    Assert.assertEquals(10, countThird(auths));
+    Assert.assertEquals(10, countEntitiesInFirstDataset(dataStore, auths));
+    Assert.assertEquals(10, countEntitiesInSecondDataset(dataStore, auths));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(dataStore, auths));
 
     // Test TermStore's metadata
-    Assert.assertNotNull(fieldCardFirst("Actors[0]¤children[0]", auths));
-    Assert.assertNotNull(fieldCardSecond("Actors[0]¤children[0]", auths));
-    Assert.assertNotNull(fieldCardThird("Actors[0]¤children[0]", auths));
+    Assert.assertNotNull(fieldCardInFirstDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNotNull(fieldCardInSecondDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNotNull(fieldCardInThirdDataset(dataStore, "Actors[0]¤children[0]", auths));
 
-    Assert.assertNotNull(fieldCountFirst("Actors[0]¤children[0]", auths));
-    Assert.assertNotNull(fieldCountSecond("Actors[0]¤children[0]", auths));
-    Assert.assertNotNull(fieldCountThird("Actors[0]¤children[0]", auths));
+    Assert.assertNotNull(fieldCountInFirstDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNotNull(fieldCountInSecondDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNotNull(fieldCountInThirdDataset(dataStore, "Actors[0]¤children[0]", auths));
 
-    Assert.assertNotNull(fieldLabelsFirst("Actors[0]¤children[0]", auths));
-    Assert.assertNotNull(fieldLabelsSecond("Actors[0]¤children[0]", auths));
-    Assert.assertNotNull(fieldLabelsThird("Actors[0]¤children[0]", auths));
+    Assert.assertNotNull(fieldLabelsInFirstDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNotNull(fieldLabelsInSecondDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNotNull(fieldLabelsInThirdDataset(dataStore, "Actors[0]¤children[0]", auths));
 
     // Test TermStore's terms
-    Assert.assertEquals(1, countFirst("suri", Sets.newHashSet("Actors[0]¤children[0]"), auths));
-    Assert.assertEquals(1, countSecond("suri", Sets.newHashSet("Actors[0]¤children[0]"), auths));
-    Assert.assertEquals(1, countThird("suri", Sets.newHashSet("Actors[0]¤children[0]"), auths));
+    Assert.assertEquals(1, countEntitiesInFirstDataset(dataStore, "suri",
+        Sets.newHashSet("Actors[0]¤children[0]"), auths));
+    Assert.assertEquals(1, countEntitiesInSecondDataset(dataStore, "suri",
+        Sets.newHashSet("Actors[0]¤children[0]"), auths));
+    Assert.assertEquals(1, countEntitiesInThirdDataset(dataStore, "suri",
+        Sets.newHashSet("Actors[0]¤children[0]"), auths));
 
     Assert.assertTrue(dataStore.truncate());
 
     // BlobStore
-    Assert.assertEquals(0, countFirst(auths));
-    Assert.assertEquals(0, countSecond(auths));
-    Assert.assertEquals(0, countThird(auths));
+    Assert.assertEquals(0, countEntitiesInFirstDataset(dataStore, auths));
+    Assert.assertEquals(0, countEntitiesInSecondDataset(dataStore, auths));
+    Assert.assertEquals(0, countEntitiesInThirdDataset(dataStore, auths));
 
     // Test TermStore's metadata
-    Assert.assertNull(fieldCardFirst("Actors[0]¤children[0]", auths));
-    Assert.assertNull(fieldCardSecond("Actors[0]¤children[0]", auths));
-    Assert.assertNull(fieldCardThird("Actors[0]¤children[0]", auths));
+    Assert.assertNull(fieldCardInFirstDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNull(fieldCardInSecondDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNull(fieldCardInThirdDataset(dataStore, "Actors[0]¤children[0]", auths));
 
-    Assert.assertNull(fieldCountFirst("Actors[0]¤children[0]", auths));
-    Assert.assertNull(fieldCountSecond("Actors[0]¤children[0]", auths));
-    Assert.assertNull(fieldCountThird("Actors[0]¤children[0]", auths));
+    Assert.assertNull(fieldCountInFirstDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNull(fieldCountInSecondDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNull(fieldCountInThirdDataset(dataStore, "Actors[0]¤children[0]", auths));
 
-    Assert.assertNull(fieldLabelsFirst("Actors[0]¤children[0]", auths));
-    Assert.assertNull(fieldLabelsSecond("Actors[0]¤children[0]", auths));
-    Assert.assertNull(fieldLabelsThird("Actors[0]¤children[0]", auths));
+    Assert.assertNull(fieldLabelsInFirstDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNull(fieldLabelsInSecondDataset(dataStore, "Actors[0]¤children[0]", auths));
+    Assert.assertNull(fieldLabelsInThirdDataset(dataStore, "Actors[0]¤children[0]", auths));
 
     // Test TermStore's terms
-    Assert.assertEquals(0,
-        countFirst(normalize("Suri"), Sets.newHashSet("Actors[0]¤children[0]"), auths));
-    Assert.assertEquals(0,
-        countSecond(normalize("Suri"), Sets.newHashSet("Actors[0]¤children[0]"), auths));
-    Assert.assertEquals(0,
-        countThird(normalize("Suri"), Sets.newHashSet("Actors[0]¤children[0]"), auths));
+    Assert.assertEquals(0, countEntitiesInFirstDataset(dataStore, normalize("Suri"),
+        Sets.newHashSet("Actors[0]¤children[0]"), auths));
+    Assert.assertEquals(0, countEntitiesInSecondDataset(dataStore, normalize("Suri"),
+        Sets.newHashSet("Actors[0]¤children[0]"), auths));
+    Assert.assertEquals(0, countEntitiesInThirdDataset(dataStore, normalize("Suri"),
+        Sets.newHashSet("Actors[0]¤children[0]"), auths));
   }
 
   @Test
@@ -657,8 +354,7 @@ public class DataStoreTest {
         "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9");
     Authorizations auths2 = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
         "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4");
-
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths1);
+    DataStore dataStore = newDataStore(auths1);
 
     // Use the Scanner auths to filter data
     Set<Blob<Value>> list1 = new HashSet<>();
@@ -677,7 +373,8 @@ public class DataStoreTest {
     // Use the doc ids to filter data
     Set<Blob<Value>> list2 = new HashSet<>();
 
-    try (Scanners scanners = new Scanners(configurations, dataStore.name(), auths1, 2)) { // out-of-order
+    try (
+        Scanners scanners = new Scanners(dataStore.configurations(), dataStore.name(), auths1, 2)) { // out-of-order
 
       Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, "first_dataset",
           Sets.newHashSet("row_0", "row_1", "row_2", "row_3", "row_4"));
@@ -697,7 +394,7 @@ public class DataStoreTest {
     Authorizations auths = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
         "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
         "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9");
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+    DataStore dataStore = newDataStore(auths);
 
     try (Scanners scanners = dataStore.scanners(auths)) { // keep order
       try (Writers writers = dataStore.writers()) {
@@ -741,7 +438,7 @@ public class DataStoreTest {
     Authorizations auths = new Authorizations("FIRST_DATASET_ROW_0", "FIRST_DATASET_ROW_1",
         "FIRST_DATASET_ROW_2", "FIRST_DATASET_ROW_3", "FIRST_DATASET_ROW_4", "FIRST_DATASET_ROW_5",
         "FIRST_DATASET_ROW_6", "FIRST_DATASET_ROW_7", "FIRST_DATASET_ROW_8", "FIRST_DATASET_ROW_9");
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+    DataStore dataStore = newDataStore(auths);
 
     try (Scanners scanners = dataStore.scanners(auths)) { // keep order
       try (Writers writers = dataStore.writers()) {
@@ -768,7 +465,7 @@ public class DataStoreTest {
         "FOURTH_DATASET_ROW_2", "FOURTH_DATASET_ROW_3", "FOURTH_DATASET_ROW_4",
         "FOURTH_DATASET_ROW_5", "FOURTH_DATASET_ROW_6", "FOURTH_DATASET_ROW_7",
         "FOURTH_DATASET_ROW_8", "FOURTH_DATASET_ROW_9");
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+    DataStore dataStore = newDataStore(auths);
 
     try (Scanners scanners = dataStore.scanners(auths)) { // keep order
       try (Writers writers = dataStore.writers()) {
@@ -846,16 +543,15 @@ public class DataStoreTest {
         Assert.assertEquals("row_5", list.get(1));
 
         list.clear();
-
-        // Cleanup
-        MiniAccumuloClusterUtils.setUserAuths(accumulo, Constants.AUTH_ADM);
-        Assert.assertTrue(dataStore.remove("fourth_dataset"));
       }
     }
   }
 
   @Test
-  public void testWriteReadCacheSync() {
+  public void testWriteReadCacheSync() throws Exception {
+
+    DataStore dataStore = newDataStore(Authorizations.EMPTY);
+
     try (Scanners scanners = dataStore.scanners(Authorizations.EMPTY)) { // keep order
       try (Writers writers = dataStore.writers()) {
 
@@ -883,6 +579,9 @@ public class DataStoreTest {
 
   @Test
   public void testWriteReadCacheAsync() throws Exception {
+
+    DataStore dataStore = newDataStore(Authorizations.EMPTY);
+
     try (Scanners scanners = dataStore.scanners(Authorizations.EMPTY)) { // keep order
       try (Writers writers = dataStore.writers()) {
 
@@ -915,7 +614,7 @@ public class DataStoreTest {
 
     Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
         "THIRD_DATASET_ACTORS_0_");
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+    DataStore dataStore = newDataStore(auths);
 
     try (Scanners scanners = dataStore.scanners(auths)) { // keep order
 
@@ -986,7 +685,7 @@ public class DataStoreTest {
 
     Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
         "THIRD_DATASET_ACTORS_0_");
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+    DataStore dataStore = newDataStore(auths);
 
     try (Scanners scanners = dataStore.scanners(auths)) { // keep order
 
@@ -1056,15 +755,15 @@ public class DataStoreTest {
   public void testTermScan() throws Exception {
 
     Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
-        "THIRD_DATASET_ACTORS_0_");
-    MiniAccumuloClusterUtils.setUserAuths(accumulo, auths);
+            "THIRD_DATASET_ACTORS_0_");
+    DataStore dataStore = newDataStore(auths);
 
     try (Scanners scanners = dataStore.scanners(auths)) { // keep order
 
       // Single dataset, hits forward index
       List<Pair<String, List<Term>>> list = new ArrayList<>();
       dataStore.termScan(scanners, "first_dataset", normalize("Conno?"))
-          .forEachRemaining(list::add);
+              .forEachRemaining(list::add);
 
       Assert.assertEquals(1, list.size());
       Assert.assertEquals(10, list.get(0).getSecond().size());
@@ -1078,13 +777,13 @@ public class DataStoreTest {
         Assert.assertEquals("connor", term.term());
         Assert.assertEquals(1, term.count());
         Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
-            "FIRST_DATASET_ROW_" + i), term.labels());
+                "FIRST_DATASET_ROW_" + i), term.labels());
       }
 
       // Single dataset, hits backward index
       list.clear();
       dataStore.termScan(scanners, "first_dataset", normalize("?onnor"))
-          .forEachRemaining(list::add);
+              .forEachRemaining(list::add);
 
       Assert.assertEquals(1, list.size());
       Assert.assertEquals(10, list.get(0).getSecond().size());
@@ -1098,7 +797,7 @@ public class DataStoreTest {
         Assert.assertEquals("connor", term.term());
         Assert.assertEquals(1, term.count());
         Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
-            "FIRST_DATASET_ROW_" + i), term.labels());
+                "FIRST_DATASET_ROW_" + i), term.labels());
       }
 
       // Cross datasets
@@ -1119,15 +818,284 @@ public class DataStoreTest {
 
         if (i < 10) {
           Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
-              "FIRST_DATASET_ROW_" + (i % 10)), term.labels());
+                  "FIRST_DATASET_ROW_" + (i % 10)), term.labels());
         } else if (i < 20) {
           Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_",
-              "SECOND_DATASET_ROW_" + (i % 10)), term.labels());
+                  "SECOND_DATASET_ROW_" + (i % 10)), term.labels());
         } else {
           Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_",
-              "THIRD_DATASET_ROW_" + (i % 10)), term.labels());
+                  "THIRD_DATASET_ROW_" + (i % 10)), term.labels());
         }
       }
     }
+  }
+
+  private FieldLabels fieldLabelsInFirstDataset(DataStore dataStore, String field,
+      Authorizations authorizations) {
+    return fieldLabels(dataStore, "first_dataset", field, authorizations);
+  }
+
+  private FieldLabels fieldLabelsInSecondDataset(DataStore dataStore, String field,
+      Authorizations authorizations) {
+    return fieldLabels(dataStore, "second_dataset", field, authorizations);
+  }
+
+  private FieldLabels fieldLabelsInThirdDataset(DataStore dataStore, String field,
+      Authorizations authorizations) {
+    return fieldLabels(dataStore, "third_dataset", field, authorizations);
+  }
+
+  private FieldLabels fieldLabels(DataStore dataStore, String dataset, String field,
+      Authorizations authorizations) {
+
+    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+
+    try (Scanners scanners = dataStore.scanners(authorizations)) {
+      Iterator<FieldLabels> iterator = dataStore.fieldLabels(scanners, dataset, field);
+      return iterator.hasNext() ? iterator.next() : null;
+    }
+  }
+
+  private FieldCount fieldCountInFirstDataset(DataStore dataStore, String field,
+      Authorizations authorizations) {
+    return fieldCount(dataStore, "first_dataset", field, authorizations);
+  }
+
+  private FieldCount fieldCountInSecondDataset(DataStore dataStore, String field,
+      Authorizations authorizations) {
+    return fieldCount(dataStore, "second_dataset", field, authorizations);
+  }
+
+  private FieldCount fieldCountInThirdDataset(DataStore dataStore, String field,
+      Authorizations authorizations) {
+    return fieldCount(dataStore, "third_dataset", field, authorizations);
+  }
+
+  private FieldCount fieldCount(DataStore dataStore, String dataset, String field,
+      Authorizations authorizations) {
+
+    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+
+    try (Scanners scanners = dataStore.scanners(authorizations)) {
+      Iterator<FieldCount> iterator = dataStore.fieldCount(scanners, dataset, field);
+      return iterator.hasNext() ? iterator.next() : null;
+    }
+  }
+
+  private FieldCard fieldCardInFirstDataset(DataStore dataStore, String field,
+      Authorizations authorizations) {
+    return fieldCard(dataStore, "first_dataset", field, authorizations);
+  }
+
+  private FieldCard fieldCardInSecondDataset(DataStore dataStore, String field,
+      Authorizations authorizations) {
+    return fieldCard(dataStore, "second_dataset", field, authorizations);
+  }
+
+  private FieldCard fieldCardInThirdDataset(DataStore dataStore, String field,
+      Authorizations authorizations) {
+    return fieldCard(dataStore, "third_dataset", field, authorizations);
+  }
+
+  private FieldCard fieldCard(DataStore dataStore, String dataset, String field,
+      Authorizations authorizations) {
+
+    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+
+    try (Scanners scanners = dataStore.scanners(authorizations)) {
+      Iterator<FieldCard> iterator = dataStore.fieldCard(scanners, dataset, field);
+      return iterator.hasNext() ? iterator.next() : null;
+    }
+  }
+
+  private int countEntitiesInFirstDataset(DataStore dataStore, String term, Set<String> fields,
+      Authorizations authorizations) {
+    return count(dataStore, "first_dataset", term, fields, authorizations);
+  }
+
+  private int countEntitiesInSecondDataset(DataStore dataStore, String term, Set<String> fields,
+      Authorizations authorizations) {
+    return count(dataStore, "second_dataset", term, fields, authorizations);
+  }
+
+  private int countEntitiesInThirdDataset(DataStore dataStore, String term, Set<String> fields,
+      Authorizations authorizations) {
+    return count(dataStore, "third_dataset", term, fields, authorizations);
+  }
+
+  private int count(DataStore dataStore, String dataset, String term, Set<String> fields,
+      Authorizations authorizations) {
+    return entities(dataStore, dataset, term, fields, authorizations).size();
+  }
+
+  private int countEntitiesInFirstDataset(DataStore dataStore, Authorizations authorizations) {
+    return count(dataStore, "first_dataset", authorizations);
+  }
+
+  private int countEntitiesInSecondDataset(DataStore dataStore, Authorizations authorizations) {
+    return count(dataStore, "second_dataset", authorizations);
+  }
+
+  private int countEntitiesInThirdDataset(DataStore dataStore, Authorizations authorizations) {
+    return count(dataStore, "third_dataset", authorizations);
+  }
+
+  private int count(DataStore dataStore, String dataset, Authorizations authorizations) {
+    return entities(dataStore, dataset, authorizations).size();
+  }
+
+  private List<Pair<String, List<Term>>> entitiesInFirstDataset(DataStore dataStore, String term,
+      Set<String> fields, Authorizations authorizations) {
+    return entities(dataStore, "first_dataset", term, fields, authorizations);
+  }
+
+  private List<Pair<String, List<Term>>> entitiesInSecondDataset(DataStore dataStore, String term,
+      Set<String> fields, Authorizations authorizations) {
+    return entities(dataStore, "second_dataset", term, fields, authorizations);
+  }
+
+  private List<Pair<String, List<Term>>> entitiesInThirdDataset(DataStore dataStore, String term,
+      Set<String> fields, Authorizations authorizations) {
+    return entities(dataStore, "third_dataset", term, fields, authorizations);
+  }
+
+  private List<Pair<String, List<Term>>> entities(DataStore dataStore, String dataset, String term,
+      Set<String> fields, Authorizations authorizations) {
+
+    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+
+    try (Scanners scanners = dataStore.scanners(authorizations)) { // keep order
+
+      List<Pair<String, List<Term>>> list = new ArrayList<>();
+      Iterator<Pair<String, List<Term>>> iterator =
+          dataStore.termScan(scanners, dataset, term, fields, null);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+      return list;
+    }
+  }
+
+  private List<Blob<Value>> entitiesInFirstDataset(DataStore dataStore,
+      Authorizations authorizations) {
+    return entities(dataStore, "first_dataset", authorizations);
+  }
+
+  private List<Blob<Value>> entitiesInSecondDataset(DataStore dataStore,
+      Authorizations authorizations) {
+    return entities(dataStore, "second_dataset", authorizations);
+  }
+
+  private List<Blob<Value>> entitiesInThirdDataset(DataStore dataStore,
+      Authorizations authorizations) {
+    return entities(dataStore, "third_dataset", authorizations);
+  }
+
+  private List<Blob<Value>> entities(DataStore dataStore, String dataset,
+      Authorizations authorizations) {
+
+    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    try (Scanners scanners = dataStore.scanners(authorizations)) { // keep order
+
+      List<Blob<Value>> list = new ArrayList<>();
+      Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, dataset);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+      return list;
+    }
+  }
+
+  private void fillDataStore(DataStore dataStore) {
+
+    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
+
+    try (Writers writers = dataStore.writers()) {
+      try (IngestStats stats = dataStore.newIngestStats()) {
+
+        for (int i = 0; i < 10; i++) {
+          Assert
+              .assertTrue(dataStore.persist(writers, stats, "first_dataset", "row_" + i, json1(i)));
+        }
+
+        for (int i = 0; i < 10; i++) {
+          Assert.assertTrue(
+              dataStore.persist(writers, stats, "second_dataset", "row_" + i, json1(i)));
+        }
+
+        for (int i = 0; i < 10; i++) {
+          Assert
+              .assertTrue(dataStore.persist(writers, stats, "third_dataset", "row_" + i, json1(i)));
+        }
+      }
+    }
+  }
+
+  private DataStore newDataStore(Authorizations auths) throws Exception {
+    String username = nextUsername();
+    return newDataStore(auths, username);
+  }
+
+  private DataStore newDataStore(Authorizations auths, String username) throws Exception {
+
+    String tableName = nextTableName();
+
+    MiniAccumuloClusterUtils.newUser(accumulo(), username);
+    MiniAccumuloClusterUtils.setUserAuths(accumulo(), username, auths);
+    MiniAccumuloClusterUtils.setUserSystemPermissions(accumulo(), username);
+
+    Configurations configurations = MiniAccumuloClusterUtils.newConfiguration(accumulo(), username);
+    DataStore dataStore = new DataStore(configurations, tableName);
+
+    if (dataStore.create()) {
+      fillDataStore(dataStore);
+    }
+
+    dataStore.grantReadPermissionOnTermStore(username);
+    dataStore.grantReadPermissionOnBlobStore(username);
+
+    return dataStore;
+  }
+
+  private String json1(int i) {
+    return "{" + "  \"Actors\": [" + "    {" + "      \"uuid\": " + i + ","
+        + "      \"name\": \"Tom Cruise\"," + "      \"age\": 56,"
+        + "      \"Born At\": \"Syracuse, NY\"," + "      \"Birthdate\": \"July 3, 1962\","
+        + "      \"photo\": \"https://jsonformatter.org/img/tom-cruise.jpg\","
+        + "      \"wife\": null," + "      \"weight\": 67.5," + "      \"hasChildren\": true,"
+        + "      \"hasGreyHair\": false," + "      \"children\": [" + "        \"Suri\","
+        + "        \"Isabella Jane\"," + "        \"Connor\"" + "      ]" + "    }]}";
+  }
+
+  private String json2(int i) {
+    return "{\n" + "  \"uuid\": " + i + ",\n" + "  \"Actors\": [\n" + "    {\n"
+        + "      \"uuid\": \"item" + i + "0\",\n" + "      \"name\": \"Tom Cruise\",\n"
+        + "      \"age\": 56,\n" + "      \"Born At\": \"Syracuse, NY\",\n"
+        + "      \"Birthdate\": \"July 3, 1962\",\n"
+        + "      \"photo\": \"https://jsonformatter.org/img/tom-cruise.jpg\",\n"
+        + "      \"wife\": null,\n" + "      \"weight\": 67.5,\n" + "      \"hasChildren\": true,\n"
+        + "      \"hasGreyHair\": false,\n" + "      \"children\": [\n" + "        \"Suri\",\n"
+        + "        \"Isabella Jane\",\n" + "        \"Connor\"\n" + "      ]\n" + "    },\n"
+        + "    {\n" + "      \"uuid\": \"item" + i + "1\",\n"
+        + "      \"name\": \"Robert Downey Jr.\",\n" + "      \"age\": 53,\n"
+        + "      \"Born At\": \"New York City, NY\",\n"
+        + "      \"Birthdate\": \"April 4, 1965\",\n"
+        + "      \"photo\": \"https://jsonformatter.org/img/Robert-Downey-Jr.jpg\",\n"
+        + "      \"wife\": \"Susan Downey\",\n" + "      \"weight\": 77.1,\n"
+        + "      \"hasChildren\": true,\n" + "      \"hasGreyHair\": false,\n"
+        + "      \"children\": [\n" + "        \"Indio Falconer\",\n" + "        \"Avri Roel\",\n"
+        + "        \"Exton Elias\"\n" + "      ]\n" + "    }\n" + "  ]\n" + "}";
   }
 }

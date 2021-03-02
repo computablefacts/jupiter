@@ -28,7 +28,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testAddLocalityGroup() throws Exception {
 
-    TermStore termStore = newDataStore(Authorizations.EMPTY);
+    TermStore termStore = newDataStore(Constants.AUTH_ADM);
 
     Assert.assertTrue(Tables
         .getLocalityGroups(termStore.configurations().tableOperations(), termStore.tableName())
