@@ -755,7 +755,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   public void testTermScan() throws Exception {
 
     Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
-            "THIRD_DATASET_ACTORS_0_");
+        "THIRD_DATASET_ACTORS_0_");
     DataStore dataStore = newDataStore(auths);
 
     try (Scanners scanners = dataStore.scanners(auths)) { // keep order
@@ -763,7 +763,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       // Single dataset, hits forward index
       List<Pair<String, List<Term>>> list = new ArrayList<>();
       dataStore.termScan(scanners, "first_dataset", normalize("Conno?"))
-              .forEachRemaining(list::add);
+          .forEachRemaining(list::add);
 
       Assert.assertEquals(1, list.size());
       Assert.assertEquals(10, list.get(0).getSecond().size());
@@ -777,13 +777,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Assert.assertEquals("connor", term.term());
         Assert.assertEquals(1, term.count());
         Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
-                "FIRST_DATASET_ROW_" + i), term.labels());
+            "FIRST_DATASET_ROW_" + i), term.labels());
       }
 
       // Single dataset, hits backward index
       list.clear();
       dataStore.termScan(scanners, "first_dataset", normalize("?onnor"))
-              .forEachRemaining(list::add);
+          .forEachRemaining(list::add);
 
       Assert.assertEquals(1, list.size());
       Assert.assertEquals(10, list.get(0).getSecond().size());
@@ -797,7 +797,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Assert.assertEquals("connor", term.term());
         Assert.assertEquals(1, term.count());
         Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
-                "FIRST_DATASET_ROW_" + i), term.labels());
+            "FIRST_DATASET_ROW_" + i), term.labels());
       }
 
       // Cross datasets
@@ -818,13 +818,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
         if (i < 10) {
           Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
-                  "FIRST_DATASET_ROW_" + (i % 10)), term.labels());
+              "FIRST_DATASET_ROW_" + (i % 10)), term.labels());
         } else if (i < 20) {
           Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_",
-                  "SECOND_DATASET_ROW_" + (i % 10)), term.labels());
+              "SECOND_DATASET_ROW_" + (i % 10)), term.labels());
         } else {
           Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_",
-                  "THIRD_DATASET_ROW_" + (i % 10)), term.labels());
+              "THIRD_DATASET_ROW_" + (i % 10)), term.labels());
         }
       }
     }
@@ -1063,8 +1063,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       fillDataStore(dataStore);
     }
 
-    dataStore.grantReadPermissionOnTermStore(username);
-    dataStore.grantReadPermissionOnBlobStore(username);
+    boolean isOk = dataStore.grantReadPermissions(username);
 
     return dataStore;
   }
