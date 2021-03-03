@@ -146,7 +146,7 @@ final public class QueryBuilder {
         object = extractBlock(iterator, '(', ')');
         node = parse(object, defaultConjunction);
         node.exclude(exclude);
-        root = addNode(root, node, conjunction, true);
+        root = addNode(root, node, conjunction);
         resetState = true;
       } else if (iterator.peek() == '-') {
 
@@ -341,15 +341,11 @@ final public class QueryBuilder {
    * @param root Root node of expression tree.
    * @param node Node to add.
    * @param conjunction Conjunction used to join with other nodes.
-   * @param group group.
    * @return The new root node.
    */
   private AbstractNode addNode(@Var AbstractNode root, AbstractNode node,
-      InternalNode.eConjunctionTypes conjunction, boolean group) {
+      InternalNode.eConjunctionTypes conjunction) {
     if (node != null) {
-
-      node.grouped(group);
-
       if (root != null) {
         root = new InternalNode(conjunction, root, node);
       } else {
@@ -375,7 +371,7 @@ final public class QueryBuilder {
     if (object != null && object.length() > 0 && !isStopWord(object)) {
       TerminalNode terminalNode = new TerminalNode(form, predicate, object);
       terminalNode.exclude(exclude);
-      root = addNode(root, terminalNode, conjunction, false);
+      root = addNode(root, terminalNode, conjunction);
     }
     return root;
   }

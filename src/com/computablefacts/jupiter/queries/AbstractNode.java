@@ -20,7 +20,6 @@ import com.google.errorprone.annotations.CheckReturnValue;
 public abstract class AbstractNode {
 
   private boolean exclude_ = false;
-  private boolean grouped_ = false;
 
   public AbstractNode() {
     super();
@@ -35,17 +34,6 @@ public abstract class AbstractNode {
 
   final public void exclude(boolean exclude) {
     this.exclude_ = exclude;
-  }
-
-  /**
-   * Indicates this term is enclosed in parentheses.
-   */
-  final public boolean grouped() {
-    return grouped_;
-  }
-
-  final public void grouped(boolean grouped) {
-    this.grouped_ = grouped;
   }
 
   @Deprecated
