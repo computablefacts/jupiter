@@ -47,10 +47,8 @@ final public class InternalNode extends AbstractNode {
 
   @Override
   public String toString() {
-    return (exclude() ? grouped() ? "Not" : "Not(" : "") + (grouped() ? "(" : "")
-        + (child1_ == null ? "" : child1_.toString()) + " " + conjunction_.toString() + " "
-        + (child2_ == null ? "" : child2_.toString()) + (grouped() ? ")" : "")
-        + (exclude() ? grouped() ? "" : ")" : "");
+    return (exclude() ? "Not(" : "(") + (child1_ == null ? "" : child1_.toString()) + " "
+        + conjunction_.toString() + " " + (child2_ == null ? "" : child2_.toString()) + ")";
   }
 
   @Override

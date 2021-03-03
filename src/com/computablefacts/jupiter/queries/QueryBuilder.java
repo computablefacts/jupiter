@@ -11,6 +11,8 @@ import com.google.errorprone.annotations.Var;
 
 /**
  * See http://www.blackbeltcoder.com/Articles/data/easy-full-text-search-queries for details.
+ * 
+ * Clauses are grouped from left to right i.e. A && B || C &gt;=&lt; (A && B) || C
  */
 @CheckReturnValue
 final public class QueryBuilder {
@@ -143,6 +145,7 @@ final public class QueryBuilder {
         // Parse parentheses block -> group
         object = extractBlock(iterator, '(', ')');
         node = parse(object, defaultConjunction);
+        node.exclude(exclude);
         root = addNode(root, node, conjunction, true);
         resetState = true;
       } else if (iterator.peek() == '-') {
@@ -176,10 +179,10 @@ final public class QueryBuilder {
    *
    * <ul>
    * <li>NOT term1 AND term2 : Subexpressions swapped.</li>
-   * <li>NOT term1 : Expression discarded.</li>
-   * <li>NOT term1 AND NOT term2 : Expression discarded if node is grouped (parenthesized) or is the
-   * root node; otherwise, the parent node may contain another subexpression that will make this one
-   * valid.</li>
+   * <li>NOT term1 : Expression discarded if node is the root node. Otherwise, the parent node may
+   * contain another subexpression that will make this one valid.</li>
+   * <li>NOT term1 AND NOT term2 : Expression discarded if node is the root node. Otherwise, the
+   * parent node may contain another subexpression that will make this one valid.</li>
    * <li>term1 OR NOT term2 : Expression discarded.</li>
    * </ul>
    *
@@ -198,6 +201,34 @@ final public class QueryBuilder {
 
       // Fix up child nodes
       InternalNode internalNode = (InternalNode) node;
+
+      if (isRoot) {
+
+        // Eliminate group if it contains only negated expressions
+        if (internalNode.child1().exclude() && internalNode.child2().exclude()) {
+          return null;
+        }
+      }
+
+      // Push down negations
+      if (node.exclude()) {
+        if (InternalNode.eConjunctionTypes.Or.equals(internalNode.conjunction())) {
+          if (internalNode.child1() != null && internalNode.child2() != null) {
+            internalNode.conjunction(InternalNode.eConjunctionTypes.And);
+            internalNode.exclude(false);
+            internalNode.child1().exclude(!internalNode.child1().exclude());
+            internalNode.child2().exclude(!internalNode.child2().exclude());
+          }
+        } else if (InternalNode.eConjunctionTypes.And.equals(internalNode.conjunction())) {
+          if (internalNode.child1() != null && internalNode.child2() != null) {
+            internalNode.conjunction(InternalNode.eConjunctionTypes.Or);
+            internalNode.exclude(false);
+            internalNode.child1().exclude(!internalNode.child1().exclude());
+            internalNode.child2().exclude(!internalNode.child2().exclude());
+          }
+        }
+      }
+
       internalNode.child1(fixUpTree(internalNode.child1(), false));
       internalNode.child2(fixUpTree(internalNode.child2(), false));
 
@@ -224,23 +255,18 @@ final public class QueryBuilder {
 
         // child1 eliminated so return only child2
         node = internalNode.child2();
-      } else {
-
-        // Determine if entire expression is an exclude expression
-        internalNode.exclude(internalNode.child1().exclude() && internalNode.child2().exclude());
+      } else if (internalNode.child1().exclude() && !internalNode.child2().exclude()) {
 
         // If only first child expression is an exclude expression, then simply swap child
         // expressions
-        if (!internalNode.exclude() && internalNode.child1().exclude()) {
-          AbstractNode temp = internalNode.child1();
-          internalNode.child1(internalNode.child2());
-          internalNode.child2(temp);
-        }
+        AbstractNode temp = internalNode.child1();
+        internalNode.child1(internalNode.child2());
+        internalNode.child2(temp);
       }
     }
 
-    // Eliminate expression group if it contains only exclude expressions
-    return ((node.grouped() || isRoot) && node.exclude() ? null : node);
+    // Eliminate group if it contains only negated expressions
+    return isRoot && node.exclude() ? null : node;
   }
 
   /**
