@@ -13,7 +13,7 @@ public class MiniAccumuloClusterTest {
   private static final AtomicInteger userId_ = new AtomicInteger(0);
   private static MiniAccumuloCluster accumulo_;
 
-  public MiniAccumuloCluster accumulo() throws Exception {
+  public synchronized MiniAccumuloCluster accumulo() throws Exception {
     if (accumulo_ == null) {
       accumulo_ = MiniAccumuloClusterUtils.newCluster();
     }
