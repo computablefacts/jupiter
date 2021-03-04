@@ -547,4 +547,15 @@ public class QueryBuilderTest {
 
     Assert.assertEquals(expected, actual.toString());
   }
+
+  @Test
+  public void testParseBooleanQueryDoubleNegation2() {
+
+    @Var
+    AbstractNode actual = QueryBuilder.build("NOT(NOT A AND NOT B)");
+    @Var
+    String expected = "(A Or B)";
+
+    Assert.assertEquals(expected, actual.toString());
+  }
 }

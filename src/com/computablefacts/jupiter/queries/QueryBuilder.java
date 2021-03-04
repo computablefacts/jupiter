@@ -202,14 +202,6 @@ final public class QueryBuilder {
       // Fix up child nodes
       InternalNode internalNode = (InternalNode) node;
 
-      if (isRoot) {
-
-        // Eliminate group if it contains only negated expressions
-        if (internalNode.child1().exclude() && internalNode.child2().exclude()) {
-          return null;
-        }
-      }
-
       // Push down negations
       if (node.exclude() && internalNode.child1() != null && internalNode.child2() != null) {
         if (InternalNode.eConjunctionTypes.Or.equals(internalNode.conjunction())) {
