@@ -49,10 +49,8 @@ public class DifferenceIteratorTest {
     List<Key> listComputed = Lists
         .newArrayList(new DifferenceIterator<>(map().iterator(), Lists.<Key>newArrayList().iterator()));
 
-    List<Key> listExpected = Lists.newArrayList();
-
-    Assert.assertEquals(0, listComputed.size());
-    Assert.assertEquals(listExpected, listComputed);
+    Assert.assertEquals(15, listComputed.size());
+    Assert.assertEquals(Lists.newArrayList(map()), listComputed);
   }
 
   @Test
