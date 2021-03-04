@@ -255,28 +255,6 @@ public class QueryBuilderTest {
   }
 
   @Test
-  public void testNotOrFixUp() {
-    assertEquals("name:andré", QueryBuilder.build("NOT username:andré OR name:andré").toString()); // OR
-                                                                                                   // NOT
-                                                                                                   // is
-                                                                                                   // forbidden
-    assertEquals("name:andré", QueryBuilder.build("- username:andré OR name:andré").toString()); // OR
-                                                                                                 // NOT
-                                                                                                 // is
-                                                                                                 // forbidden
-  }
-
-  @Test
-  public void testOrNotFixUp() {
-    assertEquals("username:andré",
-        QueryBuilder.build("username:andré OR NOT name:andré").toString()); // OR NOT is forbidden
-    assertEquals("username:andré", QueryBuilder.build("username:andré OR - name:andré").toString()); // OR
-                                                                                                     // NOT
-                                                                                                     // is
-                                                                                                     // forbidden
-  }
-
-  @Test
   public void testNotAndFixUp() {
     assertEquals("(name:andré And Not(username:andré))",
         QueryBuilder.build("NOT username:andré AND name:andré").toString());
@@ -446,22 +424,22 @@ public class QueryBuilderTest {
     @Var
     AbstractNode actual = QueryBuilder.build("A AND NOT(B AND C) AND D");
     @Var
-    String expected = "(A And D)"; // OR NOT is forbidden
+    String expected = "((A And Not(B And C)) And D)";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("A AND NOT(B OR C) AND D");
-    expected = "((A And (Not(B) And Not(C))) And D)";
+    expected = "((A And Not(B Or C)) And D)";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("A OR NOT(B AND C) OR D");
-    expected = "(A Or D)"; // OR NOT is forbidden
+    expected = "((A Or Not(B And C)) Or D)";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("A OR NOT(B OR C) OR D");
-    expected = "((A Or (Not(B) And Not(C))) Or D)";
+    expected = "((A Or Not(B Or C)) Or D)";
 
     Assert.assertEquals(expected, actual.toString());
   }
@@ -472,22 +450,22 @@ public class QueryBuilderTest {
     @Var
     AbstractNode actual = QueryBuilder.build("A AND NOT(B AND C AND D)");
     @Var
-    String expected = "A"; // OR NOT is forbidden
+    String expected = "(A And Not((B And C) And D))";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("A AND NOT(B OR C AND D)");
-    expected = "(A And (Not(B) And Not(C)))"; // OR NOT is forbidden
+    expected = "(A And Not((B Or C) And D))";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("A OR NOT(B AND C OR D)");
-    expected = "A"; // OR NOT is forbidden
+    expected = "(A Or Not((B And C) Or D))";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("A OR NOT(B OR C OR D)");
-    expected = "(A Or ((Not(B) And Not(C)) And Not(D)))";
+    expected = "(A Or Not((B Or C) Or D))";
 
     Assert.assertEquals(expected, actual.toString());
   }
@@ -498,22 +476,22 @@ public class QueryBuilderTest {
     @Var
     AbstractNode actual = QueryBuilder.build("NOT(A AND B) AND (C AND D)");
     @Var
-    String expected = "(C And D)"; // OR NOT is forbidden
+    String expected = "((C And D) And Not(A And B))";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("NOT(A AND B) OR (C AND D)");
-    expected = "(C And D)"; // OR NOT is forbidden
+    expected = "((C And D) Or Not(A And B))";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("NOT(A OR B) AND (C OR D)");
-    expected = "((Not(A) And Not(B)) And (C Or D))";
+    expected = "((C Or D) And Not(A Or B))";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("NOT(A OR B) OR (C OR D)");
-    expected = "((Not(A) And Not(B)) Or (C Or D))";
+    expected = "((C Or D) Or Not(A Or B))";
 
     Assert.assertEquals(expected, actual.toString());
   }
@@ -524,19 +502,19 @@ public class QueryBuilderTest {
     @Var
     AbstractNode actual = QueryBuilder.build("A AND NOT(B AND NOT(C) AND D)");
     @Var
-    String expected = "(A And C)"; // OR NOT is forbidden
+    String expected = "(A And ((C Or Not(B)) Or Not(D)))";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("A AND NOT(B OR NOT(C) AND D)");
-    expected = "(A And (C And Not(B)))"; // OR NOT is forbidden
+    expected = "(A And ((C And Not(B)) Or Not(D)))";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("A OR NOT(B AND NOT(C) OR D)");
-    expected = "(A Or (C And Not(D)))";
+    expected = "(A Or ((C Or Not(B)) And Not(D)))";
 
-    Assert.assertEquals(expected, actual.toString()); // OR NOT is forbidden
+    Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("A OR NOT(B OR NOT(C) OR D)");
     expected = "(A Or ((C And Not(B)) And Not(D)))";
@@ -550,12 +528,12 @@ public class QueryBuilderTest {
     @Var
     AbstractNode actual = QueryBuilder.build("NOT(A AND NOT(B AND NOT(C) AND D))");
     @Var
-    String expected = "((B And Not(C)) And D)"; // OR NOT is forbidden
+    String expected = "(((B And Not(C)) And D) Or Not(A))";
 
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("NOT(A AND NOT(B OR NOT(C) AND D))");
-    expected = "(B And D)"; // OR NOT is forbidden
+    expected = "(((B Or Not(C)) And D) Or Not(A))";
 
     Assert.assertEquals(expected, actual.toString());
 
@@ -565,7 +543,7 @@ public class QueryBuilderTest {
     Assert.assertEquals(expected, actual.toString());
 
     actual = QueryBuilder.build("NOT(A OR NOT(B OR NOT(C) OR D))");
-    expected = "((B Or D) And Not(A))"; // OR NOT is forbidden
+    expected = "(((B Or Not(C)) Or D) And Not(A))";
 
     Assert.assertEquals(expected, actual.toString());
   }

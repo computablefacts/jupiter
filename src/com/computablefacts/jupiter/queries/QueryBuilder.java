@@ -211,34 +211,39 @@ final public class QueryBuilder {
       }
 
       // Push down negations
-      if (node.exclude()) {
+      if (node.exclude() && internalNode.child1() != null && internalNode.child2() != null) {
         if (InternalNode.eConjunctionTypes.Or.equals(internalNode.conjunction())) {
-          if (internalNode.child1() != null && internalNode.child2() != null) {
-            internalNode.conjunction(InternalNode.eConjunctionTypes.And);
-            internalNode.exclude(false);
-            internalNode.child1().exclude(!internalNode.child1().exclude());
-            internalNode.child2().exclude(!internalNode.child2().exclude());
-          }
+          internalNode.conjunction(InternalNode.eConjunctionTypes.And);
+          internalNode.exclude(false);
+          internalNode.child1().exclude(!internalNode.child1().exclude());
+          internalNode.child2().exclude(!internalNode.child2().exclude());
         } else if (InternalNode.eConjunctionTypes.And.equals(internalNode.conjunction())) {
-          if (internalNode.child1() != null && internalNode.child2() != null) {
-            internalNode.conjunction(InternalNode.eConjunctionTypes.Or);
-            internalNode.exclude(false);
-            internalNode.child1().exclude(!internalNode.child1().exclude());
-            internalNode.child2().exclude(!internalNode.child2().exclude());
-          }
+          internalNode.conjunction(InternalNode.eConjunctionTypes.Or);
+          internalNode.exclude(false);
+          internalNode.child1().exclude(!internalNode.child1().exclude());
+          internalNode.child2().exclude(!internalNode.child2().exclude());
         }
       }
 
       internalNode.child1(fixUpTree(internalNode.child1(), false));
       internalNode.child2(fixUpTree(internalNode.child2(), false));
 
-      // Correct subexpressions incompatible with conjunction type
-      if (InternalNode.eConjunctionTypes.Or.equals(internalNode.conjunction())) {
-        if (isInvalidWithOr(internalNode.child1())) {
-          internalNode.child1(null);
-        }
-        if (isInvalidWithOr(internalNode.child2())) {
-          internalNode.child2(null);
+      // Move up negations
+      if (!node.exclude() && internalNode.child1() != null && internalNode.child2() != null) {
+        if (InternalNode.eConjunctionTypes.Or.equals(internalNode.conjunction())) {
+          if (internalNode.child1().exclude() && internalNode.child2().exclude()) {
+            internalNode.conjunction(InternalNode.eConjunctionTypes.And);
+            internalNode.exclude(true);
+            internalNode.child1().exclude(!internalNode.child1().exclude());
+            internalNode.child2().exclude(!internalNode.child2().exclude());
+          }
+        } else if (InternalNode.eConjunctionTypes.And.equals(internalNode.conjunction())) {
+          if (internalNode.child1().exclude() && internalNode.child2().exclude()) {
+            internalNode.conjunction(InternalNode.eConjunctionTypes.Or);
+            internalNode.exclude(true);
+            internalNode.child1().exclude(!internalNode.child1().exclude());
+            internalNode.child2().exclude(!internalNode.child2().exclude());
+          }
         }
       }
 
