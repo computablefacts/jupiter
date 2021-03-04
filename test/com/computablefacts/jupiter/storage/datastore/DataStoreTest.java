@@ -483,7 +483,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         // Test three simple queries
         List<String> list = new ArrayList<>();
         QueryBuilder.build("uuid:\"5\"")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(0, list.size()); // triggers "Discard small terms"...
@@ -491,7 +491,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         list.clear();
 
         QueryBuilder.build("Actors[*]¤uuid:\"item1*\"")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(1, list.size());
@@ -500,7 +500,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         list.clear();
 
         QueryBuilder.build("Actors[*]¤uuid:\"item5?\"")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(1, list.size());
@@ -510,7 +510,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
         // Test an array query
         QueryBuilder.build("Actors[*]¤children[*]:\"Suri\"")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(10, list.size());
@@ -524,7 +524,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         // Test an AND query
         QueryBuilder.build(
             "Actors[*]¤children[*]:\"Suri\" AND Actors[0]¤uuid:\"item?0\" AND Actors[1]¤uuid:\"item5?\"")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(1, list.size());
@@ -535,7 +535,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         // Test an OR query
         QueryBuilder.build(
             "Actors[*]¤children[*]:\"Roel\" AND (Actors[0]¤uuid:\"item4?\" OR Actors[0]¤uuid:\"item5?\")")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(2, list.size());

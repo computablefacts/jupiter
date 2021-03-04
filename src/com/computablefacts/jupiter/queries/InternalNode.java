@@ -10,6 +10,7 @@ import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.DedupIterator;
+import com.computablefacts.jupiter.storage.DifferenceIterator;
 import com.computablefacts.jupiter.storage.SynchronousIterator;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
@@ -74,8 +75,6 @@ final public class InternalNode extends AbstractNode {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(dataset),
         "dataset should neither be null nor empty");
 
-    // TODO : backport NOT implementation
-
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset)
           .add("conjunction", conjunction_).add("child1", child1_).add("child2", child2_)
@@ -98,6 +97,32 @@ final public class InternalNode extends AbstractNode {
       cardChild2 = child2_.cardinality(dataStore, scanners, dataset, tokenizer);
     }
 
+    if (child1_ != null && child2_ != null) {
+
+      // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B, NOT A OR B, A OR NOT B,
+      // NOT A AND NOT B, NOT A OR NOT B}
+      if (child1_.exclude() && child2_.exclude()) {
+        return 0; // (NOT A AND NOT B) or (NOT A OR NOT B)
+      }
+
+      // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B, NOT A OR B, A OR NOT B}
+      if (eConjunctionTypes.Or.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {
+        if (child1_.exclude()) {
+          return cardChild2; // NOT A OR B
+        }
+        return cardChild1; // A OR NOT B
+      }
+
+      // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B}
+      if (eConjunctionTypes.And.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {
+        if (child1_.exclude()) {
+          return cardChild2; // NOT A AND B -> should be Math.min(cardChild2, #entries - cardChild1)
+        }
+        return cardChild1; // A AND NOT B -> should be Math.min(cardChild1, #entries - cardChild2)
+      }
+    }
+
+    // Here, the query is in {A OR B, A AND B}
     if (eConjunctionTypes.Or.equals(conjunction_)) {
       cardinality = cardChild1 + cardChild2;
     } else {
@@ -116,8 +141,6 @@ final public class InternalNode extends AbstractNode {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(dataset),
         "dataset should neither be null nor empty");
 
-    // TODO : backport NOT implementation
-
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset)
           .add("conjunction", conjunction_).add("child1", child1_).add("child2", child2_)
@@ -128,14 +151,56 @@ final public class InternalNode extends AbstractNode {
       if (child2_ == null) {
         return Constants.ITERATOR_EMPTY;
       }
+      if (child2_.exclude()) { // (NULL AND/OR NOT B) is not a valid construct
+        if (logger_.isErrorEnabled()) {
+          logger_.error(
+              LogFormatterManager.logFormatter().add("dataset", dataset).add("query", toString())
+                  .message("ill-formed query : (NULL AND/OR NOT B)").formatError());
+        }
+        return Constants.ITERATOR_EMPTY;
+      }
       return eConjunctionTypes.Or.equals(conjunction_)
           ? child2_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer)
           : Constants.ITERATOR_EMPTY;
     }
     if (child2_ == null) {
+      if (child1_.exclude()) { // (NOT A AND/OR NULL) is not a valid construct
+        if (logger_.isErrorEnabled()) {
+          logger_.error(
+              LogFormatterManager.logFormatter().add("dataset", dataset).add("query", toString())
+                  .message("ill-formed query : (NOT A AND/OR NULL)").formatError());
+        }
+        return Constants.ITERATOR_EMPTY;
+      }
       return eConjunctionTypes.Or.equals(conjunction_)
           ? child1_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer)
           : Constants.ITERATOR_EMPTY;
+    }
+
+    // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B, NOT A OR B, A OR NOT B, NOT
+    // A AND NOT B, NOT A OR NOT B}
+    if (child1_.exclude() && child2_.exclude()) {
+      if (logger_.isErrorEnabled()) {
+        logger_.error(
+            LogFormatterManager.logFormatter().add("dataset", dataset).add("query", toString())
+                .message("ill-formed query : (NOT A AND/OR NOT B)").formatError());
+      }
+      return Constants.ITERATOR_EMPTY; // (NOT A AND NOT B) or (NOT A OR NOT B)
+    }
+
+    // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B, NOT A OR B, A OR NOT B}
+    if (eConjunctionTypes.Or.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {
+      if (logger_.isErrorEnabled()) {
+        logger_.error(
+            LogFormatterManager.logFormatter().add("dataset", dataset).add("query", toString())
+                .message("ill-formed query : (A OR NOT B) or (NOT A OR B)").formatError());
+      }
+      if (child1_.exclude()) {
+        return child2_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer); // NOT A
+                                                                                            // OR B
+      }
+      return child1_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer); // A OR
+                                                                                          // NOT B
     }
 
     Iterator<String> ids1 =
@@ -143,6 +208,15 @@ final public class InternalNode extends AbstractNode {
     Iterator<String> ids2 =
         child2_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer);
 
+    // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B}
+    if (eConjunctionTypes.And.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {
+      if (child1_.exclude()) {
+        return new DifferenceIterator<>(ids2, ids1); // NOT A AND B
+      }
+      return new DifferenceIterator<>(ids1, ids2); // A AND NOT B
+    }
+
+    // Here, the query is in {A OR B, A AND B}
     if (eConjunctionTypes.Or.equals(conjunction_)) {
 
       // Advance both iterators synchronously. The assumption is that both iterators are sorted.
