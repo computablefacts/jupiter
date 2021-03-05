@@ -39,7 +39,7 @@
     </developers>
 
     <properties>
-        <nona.version>1.19</nona.version>
+        <nona.version>1.20</nona.version>
         <guava.version>28.0-jre</guava.version>
         <accumulo.version>1.9.2</accumulo.version>
         <hadoop.version>2.7.3</hadoop.version>
