@@ -2,6 +2,7 @@ package com.computablefacts.jupiter.queries;
 
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Inflectional;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Literal;
+import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Range;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Thesaurus;
 
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -82,6 +84,14 @@ final public class TerminalNode extends AbstractNode {
       }
       builder.append('~');
       builder.append(value_);
+    } else if (form_ == eTermForms.Range) {
+      if (!Strings.isNullOrEmpty(key_)) {
+        builder.append(key_);
+        builder.append(':');
+      }
+      builder.append('[');
+      builder.append(value_);
+      builder.append(']');
     }
     return (exclude() ? "Not(" : "") + builder + (exclude() ? ")" : "");
   }
@@ -206,7 +216,37 @@ final public class TerminalNode extends AbstractNode {
           .formatInfo());
     }
 
-    // TODO : backport NOT implementation
+    if (Range.equals(form_)) {
+
+      List<String> range =
+          Splitter.on(QueryBuilder._TO_).trimResults().omitEmptyStrings().splitToList(value_);
+
+      if (range.size() == 2) {
+
+        String min = range.get(0);
+        String max = range.get(1);
+
+        boolean isValid =
+            ("*".equals(min) && com.computablefacts.nona.helpers.Strings.isNumber(max))
+                || ("*".equals(max) && com.computablefacts.nona.helpers.Strings.isNumber(min))
+                || (com.computablefacts.nona.helpers.Strings.isNumber(min)
+                    && com.computablefacts.nona.helpers.Strings.isNumber(max));
+
+        if (isValid) {
+
+          // Set fields
+          Set<String> keepFields = Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
+
+          // Set range
+          String minTerm = "*".equals(min) ? null : min;
+          String maxTerm = "*".equals(max) ? null : max;
+
+          return dataStore.searchByNumericalRange(scanners, writers, dataset, minTerm, maxTerm,
+              keepFields, null);
+        }
+      }
+      return Constants.ITERATOR_EMPTY; // Invalid range
+    }
 
     // Tokenize object
     @Var
@@ -252,6 +292,6 @@ final public class TerminalNode extends AbstractNode {
   }
 
   public enum eTermForms {
-    Inflectional, Literal, Thesaurus
+    Inflectional, Literal, Thesaurus, Range
   }
 }

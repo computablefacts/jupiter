@@ -323,21 +323,11 @@ public class QueryBuilderTest {
   }
 
   @Test
-  public void testParseArrayValue() {
+  public void testParseArrayPredicateWithoutValue() {
 
-    InternalNode node = (InternalNode) QueryBuilder.build("children[0]");
+    AbstractNode node = QueryBuilder.build("children[0]");
 
-    Assert.assertEquals("(children And 0)", node.toString());
-
-    Assert.assertEquals(TerminalNode.eTermForms.Inflectional,
-        ((TerminalNode) node.child1()).form());
-    Assert.assertEquals("", ((TerminalNode) node.child1()).key());
-    Assert.assertEquals("children", ((TerminalNode) node.child1()).value());
-
-    Assert.assertEquals(TerminalNode.eTermForms.Inflectional,
-        ((TerminalNode) node.child2()).form());
-    Assert.assertEquals("", ((TerminalNode) node.child2()).key());
-    Assert.assertEquals("0", ((TerminalNode) node.child2()).value());
+    Assert.assertNull(node);
   }
 
   @Test
@@ -551,11 +541,99 @@ public class QueryBuilderTest {
   @Test
   public void testParseBooleanQueryDoubleNegation2() {
 
-    @Var
     AbstractNode actual = QueryBuilder.build("NOT(NOT A AND NOT B)");
-    @Var
     String expected = "(A Or B)";
 
     Assert.assertEquals(expected, actual.toString());
+  }
+
+  @Test
+  public void testParseEmptyRangeWithPredicate() {
+
+    AbstractNode actual = QueryBuilder.build("age:[]");
+
+    Assert.assertNull(actual);
+  }
+
+  @Test
+  public void testParseEmptyRangeWithoutPredicate() {
+
+    AbstractNode actual = QueryBuilder.build("[]");
+
+    Assert.assertNull(actual);
+  }
+
+  @Test
+  public void testParseRangeWithPredicate() {
+
+    @Var
+    AbstractNode actual = QueryBuilder.build("age:[1 TO 10.5]");
+    @Var
+    String expected = "age:[1 TO 10.5]";
+
+    Assert.assertEquals(expected, actual.toString());
+
+    actual = QueryBuilder.build("age:[* TO 10.5]");
+    expected = "age:[* TO 10.5]";
+
+    Assert.assertEquals(expected, actual.toString());
+
+    actual = QueryBuilder.build("age:[1 TO *]");
+    expected = "age:[1 TO *]";
+
+    Assert.assertEquals(expected, actual.toString());
+
+    actual = QueryBuilder.build("age:[1 TO]");
+
+    Assert.assertNull(actual);
+
+    actual = QueryBuilder.build("age:[TO 10.5]");
+
+    Assert.assertNull(actual);
+
+    actual = QueryBuilder.build("age:[* TO *]");
+
+    Assert.assertNull(actual);
+
+    actual = QueryBuilder.build("age:[1]");
+
+    Assert.assertNull(actual);
+  }
+
+  @Test
+  public void testParseRangeWithoutPredicate() {
+
+    @Var
+    AbstractNode actual = QueryBuilder.build("[1 TO 10.5]");
+    @Var
+    String expected = "[1 TO 10.5]";
+
+    Assert.assertEquals(expected, actual.toString());
+
+    actual = QueryBuilder.build("[* TO 10.5]");
+    expected = "[* TO 10.5]";
+
+    Assert.assertEquals(expected, actual.toString());
+
+    actual = QueryBuilder.build("[1 TO *]");
+    expected = "[1 TO *]";
+
+    Assert.assertEquals(expected, actual.toString());
+
+    actual = QueryBuilder.build("[1 TO]");
+
+    Assert.assertNull(actual);
+
+    actual = QueryBuilder.build("[TO 10.5]");
+
+    Assert.assertNull(actual);
+
+    actual = QueryBuilder.build("[* TO *]");
+
+    Assert.assertNull(actual);
+
+    actual = QueryBuilder.build("[1]");
+
+    Assert.assertNull(actual);
   }
 }

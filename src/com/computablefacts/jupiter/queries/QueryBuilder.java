@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Set;
 
 import com.computablefacts.nona.helpers.StringIterator;
+import com.computablefacts.nona.helpers.WildcardMatcher;
+import com.google.common.base.Splitter;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -16,6 +18,8 @@ import com.google.errorprone.annotations.Var;
  */
 @CheckReturnValue
 final public class QueryBuilder {
+
+  public static final String _TO_ = " TO ";
 
   // TODO : add $ to punctuation ?
   // Keep * and ? because they are considered wildcards
@@ -125,6 +129,9 @@ final public class QueryBuilder {
         } else if (iterator.peek() == ':') {
           predicate = iterator.extract(start, iterator.position());
           object = "";
+        } else if (iterator.peek() == '[') {
+          predicate = iterator.extract(start, iterator.position());
+          resetState = true;
         } else {
           root = addNode(root, iterator.extract(start, iterator.position()), predicate, form,
               exclude, conjunction);
@@ -147,6 +154,33 @@ final public class QueryBuilder {
         node = parse(object, defaultConjunction);
         node.exclude(exclude);
         root = addNode(root, node, conjunction);
+        resetState = true;
+      } else if (iterator.peek() == '[') {
+
+        // Parse bracket block -> range
+        object = extractBlock(iterator, '[', ']');
+
+        if (WildcardMatcher.match(object, "*" + _TO_ + "*")) {
+
+          List<String> range =
+              Splitter.on(_TO_).trimResults().omitEmptyStrings().splitToList(object);
+
+          if (range.size() == 2) {
+
+            String min = range.get(0);
+            String max = range.get(1);
+
+            boolean isValid = ("*".equals(min) && !"*".equals(max))
+                || ("*".equals(max) && !"*".equals(min)) || (!"*".equals(min) && !"*".equals(max));
+
+            if (isValid) {
+
+              // Extract range
+              form = TerminalNode.eTermForms.Range;
+              root = addNode(root, object.trim(), predicate, form, exclude, conjunction);
+            }
+          }
+        }
         resetState = true;
       } else if (iterator.peek() == '-') {
 

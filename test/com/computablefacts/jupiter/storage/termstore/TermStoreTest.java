@@ -19,6 +19,7 @@ import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.storage.Constants;
+import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -788,6 +789,102 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     }
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testNumericalRangeScanOpenedBeginOpenedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    TermStore termStore = newDataStore(auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<Term> list = new ArrayList<>();
+      Iterator<Term> iterator =
+          termStore.numericalRangeScan(scanner, "fourth_dataset", null, null, null, null); // throws
+                                                                                           // an
+                                                                                           // exception
+    }
+  }
+
+  @Test
+  public void testNumericalRangeScanClosedBeginClosedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    TermStore termStore = newDataStore(auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<Term> list = new ArrayList<>();
+      Iterator<Term> iterator =
+          termStore.numericalRangeScan(scanner, "fourth_dataset", "3", "8", null, null);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+
+      Assert.assertEquals(5, list.size());
+      Assert.assertEquals("3", list.get(0).term());
+      Assert.assertEquals("4", list.get(1).term());
+      Assert.assertEquals("5", list.get(2).term());
+      Assert.assertEquals("6", list.get(3).term());
+      Assert.assertEquals("7", list.get(4).term());
+    }
+  }
+
+  @Test
+  public void testNumericalRangeScanClosedBeginOpenedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    TermStore termStore = newDataStore(auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<Term> list = new ArrayList<>();
+      Iterator<Term> iterator =
+          termStore.numericalRangeScan(scanner, "fourth_dataset", "3", null, null, null);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+
+      Assert.assertEquals(7, list.size());
+      Assert.assertEquals("3", list.get(0).term());
+      Assert.assertEquals("4", list.get(1).term());
+      Assert.assertEquals("5", list.get(2).term());
+      Assert.assertEquals("6", list.get(3).term());
+      Assert.assertEquals("7", list.get(4).term());
+      Assert.assertEquals("8", list.get(5).term());
+      Assert.assertEquals("9", list.get(6).term());
+    }
+  }
+
+  @Test
+  public void testNumericalRangeScanOpenedBeginClosedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    TermStore termStore = newDataStore(auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<Term> list = new ArrayList<>();
+      Iterator<Term> iterator =
+          termStore.numericalRangeScan(scanner, "fourth_dataset", null, "8", null, null);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+
+      Assert.assertEquals(8, list.size());
+      Assert.assertEquals("0", list.get(0).term());
+      Assert.assertEquals("1", list.get(1).term());
+      Assert.assertEquals("2", list.get(2).term());
+      Assert.assertEquals("3", list.get(3).term());
+      Assert.assertEquals("4", list.get(4).term());
+      Assert.assertEquals("5", list.get(5).term());
+      Assert.assertEquals("6", list.get(6).term());
+      Assert.assertEquals("7", list.get(7).term());
+    }
+  }
+
   private FieldLabels fieldLabelsInFirstDataset(TermStore termStore, int field,
       Authorizations authorizations) {
     return fieldLabels(termStore, "first_dataset", "field_" + field, authorizations);
@@ -963,6 +1060,17 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
                   Lists.newArrayList(new Pair<>(0, ("term_" + i).length()),
                       new Pair<>(10, 10 + ("term_" + i).length())),
                   Sets.newHashSet("DS_1"), Sets.newHashSet("DS_2")));
+        }
+
+        for (int i = 0; i < 10; i++) {
+
+          stats.card("fourth_dataset", "field_" + i, 1);
+
+          Assert.assertTrue(termStore.add(writer, stats, "fourth_dataset", "row_" + i, "field_" + i,
+              BigDecimalCodec.encode(Integer.toString(i)),
+              Lists.newArrayList(new Pair<>(0, ("term_" + i).length()),
+                  new Pair<>(10, 10 + ("term_" + i).length())),
+              Sets.newHashSet("DS_1"), Sets.newHashSet("DS_2"), true));
         }
       }
     }

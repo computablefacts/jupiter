@@ -105,7 +105,6 @@ final public class DataStore {
     return name + "Terms";
   }
 
-  @Beta
   private static void writeCache(Writers writers, Iterator<String> iterator, Text uuid,
       @Var int maxElementsToWrite) {
 
@@ -402,7 +401,6 @@ final public class DataStore {
    * @param docIds a set of documents ids to remove.
    * @return true if the operation succeeded, false otherwise.
    */
-  @Beta
   public boolean remove(String dataset, Set<String> docIds) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -568,11 +566,19 @@ final public class DataStore {
         continue;
       }
 
+      @Var
+      boolean writeInForwardIndexOnly = false;
+
       if (tokenizer == null || !(value instanceof String)) {
+
+        // Objects other than String are lexicoded
         spanSequence = new SpanSequence();
         spanSequence.add(Objects.requireNonNull(lexicoder.apply(value)));
+        writeInForwardIndexOnly = !(value instanceof String);
       } else if (Codecs.isProbablyBase64((String) value)) {
-        continue; // base64 strings are NOT indexed
+
+        // Base64 strings are NOT indexed
+        continue;
       } else {
         spanSequence = Objects.requireNonNull(tokenizer.apply((String) value));
       }
@@ -608,7 +614,7 @@ final public class DataStore {
       // Persist spans
       for (String span : spans.keySet()) {
         if (!termStore_.add(writers.index(), stats, dataset, uuid, field, span, spans.get(span),
-            vizDocSpecific, vizFieldSpecific)) {
+            vizDocSpecific, vizFieldSpecific, writeInForwardIndexOnly)) {
 
           logger_.error(
               LogFormatterManager.logFormatter().message("write failed").add("dataset", dataset)
@@ -749,6 +755,51 @@ final public class DataStore {
   }
 
   /**
+   * Get UUIDs ordered in lexicographic order.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset (optional).
+   * @param minTerm number (optional). Beginning of the range (included).
+   * @param maxTerm number (optional). End of the range (included).
+   * @return iterator.
+   */
+  public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, String minTerm,
+      String maxTerm) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+    Preconditions.checkArgument(scanners.index() instanceof Scanner,
+        "index scanner must guarantee the result order");
+
+    return numericalRangeScan(scanners, dataset, minTerm, maxTerm, null, null);
+  }
+
+  /**
+   * Get UUIDs ordered in lexicographic order.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset (optional).
+   * @param minTerm number (optional). Beginning of the range (included).
+   * @param maxTerm number (optional). End of the range (excluded).
+   * @param keepFields fields patterns to keep (optional).
+   * @param keepDocs document ids to keep (optional).
+   * @return iterator.
+   */
+  public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, String minTerm,
+      String maxTerm, Set<String> keepFields, BloomFilters<String> keepDocs) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+    Preconditions.checkArgument(scanners.index() instanceof Scanner,
+        "index scanner must guarantee the result order");
+
+    return termStore_.numericalRangeScan((Scanner) scanners.index(), dataset, minTerm, maxTerm,
+        keepFields, keepDocs);
+  }
+
+  /**
    * Get all blobs from the blob storage layer. Note that using a BatchScanner improves performances
    * a lot.
    *
@@ -782,6 +833,44 @@ final public class DataStore {
   }
 
   /**
+   * Get the ids of all documents for which a numerical term is in a given range.
+   *
+   * @param scanners scanners.
+   * @param writers writers.
+   * @param dataset dataset.
+   * @param minTerm number (optional). Beginning of the range (included).
+   * @param maxTerm number (optional). End of the range (included).
+   * @param keepFields fields to keep (optional).
+   * @param keepDocs document ids to keep (optional).
+   * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
+   *         {@link org.apache.accumulo.core.client.Scanner} instead of
+   *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
+   */
+  @Beta
+  public Iterator<String> searchByNumericalRange(Scanners scanners, Writers writers, String dataset,
+      String minTerm, String maxTerm, Set<String> keepFields, BloomFilters<String> keepDocs) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+
+    if (logger_.isInfoEnabled()) {
+      logger_
+          .info(LogFormatterManager.logFormatter().add("dataset", dataset).add("min_term", minTerm)
+              .add("max_term", maxTerm).add("has_keep_fields", keepFields != null)
+              .add("has_keep_docs", keepDocs != null).formatInfo());
+    }
+
+    // TODO : backport code in order to avoid this write/read trick (sort doc ids)
+    return readCache(scanners,
+        writeCache(writers,
+            new DedupIterator<>(Iterators.transform(
+                numericalRangeScan(scanners, dataset, minTerm, maxTerm, keepFields, keepDocs),
+                Term::docId))));
+  }
+
+  /**
    * Get the ids of all documents which contain a given term.
    *
    * @param scanners scanners.
@@ -793,7 +882,6 @@ final public class DataStore {
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
-  @Beta
   public Iterator<String> searchByTerm(Scanners scanners, Writers writers, String dataset,
       String term, Set<String> keepFields) {
     return searchByTerms(scanners, writers, dataset, Sets.newHashSet(term), keepFields, null);
@@ -812,7 +900,6 @@ final public class DataStore {
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
-  @Beta
   public Iterator<String> searchByTerm(Scanners scanners, Writers writers, String dataset,
       String term, Set<String> keepFields, BloomFilters<String> keepDocs) {
     return searchByTerms(scanners, writers, dataset, Sets.newHashSet(term), keepFields, keepDocs);
@@ -830,7 +917,6 @@ final public class DataStore {
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
-  @Beta
   public Iterator<String> searchByTerms(Scanners scanners, Writers writers, String dataset,
       Collection<String> terms, Set<String> keepFields) {
     return searchByTerms(scanners, writers, dataset, terms, keepFields, null);
@@ -849,7 +935,6 @@ final public class DataStore {
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
-  @Beta
   public Iterator<String> searchByTerms(Scanners scanners, Writers writers, String dataset,
       Collection<String> terms, Set<String> keepFields, BloomFilters<String> keepDocs) {
 
@@ -929,7 +1014,6 @@ final public class DataStore {
    * @param cacheId the cache id.
    * @return a list of values.
    */
-  @Beta
   public Iterator<String> readCache(Scanners scanners, String cacheId) {
     return readCache(scanners, cacheId, null);
   }
@@ -942,7 +1026,6 @@ final public class DataStore {
    * @param nextValue where to start iterating.
    * @return a list of values.
    */
-  @Beta
   public Iterator<String> readCache(Scanners scanners, String cacheId, String nextValue) {
 
     Preconditions.checkNotNull(scanners, "scanners should neither be null nor empty");
@@ -980,7 +1063,6 @@ final public class DataStore {
    * @param iterator values.
    * @return a cache id.
    */
-  @Beta
   public String writeCache(Writers writers, Iterator<String> iterator) {
     return writeCache(writers, iterator, -1);
   }
@@ -996,7 +1078,6 @@ final public class DataStore {
    * @param iterator values.
    * @return a cache id.
    */
-  @Beta
   public String writeCache(Writers writers, Iterator<String> iterator,
       @Var int delegateToBackgroundThreadAfter) {
 

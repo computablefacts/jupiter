@@ -410,17 +410,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         }
 
         list.clear();
-        dataStore.searchByTerm(scanners, writers, "first_dataset", normalize("56"), null, null)
-            .forEachRemaining(list::add);
-
-        Assert.assertEquals(10, list.size());
-
-        for (int i = 0; i < 10; i++) {
-          Assert.assertEquals("row_" + i, list.get(i));
-        }
-
-        list.clear();
-        dataStore.searchByTerm(scanners, writers, "first_dataset", normalize("67.5"), null, null)
+        dataStore.searchByTerm(scanners, writers, "first_dataset", normalize("Isabella Jane"), null,
+            null)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(10, list.size());
@@ -446,7 +437,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         List<String> list = new ArrayList<>();
         dataStore
             .searchByTerms(scanners, writers, "first_dataset",
-                Sets.newHashSet(normalize("Connor"), normalize("56"), normalize("67.5")), null)
+                Sets.newHashSet(normalize("Connor"), normalize("Isabella Jane")), null)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(10, list.size());
@@ -483,7 +474,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         // Test three simple queries
         List<String> list = new ArrayList<>();
         QueryBuilder.build("uuid:\"5\"")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(0, list.size()); // triggers "Discard small terms"...
@@ -491,7 +482,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         list.clear();
 
         QueryBuilder.build("Actors[*]¤uuid:\"item1*\"")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(1, list.size());
@@ -500,7 +491,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         list.clear();
 
         QueryBuilder.build("Actors[*]¤uuid:\"item5?\"")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(1, list.size());
@@ -510,7 +501,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
         // Test an array query
         QueryBuilder.build("Actors[*]¤children[*]:\"Suri\"")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(10, list.size());
@@ -524,7 +515,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         // Test an AND query
         QueryBuilder.build(
             "Actors[*]¤children[*]:\"Suri\" AND Actors[0]¤uuid:\"item?0\" AND Actors[1]¤uuid:\"item5?\"")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(1, list.size());
@@ -535,7 +526,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         // Test an OR query
         QueryBuilder.build(
             "Actors[*]¤children[*]:\"Roel\" AND (Actors[0]¤uuid:\"item4?\" OR Actors[0]¤uuid:\"item5?\")")
-            .execute(dataStore, scanners, writers, "fourth_dataset", null,Codecs.defaultTokenizer)
+            .execute(dataStore, scanners, writers, "fourth_dataset", null, Codecs.defaultTokenizer)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(2, list.size());
@@ -830,6 +821,89 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     }
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testNumericalRangeScanOpenedBeginOpenedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
+        "THIRD_DATASET_ACTORS_0_");
+    DataStore dataStore = newDataStore(auths);
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+
+      // Single dataset, hits forward index
+      List<Term> list = new ArrayList<>();
+      dataStore.numericalRangeScan(scanners, "first_dataset", null, null,
+          Sets.newHashSet("Actors[*]¤age"), null).forEachRemaining(list::add); // Throws an
+                                                                               // exception
+    }
+  }
+
+  @Test
+  public void testNumericalRangeScanClosedBeginClosedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
+        "THIRD_DATASET_ACTORS_0_");
+    DataStore dataStore = newDataStore(auths);
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+
+      // Single dataset, hits forward index
+      List<Term> list = new ArrayList<>();
+      dataStore.numericalRangeScan(scanners, "first_dataset", "55", "57",
+          Sets.newHashSet("Actors[*]¤age"), null).forEachRemaining(list::add);
+
+      Assert.assertEquals(10, list.size());
+
+      for (int i = 0; i < 10; i++) {
+        Assert.assertEquals("row_" + i, list.get(i).docId());
+      }
+    }
+  }
+
+  @Test
+  public void testNumericalRangeScanClosedBeginOpenedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
+        "THIRD_DATASET_ACTORS_0_");
+    DataStore dataStore = newDataStore(auths);
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+
+      // Single dataset, hits forward index
+      List<Term> list = new ArrayList<>();
+      dataStore.numericalRangeScan(scanners, "first_dataset", "56", null,
+          Sets.newHashSet("Actors[*]¤age"), null).forEachRemaining(list::add);
+
+      Assert.assertEquals(10, list.size());
+
+      for (int i = 0; i < 10; i++) {
+        Assert.assertEquals("row_" + i, list.get(i).docId());
+      }
+    }
+  }
+
+  @Test
+  public void testNumericalRangeScanOpenedBeginClosedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("FIRST_DATASET_ACTORS_0_", "SECOND_DATASET_ACTORS_0_",
+        "THIRD_DATASET_ACTORS_0_");
+    DataStore dataStore = newDataStore(auths);
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+
+      // Single dataset, hits forward index
+      List<Term> list = new ArrayList<>();
+      dataStore.numericalRangeScan(scanners, "first_dataset", null, "57",
+          Sets.newHashSet("Actors[*]¤age"), null).forEachRemaining(list::add);
+
+      Assert.assertEquals(10, list.size());
+
+      for (int i = 0; i < 10; i++) {
+        Assert.assertEquals("row_" + i, list.get(i).docId());
+      }
+    }
+  }
+
   private FieldLabels fieldLabelsInFirstDataset(DataStore dataStore, String field,
       Authorizations authorizations) {
     return fieldLabels(dataStore, "first_dataset", field, authorizations);
@@ -1026,18 +1100,18 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       try (IngestStats stats = dataStore.newIngestStats()) {
 
         for (int i = 0; i < 10; i++) {
-          Assert
-              .assertTrue(dataStore.persist(writers, stats, "first_dataset", "row_" + i, json1(i)));
+          Assert.assertTrue(dataStore.persist(writers, stats, "first_dataset", "row_" + i, json1(i),
+              key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
         }
 
         for (int i = 0; i < 10; i++) {
-          Assert.assertTrue(
-              dataStore.persist(writers, stats, "second_dataset", "row_" + i, json1(i)));
+          Assert.assertTrue(dataStore.persist(writers, stats, "second_dataset", "row_" + i,
+              json1(i), key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
         }
 
         for (int i = 0; i < 10; i++) {
-          Assert
-              .assertTrue(dataStore.persist(writers, stats, "third_dataset", "row_" + i, json1(i)));
+          Assert.assertTrue(dataStore.persist(writers, stats, "third_dataset", "row_" + i, json1(i),
+              key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
         }
       }
     }

@@ -39,8 +39,9 @@ import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
+import com.computablefacts.nona.helpers.BigDecimalCodec;
+import com.computablefacts.nona.helpers.Strings;
 import com.computablefacts.nona.helpers.WildcardMatcher;
-import com.google.common.annotations.Beta;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -116,6 +117,80 @@ final public class TermStore extends AbstractStorage {
 
   private static String backwardIndex(String dataset) {
     return dataset + "_BIDX";
+  }
+
+  private static Iterator<Term> scan(ScannerBase scanner, String dataset, Set<String> keepFields,
+      BloomFilters<String> keepDocs, boolean isTermBackward, Range range) {
+
+    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(range, "range should not be null");
+
+    @Var
+    boolean add = false;
+    IteratorSetting setting =
+        new IteratorSetting(22, "TermStoreDocFieldFilter", TermStoreDocFieldFilter.class);
+
+    if (keepFields != null && !keepFields.isEmpty()) {
+      add = true;
+      TermStoreDocFieldFilter.setFieldsToKeep(setting, keepFields);
+    }
+    if (keepDocs != null) {
+      add = true;
+      TermStoreDocFieldFilter.setDocsToKeep(setting, keepDocs);
+    }
+    if (add) {
+      scanner.addScanIterator(setting);
+    }
+
+    if (dataset != null) {
+      scanner.fetchColumnFamily(new Text(dataset));
+    } else {
+
+      IteratorSetting settings = new IteratorSetting(23, "WildcardFilter", WildcardFilter.class);
+      WildcardFilter.applyOnColumnFamily(settings);
+      WildcardFilter.addWildcard(settings, isTermBackward ? "*_BIDX" : "*_FIDX");
+
+      scanner.addScanIterator(settings);
+    }
+    if (!setRange(scanner, range)) {
+      return Constants.ITERATOR_EMPTY;
+    }
+    return Iterators.transform(scanner.iterator(), entry -> {
+
+      Key key = entry.getKey();
+      Value value = entry.getValue();
+
+      // Extract term from ROW
+      String termm = isTermBackward ? reverse(key.getRow().toString()) : key.getRow().toString();
+
+      // Extract document id and field from CQ
+      String cq = key.getColumnQualifier().toString();
+      int index = cq.indexOf(Constants.SEPARATOR_NUL);
+      String docId = cq.substring(0, index);
+      String field = cq.substring(index + 1);
+
+      // Extract count and spans from VALUE
+      String val = value.toString();
+      List<String> spans = Splitter.on(Constants.SEPARATOR_NUL).splitToList(val);
+      long count = Long.parseLong(spans.get(0), 10);
+      List<org.apache.accumulo.core.util.ComparablePair<Integer, Integer>> ranges =
+          new ArrayList<>((spans.size() - 1) / 2);
+
+      for (int i = 2; i < spans.size(); i += 2) { // skip the count at position 0
+
+        int begin = Integer.parseInt(spans.get(i - 1));
+        int end = Integer.parseInt(spans.get(i));
+
+        ranges.add(new org.apache.accumulo.core.util.ComparablePair<>(begin, end));
+      }
+
+      // Extract visibility labels
+      String cv = key.getColumnVisibility().toString();
+      Set<String> labels = Sets.newHashSet(
+          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
+
+      return new Term(docId, field, termm, labels, count, ranges);
+    });
   }
 
   /**
@@ -231,7 +306,6 @@ final public class TermStore extends AbstractStorage {
    * @param docIds a set of documents ids to remove.
    * @return true if the operation succeeded, false otherwise.
    */
-  @Beta
   public boolean removeDocuments(BatchDeleter deleter, String dataset, Set<String> docIds) {
 
     Preconditions.checkNotNull(deleter, "deleter should not be null");
@@ -273,7 +347,6 @@ final public class TermStore extends AbstractStorage {
    * @param term term.
    * @return true if the operation succeeded, false otherwise.
    */
-  @Beta
   public boolean removeTerm(BatchDeleter deleter, String dataset, String term) {
 
     Preconditions.checkNotNull(deleter, "deleter should not be null");
@@ -366,6 +439,30 @@ final public class TermStore extends AbstractStorage {
   public boolean add(BatchWriter writer, IngestStats stats, String dataset, String docId,
       String field, String term, List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
       Set<String> fieldSpecificLabels) {
+    return add(writer, stats, dataset, docId, field, term, spans, docSpecificLabels,
+        fieldSpecificLabels, false);
+  }
+
+  /**
+   * Persist data. Term extraction for a given field from a given document should be performed by
+   * the caller. This method should be called only once for each (dataset, docId, field, term).
+   *
+   * @param writer batch writer.
+   * @param stats ingest stats.
+   * @param dataset dataset.
+   * @param docId document id.
+   * @param field field name.
+   * @param term term.
+   * @param spans positions of the term in the document.
+   * @param docSpecificLabels visibility labels specific to a given document.
+   * @param fieldSpecificLabels visibility labels specific to a given field.
+   * @param writeInForwardIndexOnly allow the caller to explicitly specify that the term must be
+   *        written in the forward index only.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean add(BatchWriter writer, IngestStats stats, String dataset, String docId,
+      String field, String term, List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
+      Set<String> fieldSpecificLabels, boolean writeInForwardIndexOnly) {
 
     Preconditions.checkNotNull(writer, "writer should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -418,14 +515,16 @@ final public class TermStore extends AbstractStorage {
     isOk =
         isOk && add(writer, newTerm, new Text(forwardIndex(dataset)), newDocField, viz, newSpans);
 
-    // Backward index
-    isOk = isOk && add(writer, newTermReversed, new Text(backwardCount(dataset)), newField,
-        vizFieldSpecific, newCount);
-    isOk = isOk && add(writer, newTermReversed, new Text(backwardCard(dataset)), newField,
-        vizFieldSpecific, Constants.VALUE_ONE);
-    isOk = isOk && add(writer, newTermReversed, new Text(backwardIndex(dataset)), newDocField, viz,
-        newSpans);
+    if (!writeInForwardIndexOnly) {
 
+      // Backward index
+      isOk = isOk && add(writer, newTermReversed, new Text(backwardCount(dataset)), newField,
+          vizFieldSpecific, newCount);
+      isOk = isOk && add(writer, newTermReversed, new Text(backwardCard(dataset)), newField,
+          vizFieldSpecific, Constants.VALUE_ONE);
+      isOk = isOk && add(writer, newTermReversed, new Text(backwardIndex(dataset)), newDocField,
+          viz, newSpans);
+    }
     return isOk;
   }
 
@@ -800,6 +899,73 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
+   * Get documents, fields and spans. This method only works for scanning numerical ranges.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset (optional).
+   * @param minTerm number (optional). Beginning of the range (included).
+   * @param maxTerm number (optional). End of the range (excluded).
+   * @param keepFields fields patterns to keep (optional).
+   * @param keepDocs document ids to keep (optional).
+   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
+   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
+   *         {@link org.apache.accumulo.core.client.BatchScanner}.
+   */
+  public Iterator<Term> numericalRangeScan(Scanner scanner, String dataset, String minTerm,
+      String maxTerm, Set<String> keepFields, BloomFilters<String> keepDocs) {
+
+    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+
+    if (minTerm != null && !Strings.isNumber(minTerm)) {
+      logger_.error(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
+          .add("has_keep_fields", keepFields != null).add("has_keep_docs", keepDocs != null)
+          .message("minTerm must be a number!").formatError());
+      return Constants.ITERATOR_EMPTY;
+    }
+    if (maxTerm != null && !Strings.isNumber(maxTerm)) {
+      logger_.error(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
+          .add("has_keep_fields", keepFields != null).add("has_keep_docs", keepDocs != null)
+          .message("maxTerm must be a number!").formatError());
+      return Constants.ITERATOR_EMPTY;
+    }
+
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
+          .add("has_keep_fields", keepFields != null).add("has_keep_docs", keepDocs != null)
+          .formatInfo());
+    }
+
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+
+    Range range;
+
+    if (minTerm == null) {
+      Key startKey = new Key();
+      Key endKey = new Key(BigDecimalCodec.encode(maxTerm));
+      range = new Range(startKey, endKey);
+    } else if (maxTerm == null) {
+      Key startKey = new Key(BigDecimalCodec.encode(minTerm));
+      range = new Range(startKey, null);
+    } else {
+      Key startKey = new Key(BigDecimalCodec.encode(minTerm));
+      Key endKey = new Key(BigDecimalCodec.encode(maxTerm));
+      range = new Range(startKey, endKey);
+    }
+
+    String newDataset = dataset == null ? null : forwardIndex(dataset);
+
+    return Iterators.transform(scan(scanner, newDataset, keepFields, keepDocs, false, range),
+        term -> new Term(term.docId(), term.field(), BigDecimalCodec.decode(term.term()),
+            term.labels(), term.count(), term.spans()));
+  }
+
+  /**
    * Get documents, fields and spans aggregated by term.
    *
    * @param scanner scanner.
@@ -876,72 +1042,6 @@ final public class TermStore extends AbstractStorage {
 
       scanner.addScanIterator(setting);
     }
-
-    @Var
-    boolean add = false;
-    IteratorSetting setting =
-        new IteratorSetting(22, "TermStoreDocFieldFilter", TermStoreDocFieldFilter.class);
-
-    if (keepFields != null && !keepFields.isEmpty()) {
-      add = true;
-      TermStoreDocFieldFilter.setFieldsToKeep(setting, keepFields);
-    }
-    if (keepDocs != null) {
-      add = true;
-      TermStoreDocFieldFilter.setDocsToKeep(setting, keepDocs);
-    }
-    if (add) {
-      scanner.addScanIterator(setting);
-    }
-
-    if (newDataset != null) {
-      scanner.fetchColumnFamily(new Text(newDataset));
-    } else {
-
-      IteratorSetting settings = new IteratorSetting(23, "WildcardFilter", WildcardFilter.class);
-      WildcardFilter.applyOnColumnFamily(settings);
-      WildcardFilter.addWildcard(settings, isTermBackward ? "*_BIDX" : "*_FIDX");
-
-      scanner.addScanIterator(settings);
-    }
-    if (!setRange(scanner, range)) {
-      return Constants.ITERATOR_EMPTY;
-    }
-    return Iterators.transform(scanner.iterator(), entry -> {
-
-      Key key = entry.getKey();
-      Value value = entry.getValue();
-
-      // Extract term from ROW
-      String termm = isTermBackward ? reverse(key.getRow().toString()) : key.getRow().toString();
-
-      // Extract document id and field from CQ
-      String cq = key.getColumnQualifier().toString();
-      int index = cq.indexOf(Constants.SEPARATOR_NUL);
-      String docId = cq.substring(0, index);
-      String field = cq.substring(index + 1);
-
-      // Extract count and spans from VALUE
-      String val = value.toString();
-      List<String> spans = Splitter.on(Constants.SEPARATOR_NUL).splitToList(val);
-      long count = Long.parseLong(spans.get(0), 10);
-      List<org.apache.accumulo.core.util.ComparablePair<Integer, Integer>> ranges =
-          new ArrayList<>((spans.size() - 1) / 2);
-
-      for (int i = 2; i < spans.size(); i += 2) { // skip the count at position 0
-
-        int begin = Integer.parseInt(spans.get(i - 1));
-        int end = Integer.parseInt(spans.get(i));
-
-        ranges.add(new org.apache.accumulo.core.util.ComparablePair<>(begin, end));
-      }
-
-      // Extract visibility labels
-      String cv = key.getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(
-          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
-
-      return new Term(docId, field, termm, labels, count, ranges);
-    });
+    return scan(scanner, newDataset, keepFields, keepDocs, isTermBackward, range);
   }
 }
