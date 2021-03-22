@@ -56,6 +56,7 @@ import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.jupiter.storage.termstore.TermCard;
 import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
+import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
@@ -97,10 +98,12 @@ final public class DataStore {
     termStore_ = new TermStore(configurations, termStoreName(name));
   }
 
+  @Generated
   static String blobStoreName(String name) {
     return name + "Blobs";
   }
 
+  @Generated
   static String termStoreName(String name) {
     return name + "Terms";
   }
@@ -153,10 +156,31 @@ final public class DataStore {
   }
 
   /**
+   * Get a direct access to the underlying blob store.
+   *
+   * @return {@link BlobStore}
+   */
+  @Generated
+  public BlobStore blobStore() {
+    return blobStore_;
+  }
+
+  /**
+   * Get a direct access to the underlying term store.
+   *
+   * @return {@link TermStore}
+   */
+  @Generated
+  public TermStore termStore() {
+    return termStore_;
+  }
+
+  /**
    * Get the table configuration.
    *
    * @return the table configuration.
    */
+  @Generated
   public Configurations configurations() {
     return blobStore_.configurations();
   }
@@ -166,6 +190,7 @@ final public class DataStore {
    *
    * @return the DataStore name.
    */
+  @Generated
   public String name() {
     return name_;
   }
@@ -528,25 +553,8 @@ final public class DataStore {
           .formatDebug());
     }
 
-    String vizAdm = Constants.STRING_ADM; // for backward compatibility
-    String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
-    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
-    String vizRawData = vizDataset + Constants.STRING_RAW_DATA;
-
-    if (!blobStore_.put(writers.blob(), dataset, uuid, Sets.newHashSet(vizAdm, vizUuid, vizRawData),
-        json)) {
-
-      logger_.error(LogFormatterManager.logFormatter().message("write failed")
-          .add("dataset", dataset).add("uuid", uuid).add("blob", json).formatError());
-
+    if (!persistBlob(writers, stats, dataset, uuid, json)) {
       return false;
-    }
-
-    // Increment blob count
-    if (stats != null) {
-      stats.count(dataset, "", 1);
-      stats.card(dataset, "", 1);
-      stats.visibility(dataset, "", Sets.newHashSet(vizAdm, vizRawData));
     }
 
     @Var
@@ -556,7 +564,7 @@ final public class DataStore {
 
     for (String field : newJson.keySet()) {
 
-      spanSequence = null;
+      spanSequence = null; // free memory
 
       // Attributes starting with an underscore should not be indexed
       if (field.startsWith("_") || field.contains(Constants.SEPARATOR_CURRENCY_SIGN + "_")) {
@@ -605,14 +613,6 @@ final public class DataStore {
 
       spanSequence = null; // free memory
 
-      // Create column visibility
-      int index = field.indexOf(Constants.SEPARATOR_CURRENCY_SIGN);
-      String vizField = AbstractStorage
-          .toVisibilityLabel(vizDataset + (index <= 0 ? field : field.substring(0, index)));
-
-      Set<String> vizDocSpecific = Sets.newHashSet(vizUuid);
-      Set<String> vizFieldSpecific = Sets.newHashSet(vizAdm, vizField);
-
       // Increment field cardinality
       if (stats != null) {
         stats.card(dataset, field, 1);
@@ -620,27 +620,9 @@ final public class DataStore {
 
       // Persist spans
       for (String span : spans.keySet()) {
-        if (!termStore_.add(writers.index(), stats, dataset, uuid, field, span, spans.get(span),
-            vizDocSpecific, vizFieldSpecific, writeInForwardIndexOnly)) {
-
-          logger_.error(
-              LogFormatterManager.logFormatter().message("write failed").add("dataset", dataset)
-                  .add("uuid", uuid).add("field", field).add("value", value).formatError());
-
-          if (stats != null) {
-
-            // Do not store visibility labels generated from the document UUID because there is one
-            // for each document
-            stats.removeVisibilityLabel(dataset, field, vizUuid);
-          }
+        if (!persistTerm(writers, stats, dataset, uuid, field, span, spans.get(span),
+            writeInForwardIndexOnly)) {
           return false;
-        }
-
-        if (stats != null) {
-
-          // Do not store visibility labels generated from the document UUID because there is one
-          // for each document
-          stats.removeVisibilityLabel(dataset, field, vizUuid);
         }
       }
     }
@@ -648,7 +630,7 @@ final public class DataStore {
   }
 
   /**
-   * Persist a single BLOB object.
+   * Persist a single blob.
    *
    * @param writers writers.
    * @param stats ingest stats (optional)
@@ -691,6 +673,60 @@ final public class DataStore {
       stats.visibility(dataset, "", Sets.newHashSet(vizAdm, vizRawData));
     }
     return true;
+  }
+
+  /**
+   * Persist a single term.
+   *
+   * @param writers writers.
+   * @param stats ingest stats (optional)
+   * @param dataset dataset.
+   * @param uuid unique identifier.
+   * @param field field name.
+   * @param term term.
+   * @param spans positions of the term in the document.
+   * @param writeInForwardIndexOnly allow the caller to explicitly specify that the term must be
+   *        written in the forward index only.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean persistTerm(Writers writers, IngestStats stats, String dataset, String uuid,
+      String field, String term, List<Pair<Integer, Integer>> spans,
+      boolean writeInForwardIndexOnly) {
+
+    Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(uuid, "uuid should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+    Preconditions.checkNotNull(spans, "spans should not be null");
+
+    String vizAdm = Constants.STRING_ADM; // for backward compatibility
+    String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
+    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
+
+    int index = field.indexOf(Constants.SEPARATOR_CURRENCY_SIGN);
+    String vizField = AbstractStorage
+        .toVisibilityLabel(vizDataset + (index <= 0 ? field : field.substring(0, index)));
+
+    Set<String> vizDocSpecific = Sets.newHashSet(vizUuid);
+    Set<String> vizFieldSpecific = Sets.newHashSet(vizAdm, vizField);
+
+    boolean isOk = termStore_.add(writers.index(), stats, dataset, uuid, field, term, spans,
+        vizDocSpecific, vizFieldSpecific, writeInForwardIndexOnly);
+
+    if (!isOk) {
+      logger_
+          .error(LogFormatterManager.logFormatter().message("write failed").add("dataset", dataset)
+              .add("uuid", uuid).add("field", field).add("term", term).formatError());
+    }
+
+    if (stats != null) {
+
+      // Do not store visibility labels generated from the document UUID because there is one
+      // for each document
+      stats.removeVisibilityLabel(dataset, field, vizUuid);
+    }
+    return isOk;
   }
 
   /**
