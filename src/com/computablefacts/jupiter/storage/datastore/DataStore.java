@@ -542,6 +542,13 @@ final public class DataStore {
       return false;
     }
 
+    // Increment blob count
+    if (stats != null) {
+      stats.count(dataset, "", 1);
+      stats.card(dataset, "", 1);
+      stats.visibility(dataset, "", Sets.newHashSet(vizAdm, vizRawData));
+    }
+
     @Var
     SpanSequence spanSequence = null;
     Map<String, Object> newJson =
@@ -623,6 +630,52 @@ final public class DataStore {
           return false;
         }
       }
+    }
+    return true;
+  }
+
+  /**
+   * Persist a single BLOB object.
+   *
+   * @param writers writers.
+   * @param stats ingest stats (optional)
+   * @param dataset dataset.
+   * @param uuid unique identifier.
+   * @param blob blob encoded in Base64.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean persistBlob(Writers writers, IngestStats stats, String dataset, String uuid,
+      String blob) {
+
+    Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(uuid, "uuid should not be null");
+    Preconditions.checkNotNull(blob, "blob should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("uuid", uuid)
+          .add("blob", blob).formatDebug());
+    }
+
+    String vizAdm = Constants.STRING_ADM; // for backward compatibility
+    String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
+    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
+    String vizRawData = vizDataset + Constants.STRING_RAW_DATA;
+
+    if (!blobStore_.put(writers.blob(), dataset, uuid, Sets.newHashSet(vizAdm, vizUuid, vizRawData),
+        blob)) {
+
+      logger_.error(LogFormatterManager.logFormatter().message("write failed")
+          .add("dataset", dataset).add("uuid", uuid).add("blob", blob).formatError());
+
+      return false;
+    }
+
+    // Increment blob count
+    if (stats != null) {
+      stats.count(dataset, "", 1);
+      stats.card(dataset, "", 1);
+      stats.visibility(dataset, "", Sets.newHashSet(vizAdm, vizRawData));
     }
     return true;
   }

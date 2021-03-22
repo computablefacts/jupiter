@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -411,8 +412,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
         list.clear();
         dataStore.searchByTerm(scanners, writers, "first_dataset", normalize("Isabella Jane"), null,
-            null)
-            .forEachRemaining(list::add);
+            null).forEachRemaining(list::add);
 
         Assert.assertEquals(10, list.size());
 
@@ -901,6 +901,65 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       for (int i = 0; i < 10; i++) {
         Assert.assertEquals("row_" + i, list.get(i).docId());
       }
+    }
+  }
+
+  @Test
+  public void testPersistBlobs() throws Exception {
+
+    Authorizations auths = new Authorizations("BLOB_DATASET_RAW_DATA", "BLOB_DATASET_CNT",
+        "BLOB_DATASET_CARD", "BLOB_DATASET_VIZ");
+    DataStore dataStore = newDataStore(auths);
+    Base64.Encoder b64Encoder = Base64.getEncoder();
+
+    try (Writers writers = dataStore.writers()) {
+      try (IngestStats stats = dataStore.newIngestStats()) {
+        for (int i = 0; i < 10; i++) {
+          String json = json1(i);
+          String b64 = Codecs.encodeB64(b64Encoder, json);
+          Assert.assertTrue(dataStore.persistBlob(writers, stats, "blob_dataset", "row_" + i, b64));
+        }
+      }
+    }
+
+    Base64.Decoder b64Decoder = Base64.getDecoder();
+
+    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
+
+      List<Blob<Value>> list = new ArrayList<>();
+      dataStore.blobScan(scanners, "blob_dataset").forEachRemaining(list::add);
+
+      Assert.assertEquals(10, list.size());
+
+      for (int i = 0; i < 10; i++) {
+        String b64 = list.get(i).value().toString();
+        String json = Codecs.decodeB64(b64Decoder, b64);
+        Assert.assertFalse(Codecs.asObject(json).isEmpty());
+      }
+
+      List<FieldCount> counts = new ArrayList<>();
+      dataStore.fieldCount(scanners, "blob_dataset", "").forEachRemaining(counts::add);
+
+      Assert.assertEquals(1, counts.size());
+      Assert.assertEquals("", counts.get(0).field());
+      Assert.assertEquals(2, counts.get(0).labels().size());
+      Assert.assertEquals(10, counts.get(0).count());
+
+      List<FieldCard> cards = new ArrayList<>();
+      dataStore.fieldCard(scanners, "blob_dataset", "").forEachRemaining(cards::add);
+
+      Assert.assertEquals(1, cards.size());
+      Assert.assertEquals("", cards.get(0).field());
+      Assert.assertEquals(2, cards.get(0).labels().size());
+      Assert.assertEquals(10, cards.get(0).cardinality());
+
+      List<FieldLabels> vizs = new ArrayList<>();
+      dataStore.fieldLabels(scanners, "blob_dataset", "").forEachRemaining(vizs::add);
+
+      Assert.assertEquals(1, vizs.size());
+      Assert.assertEquals("", vizs.get(0).field());
+      Assert.assertEquals(2, vizs.get(0).accumuloLabels().size());
+      Assert.assertEquals(2, vizs.get(0).termLabels().size());
     }
   }
 
