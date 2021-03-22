@@ -37,10 +37,8 @@ import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.Document;
 import com.computablefacts.nona.helpers.Files;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
-import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -116,11 +114,6 @@ public class Shell {
         Preconditions.checkState(
             ingest(configurations, datastore, getArg(args, "ds"), getArg(args, "fi")),
             "INGEST failed!");
-        break;
-      case "ingest_blobs":
-        Preconditions.checkState(
-            ingestBlobs(configurations, datastore, getArg(args, "ds"), getArg(args, "fi")),
-            "INGEST_BLOBS failed!");
         break;
       case "backup":
         Preconditions.checkState(backup(configurations, datastore, getArg(args, "ds"),
@@ -304,69 +297,6 @@ public class Shell {
     return true;
   }
 
-  public static boolean ingestBlobs(Configurations configurations, String datastore, String dataset,
-      String file) {
-
-    Preconditions.checkNotNull(configurations, "configurations should not be null");
-    Preconditions.checkNotNull(datastore, "datastore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(file, "file should not be null");
-
-    File f = new File(file);
-
-    Preconditions.checkArgument(f.exists(), "File does not exist : %s", f.getAbsolutePath());
-
-    Stopwatch stopwatch = Stopwatch.createStarted();
-    DataStore ds = new DataStore(configurations, datastore);
-    AtomicInteger count = new AtomicInteger(0);
-
-    try (Writers writers = ds.writers()) {
-      try (IngestStats stats = ds.newIngestStats()) {
-        Files.compressedLineStream(f, StandardCharsets.UTF_8).forEach(line -> {
-
-          String row = line.getValue();
-
-          if (Strings.isNullOrEmpty(row)) {
-            return;
-          }
-
-          List<String> fields = Splitter.on(' ').trimResults().omitEmptyStrings().splitToList(row);
-
-          Preconditions.checkState(fields.size() == 2,
-              "The number of expected fields is 2 : <doc_id> <base64>");
-
-          String docId = fields.get(0);
-          String base64 = fields.get(1);
-
-          if (!ds.persistBlob(writers, stats, dataset, docId, base64)) {
-            logger_.error(LogFormatterManager.logFormatter()
-                .message("Persistence of " + docId + " failed").formatError());
-          }
-
-          if (count.incrementAndGet() % 100 == 0) {
-
-            stats.flush();
-
-            if (logger_.isInfoEnabled()) {
-              logger_.info(LogFormatterManager.logFormatter()
-                  .message("Number of BLOB processed : " + count.get()).formatInfo());
-            }
-          }
-        });
-      }
-    }
-
-    stopwatch.stop();
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter()
-          .message("Total number of BLOB processed : " + count.get()).formatInfo());
-      logger_.info(LogFormatterManager.logFormatter()
-          .message("Elapsed time : " + stopwatch.elapsed(TimeUnit.SECONDS)).formatInfo());
-    }
-    return true;
-  }
-
   public static boolean backup(Configurations configurations, String datastore, String dataset,
       String file, String auths) {
 
@@ -385,7 +315,7 @@ public class Shell {
 
       AtomicInteger count = new AtomicInteger(0);
       List<String> jsons = new ArrayList<>();
-      Iterator<Blob<Value>> iterator = ds.blobScan(scanners, dataset, Sets.newHashSet());
+      Iterator<Blob<Value>> iterator = ds.blobScan(scanners, dataset);
 
       while (iterator.hasNext()) {
 
