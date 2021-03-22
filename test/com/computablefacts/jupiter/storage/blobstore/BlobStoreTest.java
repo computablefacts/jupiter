@@ -1,5 +1,7 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
+import java.io.File;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -7,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.computablefacts.jupiter.storage.Constants;
-import com.computablefacts.jupiter.storage.termstore.TermStore;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -26,6 +26,7 @@ import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.storage.AbstractStorage;
+import com.computablefacts.jupiter.storage.Constants;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -38,16 +39,19 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     BlobStore blobStore = newDataStore(Constants.AUTH_ADM);
 
-    Assert.assertTrue(
-            Tables.getLocalityGroups(blobStore.configurations().tableOperations(), blobStore.tableName()).isEmpty());
+    Assert.assertTrue(Tables
+        .getLocalityGroups(blobStore.configurations().tableOperations(), blobStore.tableName())
+        .isEmpty());
 
     Assert.assertTrue(blobStore.addLocalityGroup("third_dataset"));
-    Assert.assertFalse(
-            Tables.getLocalityGroups(blobStore.configurations().tableOperations(), blobStore.tableName()).isEmpty());
+    Assert.assertFalse(Tables
+        .getLocalityGroups(blobStore.configurations().tableOperations(), blobStore.tableName())
+        .isEmpty());
 
     Assert.assertTrue(blobStore.addLocalityGroup("third_dataset")); // ensure reentrant
-    Assert.assertFalse(
-            Tables.getLocalityGroups(blobStore.configurations().tableOperations(), blobStore.tableName()).isEmpty());
+    Assert.assertFalse(Tables
+        .getLocalityGroups(blobStore.configurations().tableOperations(), blobStore.tableName())
+        .isEmpty());
   }
 
   @Test
@@ -104,18 +108,18 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     Authorizations auths = new Authorizations("DS_1", "DS_2");
     BlobStore blobStore = newDataStore(auths);
 
-    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore,auths));
-    Assert.assertEquals(10, countEntitiesInSecondDataset(blobStore,auths));
-    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore,auths));
+    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore, auths));
+    Assert.assertEquals(10, countEntitiesInSecondDataset(blobStore, auths));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore, auths));
 
     try (BatchDeleter deleter = blobStore.deleter(auths)) {
       Assert.assertTrue(blobStore.removeDataset(deleter, "first_dataset"));
       Assert.assertTrue(blobStore.removeDataset(deleter, "second_dataset"));
     }
 
-    Assert.assertEquals(0, countEntitiesInFirstDataset(blobStore,auths));
-    Assert.assertEquals(0, countEntitiesInSecondDataset(blobStore,auths));
-    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore,auths));
+    Assert.assertEquals(0, countEntitiesInFirstDataset(blobStore, auths));
+    Assert.assertEquals(0, countEntitiesInSecondDataset(blobStore, auths));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore, auths));
   }
 
   @Test
@@ -124,9 +128,9 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     Authorizations auths = new Authorizations("DS_1", "DS_2");
     BlobStore blobStore = newDataStore(auths);
 
-    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore,auths));
-    Assert.assertEquals(10, countEntitiesInSecondDataset(blobStore,auths));
-    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore,auths));
+    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore, auths));
+    Assert.assertEquals(10, countEntitiesInSecondDataset(blobStore, auths));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore, auths));
 
     Set<String> odd = new HashSet<>();
     Set<String> even = new HashSet<>();
@@ -144,19 +148,19 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.removeKeys(deleter, "second_dataset", odd));
     }
 
-    Assert.assertEquals(5, countEntitiesInFirstDataset(blobStore,auths));
-    Assert.assertEquals(5, countEntitiesInSecondDataset(blobStore,auths));
-    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore,auths));
+    Assert.assertEquals(5, countEntitiesInFirstDataset(blobStore, auths));
+    Assert.assertEquals(5, countEntitiesInSecondDataset(blobStore, auths));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore, auths));
 
     // Ensure odd rows remain in dataset 1
-    List<Blob<Value>> list1 = entitiesInThirstDataset(blobStore,auths);
+    List<Blob<Value>> list1 = entitiesInThirstDataset(blobStore, auths);
 
     for (Blob<Value> blob : list1) {
       Assert.assertEquals(1, Integer.parseInt(blob.key().substring("row_".length()), 10) % 2);
     }
 
     // Ensure even rows remain in dataset 2
-    List<Blob<Value>> list2 = entitiesInSecondDataset(blobStore,auths);
+    List<Blob<Value>> list2 = entitiesInSecondDataset(blobStore, auths);
 
     for (Blob<Value> blob : list2) {
       Assert.assertEquals(0, Integer.parseInt(blob.key().substring("row_".length()), 10) % 2);
@@ -171,8 +175,9 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     BlobStore blobStore = newDataStore(authsDS1);
 
-    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore,authsDS1));
-    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore,authsDS2)); // Throws an exception
+    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore, authsDS1));
+    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore, authsDS2)); // Throws an
+                                                                               // exception
   }
 
   @Test
@@ -184,17 +189,17 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     BlobStore blobStore = newDataStore(authsDS1DS2);
 
-    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore,authsDS1DS2));
-    Assert.assertEquals(10, countEntitiesInSecondDataset(blobStore,authsDS1DS2));
-    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore,authsDS1DS2));
+    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore, authsDS1DS2));
+    Assert.assertEquals(10, countEntitiesInSecondDataset(blobStore, authsDS1DS2));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore, authsDS1DS2));
 
-    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore,authsDS1));
-    Assert.assertEquals(0, countEntitiesInSecondDataset(blobStore,authsDS1));
-    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore,authsDS1));
+    Assert.assertEquals(10, countEntitiesInFirstDataset(blobStore, authsDS1));
+    Assert.assertEquals(0, countEntitiesInSecondDataset(blobStore, authsDS1));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore, authsDS1));
 
-    Assert.assertEquals(0, countEntitiesInFirstDataset(blobStore,authsDS2));
-    Assert.assertEquals(10, countEntitiesInSecondDataset(blobStore,authsDS2));
-    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore,authsDS2));
+    Assert.assertEquals(0, countEntitiesInFirstDataset(blobStore, authsDS2));
+    Assert.assertEquals(10, countEntitiesInSecondDataset(blobStore, authsDS2));
+    Assert.assertEquals(10, countEntitiesInThirdDataset(blobStore, authsDS2));
   }
 
   @Test
@@ -235,8 +240,10 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertFalse(iterator.hasNext());
       Assert.assertEquals("row_1", blob.key());
+      Assert.assertTrue(blob.isString());
       Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), blob.labels());
       Assert.assertEquals(json(1), blob.value().toString());
+      Assert.assertTrue(blob.properties().isEmpty());
     }
   }
 
@@ -257,8 +264,44 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
         Blob<Value> blob = iterator.next();
 
         Assert.assertEquals("row_" + i, blob.key());
+        Assert.assertTrue(blob.isString());
         Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), blob.labels());
         Assert.assertEquals(json(i), blob.value().toString());
+        Assert.assertTrue(blob.properties().isEmpty());
+
+        i++;
+      }
+    }
+  }
+
+  @Test
+  public void testWriteAndReadFiles() throws Exception {
+
+    BlobStore blobStore = newDataStore(Authorizations.EMPTY);
+
+    try (BatchWriter writer = blobStore.writer()) {
+      for (int i = 0; i < 5; i++) {
+        File file = createFile(i * 1024);
+        Assert.assertTrue(
+            blobStore.put(writer, "dataset", Integer.toString(i, 10), Sets.newHashSet(), file));
+      }
+    }
+
+    try (Scanner scanner = blobStore.scanner(Authorizations.EMPTY)) { // keep order
+
+      @Var
+      int i = 0;
+      Iterator<Blob<Value>> iterator = blobStore.get(scanner, "dataset");
+
+      while (iterator.hasNext()) {
+
+        Blob<Value> blob = iterator.next();
+
+        Assert.assertEquals(Integer.toString(i, 10), blob.key());
+        Assert.assertEquals(Sets.newHashSet(), blob.labels());
+        Assert.assertTrue(blob.isFile());
+        Assert.assertEquals(2, blob.properties().size());
+        Assert.assertEquals(i * 1024, Long.parseLong(blob.properties().get(1), 10));
 
         i++;
       }
@@ -370,5 +413,13 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
         + "      \"wife\": null," + "      \"weight\": 67.5," + "      \"hasChildren\": true,"
         + "      \"hasGreyHair\": false," + "      \"children\": [" + "        \"Suri\","
         + "        \"Isabella Jane\"," + "        \"Connor\"" + "      ]" + "    }]}";
+  }
+
+  private java.io.File createFile(int size) throws Exception {
+    java.io.File file = java.io.File.createTempFile("tmp-", ".txt");
+    try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+      raf.setLength(size);
+    }
+    return file;
   }
 }

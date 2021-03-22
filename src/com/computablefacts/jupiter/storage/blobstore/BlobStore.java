@@ -1,5 +1,7 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -41,9 +43,9 @@ import com.google.errorprone.annotations.Var;
  * </p>
  * 
  * <pre>
- *  Row         | Column Family | Column Qualifier | Visibility                             |Value
- * =============+===============+==================+========================================+========
- *  <key>       | <dataset>     | (empty)          | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
+ *  Row         | Column Family | Column Qualifier                                | Visibility                             |Value
+ * =============+===============+=================================================+========================================+========
+ *  <key>       | <dataset>     | <blob_type>\0<property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
  * </pre>
  *
  * <p>
@@ -128,6 +130,38 @@ final public class BlobStore extends AbstractStorage {
   }
 
   /**
+   * Persist a file.
+   *
+   * @param writer batch writer.
+   * @param dataset dataset/namespace.
+   * @param key key.
+   * @param labels visibility labels.
+   * @param file file to load and persist.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean put(BatchWriter writer, String dataset, String key, Set<String> labels,
+      java.io.File file) {
+
+    Preconditions.checkNotNull(writer, "writer should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(key, "key should not be null");
+    Preconditions.checkNotNull(file, "file should not be null");
+    Preconditions.checkArgument(file.exists(), "Missing file : %s", file);
+
+    List<String> properties = Lists.newArrayList(file.getName(), Long.toString(file.length(), 10));
+
+    try {
+      byte[] content = java.nio.file.Files.readAllBytes(file.toPath());
+      return put(writer, dataset, key, labels, Blob.TYPE_FILE, properties, content);
+    } catch (IOException e) {
+      logger_.error(
+          LogFormatterManager.logFormatter().add("table_name", tableName()).add("dataset", dataset)
+              .add("key", key).add("file", file).add("labels", labels).message(e).formatError());
+    }
+    return false;
+  }
+
+  /**
    * Persist a string.
    *
    * @param writer batch writer.
@@ -145,34 +179,8 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(key, "key should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    return put(writer, dataset, key, labels, new Value(value));
-  }
-
-  /**
-   * Persist a blob.
-   *
-   * @param writer batch writer.
-   * @param dataset dataset/namespace.
-   * @param key key.
-   * @param labels visibility labels.
-   * @param value blob.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean put(BatchWriter writer, String dataset, String key, Set<String> labels,
-      Value value) {
-
-    Preconditions.checkNotNull(writer, "writer should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(key, "key should not be null");
-    Preconditions.checkNotNull(value, "value should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("key", key).add("labels", labels).formatDebug());
-    }
-
-    ColumnVisibility viz = new ColumnVisibility(Joiner.on(Constants.SEPARATOR_PIPE).join(labels));
-    return add(writer, new Text(key), new Text(dataset), Constants.TEXT_EMPTY, viz, value);
+    return put(writer, dataset, key, labels, Blob.TYPE_STRING, null,
+        value.getBytes(StandardCharsets.UTF_8));
   }
 
   /**
@@ -248,10 +256,65 @@ final public class BlobStore extends AbstractStorage {
       return Constants.ITERATOR_EMPTY;
     }
     return Iterators.transform(scanner.iterator(), entry -> {
+
       String cv = entry.getKey().getColumnVisibility().toString();
       Set<String> labels = Sets.newHashSet(
           Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
-      return new Blob<>(entry.getKey().getRow().toString(), labels, entry.getValue());
+      String cq = entry.getKey().getColumnQualifier().toString();
+
+      int index = cq.indexOf(Constants.SEPARATOR_NUL);
+      if (index < 0) {
+        return new Blob<>(entry.getKey().getRow().toString(), labels, Blob.TYPE_UNKNOWN,
+            Lists.newArrayList(), entry.getValue());
+      }
+
+      List<String> properties =
+          Splitter.on(Constants.SEPARATOR_NUL).trimResults().omitEmptyStrings().splitToList(cq);
+
+      return new Blob<>(entry.getKey().getRow().toString(), labels,
+          Integer.parseInt(properties.get(0), 10), properties.subList(1, properties.size()),
+          entry.getValue());
     });
+  }
+
+  /**
+   * Persist a blob.
+   *
+   * @param writer batch writer.
+   * @param dataset dataset/namespace.
+   * @param key key.
+   * @param labels visibility labels.
+   * @param type type of blob in {UNKNOWN, STRING, FILE}.
+   * @param properties list of properties.
+   * @param bytes blob.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  private boolean put(BatchWriter writer, String dataset, String key, Set<String> labels, int type,
+      List<String> properties, byte[] bytes) {
+
+    Preconditions.checkNotNull(writer, "writer should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(key, "key should not be null");
+    Preconditions.checkArgument(type >= 0, "unknown blob type : %s", type);
+    Preconditions.checkNotNull(bytes, "bytes should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("key", key).add("labels", labels).add("type", type)
+          .add("properties", properties).formatDebug());
+    }
+
+    StringBuilder cq = new StringBuilder();
+
+    cq.append(type);
+    cq.append(Constants.SEPARATOR_NUL);
+
+    if (properties != null && !properties.isEmpty()) {
+      cq.append(Joiner.on(Constants.SEPARATOR_NUL).join(properties));
+    }
+
+    ColumnVisibility viz = new ColumnVisibility(Joiner.on(Constants.SEPARATOR_PIPE).join(labels));
+    return add(writer, new Text(key), new Text(dataset), new Text(cq.toString()), viz,
+        new Value(bytes));
   }
 }

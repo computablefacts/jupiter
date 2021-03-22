@@ -1,6 +1,8 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.computablefacts.nona.Generated;
@@ -12,18 +14,27 @@ import com.google.errorprone.annotations.CheckReturnValue;
 @CheckReturnValue
 final public class Blob<T> {
 
+  static final int TYPE_UNKNOWN = 0;
+  static final int TYPE_STRING = 1;
+  static final int TYPE_FILE = 2;
+
   private final String key_;
   private final Set<String> labels_;
+  private final int type_;
+  private final List<String> properties_;
   private final T value_;
 
-  public Blob(String key, Set<String> labels, T value) {
+  public Blob(String key, Set<String> labels, int type, List<String> properties, T value) {
 
     Preconditions.checkNotNull(key, "key should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");
+    Preconditions.checkNotNull(properties, "properties should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
     key_ = key;
     labels_ = new HashSet<>(labels);
+    type_ = type;
+    properties_ = new ArrayList<>(properties);
     value_ = value;
   }
 
@@ -31,7 +42,7 @@ final public class Blob<T> {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("key", key_).add("labels", labels_)
-        .add("value", value_).toString();
+        .add("type", type_).add("properties", properties_).add("value", value_).toString();
   }
 
   @Override
@@ -44,12 +55,13 @@ final public class Blob<T> {
     }
     Blob<?> blob = (Blob<?>) obj;
     return Objects.equal(key_, blob.key_) && Objects.equal(labels_, blob.labels_)
+        && Objects.equal(type_, blob.type_) && Objects.equal(properties_, blob.properties_)
         && Objects.equal(value_, blob.value_);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(key_, labels_, value_);
+    return Objects.hashCode(key_, labels_, type_, properties_, value_);
   }
 
   @Generated
@@ -63,7 +75,32 @@ final public class Blob<T> {
   }
 
   @Generated
+  public int type() {
+    return type_;
+  }
+
+  @Generated
+  public List<String> properties() {
+    return properties_;
+  }
+
+  @Generated
   public T value() {
     return value_;
+  }
+
+  @Generated
+  public boolean isUnknown() {
+    return type_ == TYPE_UNKNOWN;
+  }
+
+  @Generated
+  public boolean isString() {
+    return type_ == TYPE_STRING;
+  }
+
+  @Generated
+  public boolean isFile() {
+    return type_ == TYPE_FILE;
   }
 }
