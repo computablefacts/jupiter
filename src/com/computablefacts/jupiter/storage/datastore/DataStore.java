@@ -630,106 +630,6 @@ final public class DataStore {
   }
 
   /**
-   * Persist a single blob.
-   *
-   * @param writers writers.
-   * @param stats ingest stats (optional)
-   * @param dataset dataset.
-   * @param uuid unique identifier.
-   * @param blob blob encoded in Base64.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean persistBlob(Writers writers, IngestStats stats, String dataset, String uuid,
-      String blob) {
-
-    Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(uuid, "uuid should not be null");
-    Preconditions.checkNotNull(blob, "blob should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("uuid", uuid)
-          .add("blob", blob).formatDebug());
-    }
-
-    String vizAdm = Constants.STRING_ADM; // for backward compatibility
-    String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
-    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
-    String vizRawData = vizDataset + Constants.STRING_RAW_DATA;
-
-    if (!blobStore_.put(writers.blob(), dataset, uuid, Sets.newHashSet(vizAdm, vizUuid, vizRawData),
-        blob)) {
-
-      logger_.error(LogFormatterManager.logFormatter().message("write failed")
-          .add("dataset", dataset).add("uuid", uuid).add("blob", blob).formatError());
-
-      return false;
-    }
-
-    // Increment blob count
-    if (stats != null) {
-      stats.count(dataset, "", 1);
-      stats.card(dataset, "", 1);
-      stats.visibility(dataset, "", Sets.newHashSet(vizAdm, vizRawData));
-    }
-    return true;
-  }
-
-  /**
-   * Persist a single term.
-   *
-   * @param writers writers.
-   * @param stats ingest stats (optional)
-   * @param dataset dataset.
-   * @param uuid unique identifier.
-   * @param field field name.
-   * @param term term.
-   * @param spans positions of the term in the document.
-   * @param writeInForwardIndexOnly allow the caller to explicitly specify that the term must be
-   *        written in the forward index only.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean persistTerm(Writers writers, IngestStats stats, String dataset, String uuid,
-      String field, String term, List<Pair<Integer, Integer>> spans,
-      boolean writeInForwardIndexOnly) {
-
-    Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(uuid, "uuid should not be null");
-    Preconditions.checkNotNull(field, "field should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkNotNull(spans, "spans should not be null");
-
-    String vizAdm = Constants.STRING_ADM; // for backward compatibility
-    String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
-    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
-
-    int index = field.indexOf(Constants.SEPARATOR_CURRENCY_SIGN);
-    String vizField = AbstractStorage
-        .toVisibilityLabel(vizDataset + (index <= 0 ? field : field.substring(0, index)));
-
-    Set<String> vizDocSpecific = Sets.newHashSet(vizUuid);
-    Set<String> vizFieldSpecific = Sets.newHashSet(vizAdm, vizField);
-
-    boolean isOk = termStore_.add(writers.index(), stats, dataset, uuid, field, term, spans,
-        vizDocSpecific, vizFieldSpecific, writeInForwardIndexOnly);
-
-    if (!isOk) {
-      logger_
-          .error(LogFormatterManager.logFormatter().message("write failed").add("dataset", dataset)
-              .add("uuid", uuid).add("field", field).add("term", term).formatError());
-    }
-
-    if (stats != null) {
-
-      // Do not store visibility labels generated from the document UUID because there is one
-      // for each document
-      stats.removeVisibilityLabel(dataset, field, vizUuid);
-    }
-    return isOk;
-  }
-
-  /**
    * Get visibility labels by field.
    *
    * @param scanners scanners.
@@ -1200,5 +1100,104 @@ final public class DataStore {
           .execute(() -> writeCache(writers, iterator, uuid, delegateToBackgroundThreadAfter));
     }
     return uuid.toString();
+  }
+
+  /**
+   * Persist a single blob.
+   *
+   * @param writers writers.
+   * @param stats ingest stats (optional)
+   * @param dataset dataset.
+   * @param uuid unique identifier.
+   * @param blob blob encoded in Base64.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  boolean persistBlob(Writers writers, IngestStats stats, String dataset, String uuid,
+      String blob) {
+
+    Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(uuid, "uuid should not be null");
+    Preconditions.checkNotNull(blob, "blob should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("uuid", uuid)
+          .add("blob", blob).formatDebug());
+    }
+
+    String vizAdm = Constants.STRING_ADM; // for backward compatibility
+    String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
+    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
+    String vizRawData = vizDataset + Constants.STRING_RAW_DATA;
+
+    if (!blobStore_.put(writers.blob(), dataset, uuid, Sets.newHashSet(vizAdm, vizUuid, vizRawData),
+        blob)) {
+
+      logger_.error(LogFormatterManager.logFormatter().message("write failed")
+          .add("dataset", dataset).add("uuid", uuid).add("blob", blob).formatError());
+
+      return false;
+    }
+
+    // Increment blob count
+    if (stats != null) {
+      stats.count(dataset, "", 1);
+      stats.card(dataset, "", 1);
+      stats.visibility(dataset, "", Sets.newHashSet(vizAdm, vizRawData));
+    }
+    return true;
+  }
+
+  /**
+   * Persist a single term.
+   *
+   * @param writers writers.
+   * @param stats ingest stats (optional)
+   * @param dataset dataset.
+   * @param uuid unique identifier.
+   * @param field field name.
+   * @param term term.
+   * @param spans positions of the term in the document.
+   * @param writeInForwardIndexOnly allow the caller to explicitly specify that the term must be
+   *        written in the forward index only.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  boolean persistTerm(Writers writers, IngestStats stats, String dataset, String uuid, String field,
+      String term, List<Pair<Integer, Integer>> spans, boolean writeInForwardIndexOnly) {
+
+    Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(uuid, "uuid should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+    Preconditions.checkNotNull(spans, "spans should not be null");
+
+    String vizAdm = Constants.STRING_ADM; // for backward compatibility
+    String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
+    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
+
+    int index = field.indexOf(Constants.SEPARATOR_CURRENCY_SIGN);
+    String vizField = AbstractStorage
+        .toVisibilityLabel(vizDataset + (index <= 0 ? field : field.substring(0, index)));
+
+    Set<String> vizDocSpecific = Sets.newHashSet(vizUuid);
+    Set<String> vizFieldSpecific = Sets.newHashSet(vizAdm, vizField);
+
+    boolean isOk = termStore_.add(writers.index(), stats, dataset, uuid, field, term, spans,
+        vizDocSpecific, vizFieldSpecific, writeInForwardIndexOnly);
+
+    if (!isOk) {
+      logger_
+          .error(LogFormatterManager.logFormatter().message("write failed").add("dataset", dataset)
+              .add("uuid", uuid).add("field", field).add("term", term).formatError());
+    }
+
+    if (stats != null) {
+
+      // Do not store visibility labels generated from the document UUID because there is one
+      // for each document
+      stats.removeVisibilityLabel(dataset, field, vizUuid);
+    }
+    return isOk;
   }
 }
