@@ -114,17 +114,17 @@ public class FileStoreTest extends MiniAccumuloClusterTest {
 
     try (BatchWriter writer = fileStore.writer()) {
 
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 5; i++) {
         Assert.assertTrue(fileStore.put(writer, "1mb_dataset", "row_" + i, Sets.newHashSet("DS_1"),
             createFile(1024)));
       }
 
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 5; i++) {
         Assert.assertTrue(fileStore.put(writer, "10mb_dataset", "row_" + i,
             Sets.newHashSet("DS_10"), createFile(10 * 1024)));
       }
 
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 5; i++) {
         Assert.assertTrue(fileStore.put(writer, "100mb_dataset", "row_" + i,
             Sets.newHashSet("DS_100"), createFile(100 * 1024)));
       }
