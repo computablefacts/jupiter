@@ -90,17 +90,53 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     for (int i = 0; i < 10; i++) {
 
       // Test metadata
-      Assert.assertNotNull(fieldCardinalityInFirstDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCardinalityInSecondDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCardinalityInThirdDataset(termStore, i, auths));
+      FieldCard fca1 = fieldCardinalityInFirstDataset(termStore, i, auths);
+      FieldCard fca2 = fieldCardinalityInSecondDataset(termStore, i, auths);
+      FieldCard fca3 = fieldCardinalityInThirdDataset(termStore, i, auths);
 
-      Assert.assertNotNull(fieldCountInFirstDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCountInSecondDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCountInThirdDataset(termStore, i, auths));
+      Assert.assertEquals("field_" + i, fca1.field());
+      Assert.assertEquals(Sets.newHashSet("FIRST_DATASET_CARD", "ADM"), fca1.labels());
+      Assert.assertEquals(1, fca1.cardinality());
 
-      Assert.assertNotNull(fieldLabelsInFirstDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldLabelsInSecondDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldLabelsInThirdDataset(termStore, i, auths));
+      Assert.assertEquals("field_" + i, fca2.field());
+      Assert.assertEquals(Sets.newHashSet("SECOND_DATASET_CARD", "ADM"), fca2.labels());
+      Assert.assertEquals(1, fca2.cardinality());
+
+      Assert.assertEquals("field_" + i, fca3.field());
+      Assert.assertEquals(Sets.newHashSet("THIRD_DATASET_CARD", "ADM"), fca3.labels());
+      Assert.assertEquals(1, fca3.cardinality());
+
+      FieldCount fco1 = fieldCountInFirstDataset(termStore, i, auths);
+      FieldCount fco2 = fieldCountInSecondDataset(termStore, i, auths);
+      FieldCount fco3 = fieldCountInThirdDataset(termStore, i, auths);
+
+      Assert.assertEquals("field_" + i, fco1.field());
+      Assert.assertEquals(Sets.newHashSet("FIRST_DATASET_CNT", "ADM"), fco1.labels());
+      Assert.assertEquals(1, fco1.count());
+
+      Assert.assertEquals("field_" + i, fco2.field());
+      Assert.assertEquals(Sets.newHashSet("SECOND_DATASET_CNT", "ADM"), fco2.labels());
+      Assert.assertEquals(1, fco2.count());
+
+      Assert.assertEquals("field_" + i, fco3.field());
+      Assert.assertEquals(Sets.newHashSet("THIRD_DATASET_CNT", "ADM"), fco3.labels());
+      Assert.assertEquals(2, fco3.count());
+
+      FieldLabels fl1 = fieldLabelsInFirstDataset(termStore, i, auths);
+      FieldLabels fl2 = fieldLabelsInSecondDataset(termStore, i, auths);
+      FieldLabels fl3 = fieldLabelsInThirdDataset(termStore, i, auths);
+
+      Assert.assertEquals("field_" + i, fl1.field());
+      Assert.assertEquals(Sets.newHashSet("FIRST_DATASET_VIZ", "ADM"), fl1.accumuloLabels());
+      Assert.assertEquals(Sets.newHashSet("DS_1"), fl1.termLabels());
+
+      Assert.assertEquals("field_" + i, fl2.field());
+      Assert.assertEquals(Sets.newHashSet("SECOND_DATASET_VIZ", "ADM"), fl2.accumuloLabels());
+      Assert.assertEquals(Sets.newHashSet("DS_2"), fl2.termLabels());
+
+      Assert.assertEquals("field_" + i, fl3.field());
+      Assert.assertEquals(Sets.newHashSet("THIRD_DATASET_VIZ", "ADM"), fl3.accumuloLabels());
+      Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), fl3.termLabels());
 
       // Test terms
       Assert.assertEquals(1, countEntitiesInFirstDataset(termStore, i, auths));
