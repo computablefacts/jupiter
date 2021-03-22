@@ -29,5 +29,6 @@ final public class Constants {
   public static final SpanSequence SPAN_SEQUENCE_EMPTY = Codecs.SPAN_SEQUENCE_EMPTY;
   public static final String STRING_ADM = "ADM";
   public static final String STRING_RAW_DATA = "RAW_DATA";
+  public static final String STRING_RAW_FILE = "RAW_FILE";
   public static final Authorizations AUTH_ADM = new Authorizations(STRING_ADM);
 }
