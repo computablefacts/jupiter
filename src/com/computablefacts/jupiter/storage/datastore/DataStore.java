@@ -627,7 +627,20 @@ final public class DataStore {
               LogFormatterManager.logFormatter().message("write failed").add("dataset", dataset)
                   .add("uuid", uuid).add("field", field).add("value", value).formatError());
 
+          if (stats != null) {
+
+            // Do not store visibility labels generated from the document UUID because there is one
+            // for each document
+            stats.removeVisibilityLabel(dataset, field, vizUuid);
+          }
           return false;
+        }
+
+        if (stats != null) {
+
+          // Do not store visibility labels generated from the document UUID because there is one
+          // for each document
+          stats.removeVisibilityLabel(dataset, field, vizUuid);
         }
       }
     }

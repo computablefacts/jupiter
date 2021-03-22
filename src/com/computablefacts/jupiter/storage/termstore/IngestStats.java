@@ -85,6 +85,17 @@ final public class IngestStats implements AutoCloseable {
     viz_.get(dataset, field).addAll(labels);
   }
 
+  public void removeVisibilityLabel(String dataset, String field, String label) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(label, "label should not be null");
+
+    if (viz_.contains(dataset, field)) {
+      viz_.get(dataset, field).remove(label);
+    }
+  }
+
   public void flush() {
 
     if (storage_ == null || writer_ == null) {

@@ -336,15 +336,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertEquals("Actors[0]¤children[0]", fl1.field());
     Assert.assertEquals(Sets.newHashSet("FIRST_DATASET_VIZ", "ADM"), fl1.accumuloLabels());
-    Assert.assertEquals(12, fl1.termLabels().size());
+    Assert.assertEquals(Sets.newHashSet("FIRST_DATASET_ACTORS_0_", "ADM"), fl1.termLabels());
 
     Assert.assertEquals("Actors[0]¤children[0]", fl2.field());
     Assert.assertEquals(Sets.newHashSet("SECOND_DATASET_VIZ", "ADM"), fl2.accumuloLabels());
-    Assert.assertEquals(12, fl2.termLabels().size());
+    Assert.assertEquals(Sets.newHashSet("SECOND_DATASET_ACTORS_0_", "ADM"), fl2.termLabels());
 
     Assert.assertEquals("Actors[0]¤children[0]", fl3.field());
     Assert.assertEquals(Sets.newHashSet("THIRD_DATASET_VIZ", "ADM"), fl3.accumuloLabels());
-    Assert.assertEquals(12, fl3.termLabels().size());
+    Assert.assertEquals(Sets.newHashSet("THIRD_DATASET_ACTORS_0_", "ADM"), fl3.termLabels());
 
     // Test TermStore's terms
     Assert.assertEquals(1, countEntitiesInFirstDataset(dataStore, "suri",
