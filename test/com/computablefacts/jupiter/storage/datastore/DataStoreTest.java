@@ -21,6 +21,7 @@ import org.junit.Test;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
+import com.computablefacts.jupiter.queries.AbstractNode;
 import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
@@ -33,6 +34,7 @@ import com.computablefacts.jupiter.storage.termstore.TermCard;
 import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
 
@@ -996,6 +998,86 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("", vizs.get(0).field());
       Assert.assertEquals(2, vizs.get(0).accumuloLabels().size());
       Assert.assertEquals(2, vizs.get(0).termLabels().size());
+    }
+  }
+
+  @Test
+  public void testSearchByNumericalRangeClosedClosed() throws Exception {
+
+    DataStore dataStore = newDataStore(Constants.AUTH_ADM);
+    AbstractNode query = QueryBuilder.build("tom AND Actors[0]¤age:[50 TO 60]");
+
+    try (Scanners scanners = dataStore.scanners(Constants.AUTH_ADM)) {
+      try (Writers writers = dataStore.writers()) {
+
+        @Var
+        Iterator<String> iterator =
+            query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
+
+        Assert.assertEquals(10,
+            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+        Assert.assertEquals(10, Iterators.size(iterator));
+      }
+    }
+  }
+
+  @Test
+  public void testSearchByNumericalRangeOpenedClosed() throws Exception {
+
+    DataStore dataStore = newDataStore(Constants.AUTH_ADM);
+    AbstractNode query = QueryBuilder.build("tom AND Actors[0]¤age:[* TO 60]");
+
+    try (Scanners scanners = dataStore.scanners(Constants.AUTH_ADM)) {
+      try (Writers writers = dataStore.writers()) {
+
+        @Var
+        Iterator<String> iterator =
+            query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
+
+        Assert.assertEquals(10,
+            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+        Assert.assertEquals(10, Iterators.size(iterator));
+      }
+    }
+  }
+
+  @Test
+  public void testSearchByNumericalRangeClosedOpened() throws Exception {
+
+    DataStore dataStore = newDataStore(Constants.AUTH_ADM);
+    AbstractNode query = QueryBuilder.build("tom AND Actors[0]¤age:[50 TO *]");
+
+    try (Scanners scanners = dataStore.scanners(Constants.AUTH_ADM)) {
+      try (Writers writers = dataStore.writers()) {
+
+        @Var
+        Iterator<String> iterator =
+            query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
+
+        Assert.assertEquals(10,
+            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+        Assert.assertEquals(10, Iterators.size(iterator));
+      }
+    }
+  }
+
+  @Test
+  public void testSearchByNumericalRangeNoResult() throws Exception {
+
+    DataStore dataStore = newDataStore(Constants.AUTH_ADM);
+    AbstractNode query = QueryBuilder.build("tom AND Actors[0]¤age:[40 TO 50]");
+
+    try (Scanners scanners = dataStore.scanners(Constants.AUTH_ADM)) {
+      try (Writers writers = dataStore.writers()) {
+
+        @Var
+        Iterator<String> iterator =
+            query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
+
+        Assert.assertEquals(0,
+            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+        Assert.assertEquals(0, Iterators.size(iterator));
+      }
     }
   }
 

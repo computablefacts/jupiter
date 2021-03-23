@@ -127,7 +127,45 @@ final public class TerminalNode extends AbstractNode {
           .add("value", value_).formatInfo());
     }
 
-    // TODO : backport NOT implementation
+    if (Range.equals(form_)) {
+
+      List<String> range =
+          Splitter.on(QueryBuilder._TO_).trimResults().omitEmptyStrings().splitToList(value_);
+
+      if (range.size() == 2) {
+
+        String min = range.get(0);
+        String max = range.get(1);
+
+        boolean isValid =
+            ("*".equals(min) && com.computablefacts.nona.helpers.Strings.isNumber(max))
+                || ("*".equals(max) && com.computablefacts.nona.helpers.Strings.isNumber(min))
+                || (com.computablefacts.nona.helpers.Strings.isNumber(min)
+                    && com.computablefacts.nona.helpers.Strings.isNumber(max));
+
+        if (isValid) {
+
+          // Set fields
+          Set<String> keepFields = Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
+
+          // Set range
+          String minTerm = "*".equals(min) ? null : min;
+          String maxTerm = "*".equals(max) ? null : max;
+
+          @Var
+          long card = 0;
+          Iterator<Pair<String, List<TermCard>>> iter =
+              dataStore.numericalRangeCard(scanners, dataset, minTerm, maxTerm, keepFields);
+
+          while (iter.hasNext()) {
+            Pair<String, List<TermCard>> pair = iter.next();
+            card += pair.getSecond().stream().mapToLong(TermCard::cardinality).sum();
+          }
+          return card;
+        }
+      }
+      return 0; // Invalid range
+    }
 
     // Tokenize object
     @Var
