@@ -162,7 +162,8 @@ final public class TerminalNode extends AbstractNode {
             WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"));
 
         while (iter.hasNext()) {
-          card += iter.next().getSecond().stream().mapToLong(TermCard::cardinality).sum();
+          Pair<String, List<TermCard>> pair = iter.next();
+          card += pair.getSecond().stream().mapToLong(TermCard::cardinality).sum();
         }
       }
       return card;
@@ -171,7 +172,7 @@ final public class TerminalNode extends AbstractNode {
     if (Literal.equals(form_)) {
 
       @Var
-      long card = Long.MAX_VALUE;
+      long card = 0;
 
       for (String term : terms) {
 
@@ -181,15 +182,11 @@ final public class TerminalNode extends AbstractNode {
         long sum = 0;
 
         while (iter.hasNext()) {
-          sum = Math.max(sum,
-              iter.next().getSecond().stream().mapToLong(TermCard::cardinality).sum());
+          Pair<String, List<TermCard>> pair = iter.next();
+          sum += pair.getSecond().stream().mapToLong(TermCard::cardinality).sum();
         }
 
-        card = Math.min(card, sum);
-
-        if (card == 0) {
-          return 0;
-        }
+        card = Math.max(card, sum);
       }
       return card;
     }
