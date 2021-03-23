@@ -921,6 +921,166 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     }
   }
 
+  @Test
+  public void testNumericalRangeCountClosedBeginClosedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    TermStore termStore = newDataStore(auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<TermCount> list = new ArrayList<>();
+      Iterator<TermCount> iterator =
+          termStore.numericalRangeCount((ScannerBase) scanner, "fourth_dataset", "3", "8", null);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+
+      Assert.assertEquals(5, list.size());
+      Assert.assertEquals("3", list.get(0).term());
+      Assert.assertEquals("4", list.get(1).term());
+      Assert.assertEquals("5", list.get(2).term());
+      Assert.assertEquals("6", list.get(3).term());
+      Assert.assertEquals("7", list.get(4).term());
+    }
+  }
+
+  @Test
+  public void testNumericalRangeCountClosedBeginOpenedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    TermStore termStore = newDataStore(auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<TermCount> list = new ArrayList<>();
+      Iterator<TermCount> iterator =
+          termStore.numericalRangeCount((ScannerBase) scanner, "fourth_dataset", "3", null, null);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+
+      Assert.assertEquals(7, list.size());
+      Assert.assertEquals("3", list.get(0).term());
+      Assert.assertEquals("4", list.get(1).term());
+      Assert.assertEquals("5", list.get(2).term());
+      Assert.assertEquals("6", list.get(3).term());
+      Assert.assertEquals("7", list.get(4).term());
+      Assert.assertEquals("8", list.get(5).term());
+      Assert.assertEquals("9", list.get(6).term());
+    }
+  }
+
+  @Test
+  public void testNumericalRangeCountOpenedBeginClosedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    TermStore termStore = newDataStore(auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<TermCount> list = new ArrayList<>();
+      Iterator<TermCount> iterator =
+          termStore.numericalRangeCount((ScannerBase) scanner, "fourth_dataset", null, "8", null);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+
+      Assert.assertEquals(8, list.size());
+      Assert.assertEquals("0", list.get(0).term());
+      Assert.assertEquals("1", list.get(1).term());
+      Assert.assertEquals("2", list.get(2).term());
+      Assert.assertEquals("3", list.get(3).term());
+      Assert.assertEquals("4", list.get(4).term());
+      Assert.assertEquals("5", list.get(5).term());
+      Assert.assertEquals("6", list.get(6).term());
+      Assert.assertEquals("7", list.get(7).term());
+    }
+  }
+
+  @Test
+  public void testNumericalRangeCardClosedBeginClosedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    TermStore termStore = newDataStore(auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<TermCard> list = new ArrayList<>();
+      Iterator<TermCard> iterator =
+          termStore.numericalRangeCard((ScannerBase) scanner, "fourth_dataset", "3", "8", null);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+
+      Assert.assertEquals(5, list.size());
+      Assert.assertEquals("3", list.get(0).term());
+      Assert.assertEquals("4", list.get(1).term());
+      Assert.assertEquals("5", list.get(2).term());
+      Assert.assertEquals("6", list.get(3).term());
+      Assert.assertEquals("7", list.get(4).term());
+    }
+  }
+
+  @Test
+  public void testNumericalRangeCardClosedBeginOpenedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    TermStore termStore = newDataStore(auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<TermCard> list = new ArrayList<>();
+      Iterator<TermCard> iterator =
+          termStore.numericalRangeCard((ScannerBase) scanner, "fourth_dataset", "3", null, null);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+
+      Assert.assertEquals(7, list.size());
+      Assert.assertEquals("3", list.get(0).term());
+      Assert.assertEquals("4", list.get(1).term());
+      Assert.assertEquals("5", list.get(2).term());
+      Assert.assertEquals("6", list.get(3).term());
+      Assert.assertEquals("7", list.get(4).term());
+      Assert.assertEquals("8", list.get(5).term());
+      Assert.assertEquals("9", list.get(6).term());
+    }
+  }
+
+  @Test
+  public void testNumericalRangeCardOpenedBeginClosedEnd() throws Exception {
+
+    Authorizations auths = new Authorizations("DS_1", "DS_2");
+    TermStore termStore = newDataStore(auths);
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<TermCard> list = new ArrayList<>();
+      Iterator<TermCard> iterator =
+          termStore.numericalRangeCard((ScannerBase) scanner, "fourth_dataset", null, "8", null);
+
+      while (iterator.hasNext()) {
+        list.add(iterator.next());
+      }
+
+      Assert.assertEquals(8, list.size());
+      Assert.assertEquals("0", list.get(0).term());
+      Assert.assertEquals("1", list.get(1).term());
+      Assert.assertEquals("2", list.get(2).term());
+      Assert.assertEquals("3", list.get(3).term());
+      Assert.assertEquals("4", list.get(4).term());
+      Assert.assertEquals("5", list.get(5).term());
+      Assert.assertEquals("6", list.get(6).term());
+      Assert.assertEquals("7", list.get(7).term());
+    }
+  }
+
   private FieldLabels fieldLabelsInFirstDataset(TermStore termStore, int field,
       Authorizations authorizations) {
     return fieldLabels(termStore, "first_dataset", "field_" + field, authorizations);

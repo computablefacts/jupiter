@@ -700,6 +700,29 @@ final public class DataStore {
   }
 
   /**
+   * Get count by term.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset (optional).
+   * @param minTerm number (optional). Beginning of the range (included).
+   * @param maxTerm number (optional). End of the range (included).
+   * @param keepFields fields patterns to keep (optional).
+   * @return iterator.
+   */
+  public Iterator<Pair<String, List<TermCount>>> numericalRangeCount(Scanners scanners,
+      String dataset, String minTerm, String maxTerm, Set<String> keepFields) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+    Preconditions.checkArgument(scanners.index() instanceof Scanner,
+        "index scanner must guarantee the result order");
+
+    return termStore_.numericalRangeCount((Scanner) scanners.index(), dataset, minTerm, maxTerm,
+        keepFields);
+  }
+
+  /**
    * Get cardinality by term.
    *
    * @param scanners scanners.
