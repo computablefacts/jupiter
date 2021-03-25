@@ -35,7 +35,6 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.combiners.TermStoreCombiner;
 import com.computablefacts.jupiter.filters.TermStoreDocFieldFilter;
-import com.computablefacts.jupiter.filters.TermStoreFieldFilter;
 import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
@@ -202,8 +201,8 @@ final public class TermStore extends AbstractStorage {
 
     if (keepFields != null && !keepFields.isEmpty()) {
       IteratorSetting setting =
-          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreFieldFilter.class);
-      TermStoreFieldFilter.setFieldsToKeep(setting, keepFields);
+          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreDocFieldFilter.class);
+      TermStoreDocFieldFilter.setFieldsToKeep(setting, keepFields);
       scanner.addScanIterator(setting);
     }
 
@@ -251,8 +250,8 @@ final public class TermStore extends AbstractStorage {
 
     if (keepFields != null && !keepFields.isEmpty()) {
       IteratorSetting setting =
-          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreFieldFilter.class);
-      TermStoreFieldFilter.setFieldsToKeep(setting, keepFields);
+          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreDocFieldFilter.class);
+      TermStoreDocFieldFilter.setFieldsToKeep(setting, keepFields);
       scanner.addScanIterator(setting);
     }
 

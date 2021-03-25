@@ -101,15 +101,24 @@ public class TermStoreDocFieldFilter extends Filter {
 
     String cq = key.getColumnQualifier().toString();
     int index = cq.indexOf(SEPARATOR_NUL);
-    String doc = cq.substring(0, index);
-    String field = cq.substring(index + 1);
 
-    if (keepDocs_ != null) {
+    String doc;
+    String field;
+
+    if (index < 0) {
+      doc = null;
+      field = cq;
+    } else {
+      doc = cq.substring(0, index);
+      field = cq.substring(index + 1);
+    }
+
+    if (keepDocs_ != null && doc != null) {
       if (!acceptDoc(doc)) {
         return false;
       }
     }
-    if (keepFields_ != null) {
+    if (keepFields_ != null && field != null) {
       if (!acceptField(field)) {
         return false;
       }
