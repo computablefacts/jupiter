@@ -17,6 +17,7 @@ final public class Blob<T> {
   static final int TYPE_UNKNOWN = 0;
   static final int TYPE_STRING = 1;
   static final int TYPE_FILE = 2;
+  static final int TYPE_JSON = 3;
 
   private final String key_;
   private final Set<String> labels_;
@@ -97,6 +98,11 @@ final public class Blob<T> {
   @Generated
   public boolean isString() {
     return type_ == TYPE_STRING;
+  }
+
+  @Generated
+  public boolean isJson() {
+    return type_ == TYPE_JSON;
   }
 
   @Generated

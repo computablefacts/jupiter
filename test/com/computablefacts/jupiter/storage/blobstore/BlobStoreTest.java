@@ -283,7 +283,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       for (int i = 0; i < 5; i++) {
         File file = createFile(i * 1024);
         Assert.assertTrue(
-            blobStore.put(writer, "dataset", Integer.toString(i, 10), Sets.newHashSet(), file));
+            blobStore.putFile(writer, "dataset", Integer.toString(i, 10), Sets.newHashSet(), file));
       }
     }
 
@@ -365,16 +365,18 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
       for (int i = 0; i < 10; i++) {
         Assert.assertTrue(
-            blobStore.put(writer, "first_dataset", "row_" + i, Sets.newHashSet("DS_1"), json(i)));
+            blobStore.putString(writer, "first_dataset", "row_" + i, Sets.newHashSet("DS_1"),
+                json(i)));
       }
 
       for (int i = 0; i < 10; i++) {
         Assert.assertTrue(
-            blobStore.put(writer, "second_dataset", "row_" + i, Sets.newHashSet("DS_2"), json(i)));
+            blobStore.putString(writer, "second_dataset", "row_" + i, Sets.newHashSet("DS_2"),
+                json(i)));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(blobStore.put(writer, "third_dataset", "row_" + i,
+        Assert.assertTrue(blobStore.putString(writer, "third_dataset", "row_" + i,
             Sets.newHashSet("DS_1", "DS_2"), json(i)));
       }
     }

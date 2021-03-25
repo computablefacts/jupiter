@@ -139,7 +139,7 @@ final public class BlobStore extends AbstractStorage {
    * @param file file to load and persist.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean put(BatchWriter writer, String dataset, String key, Set<String> labels,
+  public boolean putFile(BatchWriter writer, String dataset, String key, Set<String> labels,
       java.io.File file) {
 
     Preconditions.checkNotNull(writer, "writer should not be null");
@@ -171,7 +171,7 @@ final public class BlobStore extends AbstractStorage {
    * @param value string.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean put(BatchWriter writer, String dataset, String key, Set<String> labels,
+  public boolean putString(BatchWriter writer, String dataset, String key, Set<String> labels,
       String value) {
 
     Preconditions.checkNotNull(writer, "writer should not be null");
@@ -180,6 +180,28 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(value, "value should not be null");
 
     return put(writer, dataset, key, labels, Blob.TYPE_STRING, null,
+        value.getBytes(StandardCharsets.UTF_8));
+  }
+
+  /**
+   * Persist a JSON string.
+   *
+   * @param writer batch writer.
+   * @param dataset dataset/namespace.
+   * @param key key.
+   * @param labels visibility labels.
+   * @param value JSON string.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean putJson(BatchWriter writer, String dataset, String key, Set<String> labels,
+      String value) {
+
+    Preconditions.checkNotNull(writer, "writer should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(key, "key should not be null");
+    Preconditions.checkNotNull(value, "value should not be null");
+
+    return put(writer, dataset, key, labels, Blob.TYPE_JSON, null,
         value.getBytes(StandardCharsets.UTF_8));
   }
 

@@ -1149,16 +1149,16 @@ final public class DataStore {
   }
 
   /**
-   * Persist a single blob.
+   * Persist a single JSON object.
    *
    * @param writers writers.
    * @param stats ingest stats (optional)
    * @param dataset dataset.
    * @param uuid unique identifier.
-   * @param blob blob encoded in Base64.
+   * @param blob JSON string.
    * @return true if the operation succeeded, false otherwise.
    */
-  boolean persistBlob(Writers writers, IngestStats stats, String dataset, String uuid,
+  private boolean persistBlob(Writers writers, IngestStats stats, String dataset, String uuid,
       String blob) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
@@ -1176,8 +1176,8 @@ final public class DataStore {
     String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
     String vizRawData = vizDataset + Constants.STRING_RAW_DATA;
 
-    if (!blobStore_.put(writers.blob(), dataset, uuid, Sets.newHashSet(vizAdm, vizUuid, vizRawData),
-        blob)) {
+    if (!blobStore_.putJson(writers.blob(), dataset, uuid,
+        Sets.newHashSet(vizAdm, vizUuid, vizRawData), blob)) {
 
       logger_.error(LogFormatterManager.logFormatter().message("write failed")
           .add("dataset", dataset).add("uuid", uuid).add("blob", blob).formatError());
@@ -1208,7 +1208,8 @@ final public class DataStore {
    *        written in the forward index only.
    * @return true if the operation succeeded, false otherwise.
    */
-  boolean persistTerm(Writers writers, IngestStats stats, String dataset, String uuid, String field,
+  private boolean persistTerm(Writers writers, IngestStats stats, String dataset, String uuid,
+      String field,
       String term, List<Pair<Integer, Integer>> spans, boolean writeInForwardIndexOnly) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
