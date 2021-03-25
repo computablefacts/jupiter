@@ -3,9 +3,12 @@ package com.computablefacts.jupiter.shell;
 import static com.computablefacts.jupiter.Users.authorizations;
 import static com.computablefacts.nona.helpers.Codecs.defaultTokenizer;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -312,48 +315,35 @@ public class Shell {
     DataStore ds = new DataStore(configurations, datastore);
 
     try (Scanners scanners = ds.batchScanners(authorizations(auths))) {
+      try (FileOutputStream fos = new FileOutputStream(f)) {
+        try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos))) {
 
-      AtomicInteger count = new AtomicInteger(0);
-      List<String> jsons = new ArrayList<>();
-      Iterator<Blob<Value>> iterator = ds.blobScan(scanners, dataset);
+          AtomicInteger count = new AtomicInteger(0);
+          Iterator<Blob<Value>> iterator = ds.blobScan(scanners, dataset);
 
-      while (iterator.hasNext()) {
+          while (iterator.hasNext()) {
 
-        int cnt = count.incrementAndGet();
-        Blob<Value> blob = iterator.next();
-        jsons.add(blob.value().toString());
+            int cnt = count.incrementAndGet();
+            Blob<Value> blob = iterator.next();
 
-        if (jsons.size() >= 1000) {
+            bw.write(blob.value().toString());
+            bw.newLine();
 
-          if (cnt == jsons.size()) {
-            com.computablefacts.nona.helpers.Files.create(f, jsons);
-          } else {
-            com.computablefacts.nona.helpers.Files.append(f, jsons);
+            if (cnt >= 1000 && logger_.isInfoEnabled()) {
+              logger_.info(LogFormatterManager.logFormatter()
+                  .message("Number of JSON written : " + cnt).formatInfo());
+            }
           }
-
-          jsons.clear();
 
           if (logger_.isInfoEnabled()) {
             logger_.info(LogFormatterManager.logFormatter()
-                .message("Number of JSON written : " + cnt).formatInfo());
+                .message("Number of JSON written : " + count.get()).formatInfo());
           }
+        } catch (IOException e) {
+          logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
         }
-      }
-
-      if (!jsons.isEmpty()) {
-
-        if (count.get() == jsons.size()) {
-          com.computablefacts.nona.helpers.Files.create(f, jsons);
-        } else {
-          com.computablefacts.nona.helpers.Files.append(f, jsons);
-        }
-
-        jsons.clear();
-
-        if (logger_.isInfoEnabled()) {
-          logger_.info(LogFormatterManager.logFormatter()
-              .message("Number of JSON written : " + count.get()).formatInfo());
-        }
+      } catch (IOException e) {
+        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
       }
     }
     return true;
