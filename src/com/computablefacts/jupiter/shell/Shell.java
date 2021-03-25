@@ -319,7 +319,7 @@ public class Shell {
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos))) {
 
           AtomicInteger count = new AtomicInteger(0);
-          Iterator<Blob<Value>> iterator = ds.blobScan(scanners, dataset);
+          Iterator<Blob<Value>> iterator = ds.blobStore().get(scanners.blob(), dataset);
 
           while (iterator.hasNext()) {
 

@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.iterators.BlobStoreAnonymizingIterator;
+import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterator;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
@@ -217,7 +218,7 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(scanner, dataset, Sets.newHashSet());
+    return get(scanner, dataset, null, Sets.newHashSet());
   }
 
   /**
@@ -234,7 +235,7 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(key, "key should not be null");
 
-    return get(scanner, dataset, Sets.newHashSet(key));
+    return get(scanner, dataset, null, Sets.newHashSet(key));
   }
 
   /**
@@ -242,10 +243,12 @@ final public class BlobStore extends AbstractStorage {
    *
    * @param scanner scanner.
    * @param dataset dataset/namespace.
+   * @param keepFields fields to keep if Accumulo Values are JSON objects (optional).
    * @param keys keys.
    * @return an iterator of (key, value) pairs.
    */
-  public Iterator<Blob<Value>> get(ScannerBase scanner, String dataset, Set<String> keys) {
+  public Iterator<Blob<Value>> get(ScannerBase scanner, String dataset, Set<String> keepFields,
+      Set<String> keys) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -253,7 +256,8 @@ final public class BlobStore extends AbstractStorage {
 
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("keys.size", keys.size()).formatInfo());
+          .add("dataset", dataset).add("has_keep_fields", keepFields != null)
+          .add("keys.size", keys.size()).formatInfo());
     }
 
     scanner.clearColumns();
@@ -264,6 +268,16 @@ final public class BlobStore extends AbstractStorage {
     BlobStoreAnonymizingIterator.setAuthorizations(setting, scanner.getAuthorizations());
 
     scanner.addScanIterator(setting);
+
+    if (keepFields != null) {
+
+      IteratorSetting setting2 =
+          new IteratorSetting(22, BlobStoreFilterOutJsonFieldsIterator.class);
+      BlobStoreFilterOutJsonFieldsIterator.setAuthorizations(setting2, scanner.getAuthorizations());
+      BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting2, keepFields);
+
+      scanner.addScanIterator(setting2);
+    }
 
     List<Range> ranges;
 
