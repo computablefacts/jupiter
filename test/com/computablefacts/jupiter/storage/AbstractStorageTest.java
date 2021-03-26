@@ -21,6 +21,7 @@ import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class AbstractStorageTest extends MiniAccumuloClusterTest {
@@ -56,6 +57,18 @@ public class AbstractStorageTest extends MiniAccumuloClusterTest {
         AbstractStorage.toVisibilityLabel("2001:0db8:0001:0000:0000:0ab9:C0A8:0102"));
     Assert.assertEquals("000_0000_00_00T00_00_00_000Z",
         AbstractStorage.toVisibilityLabel("000|0000-00-00T00:00:00.000Z"));
+  }
+
+  @Test
+  public void testToVisibilityLabels() {
+    Assert.assertEquals(Sets.newHashSet("DATA"),
+        AbstractStorage.toVisibilityLabels(Lists.newArrayList("data")));
+    Assert.assertEquals(Sets.newHashSet("DATA", "DATA_USER"),
+        AbstractStorage.toVisibilityLabels(Lists.newArrayList("data", "user")));
+    Assert.assertEquals(Sets.newHashSet("DATA", "DATA_USER", "DATA_USER_USERNAME"),
+        AbstractStorage.toVisibilityLabels(Lists.newArrayList("data", "user", "username")));
+    Assert.assertEquals(Sets.newHashSet("DATA", "DATA_USER", "DATA_USER_USERNAME"),
+        AbstractStorage.toVisibilityLabels(Lists.newArrayList("data", "user", "username", "raw")));
   }
 
   @Test

@@ -4,6 +4,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,6 +23,7 @@ import com.github.wnameless.json.flattener.JsonFlattener;
 import com.github.wnameless.json.unflattener.JsonUnflattener;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
@@ -81,38 +83,45 @@ public class BlobStoreFilterOutJsonFieldsIterator extends AnonymizingIterator {
   protected void setTopKeyValue(Key key, Value value) {
 
     setTopKey(key);
-    setTopValue(Constants.VALUE_ANONYMIZED);
 
-    if (!Constants.VALUE_ANONYMIZED.equals(value) && keepFields_ != null && !keepFields_.isEmpty()
-        && key.getColumnQualifier() != null
-        && key.getColumnQualifier().toString().startsWith(TYPE_JSON)) {
+    if (key.getColumnQualifier() == null
+        || !key.getColumnQualifier().toString().startsWith(TYPE_JSON)
+        || Constants.VALUE_ANONYMIZED.equals(value)) {
+      setTopValue(value);
+    } else {
 
-      String vizDataset = AbstractStorage.toVisibilityLabel(key.getColumnFamily().toString() + "_");
-      Map<String, Object> json = new JsonFlattener(value.toString())
-          .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
+      setTopValue(Constants.VALUE_ANONYMIZED);
 
-      // First, remove all fields that have not been explicitly asked for
-      json.keySet().removeIf(field -> !acceptField(field));
+      if (keepFields_ != null && !keepFields_.isEmpty()) {
 
-      // Then, ensure the user has the right to visualize the remaining fields
-      Set<String> auths = parsedAuths();
+        String vizDataset =
+            AbstractStorage.toVisibilityLabel(key.getColumnFamily().toString() + "_");
+        Map<String, Object> json = new JsonFlattener(value.toString())
+            .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
 
-      json.keySet().removeIf(field -> {
+        // First, remove all fields that have not been explicitly asked for
+        json.keySet().removeIf(field -> !acceptField(field));
 
-        int index = field.indexOf(Constants.SEPARATOR_CURRENCY_SIGN);
-        String vizField = AbstractStorage
-            .toVisibilityLabel(vizDataset + (index <= 0 ? field : field.substring(0, index)));
+        // Then, ensure the user has the right to visualize the remaining fields
+        Set<String> auths = parsedAuths();
 
-        return !auths.contains(vizField);
-      });
+        json.keySet().removeIf(field -> {
 
-      // Next, rebuild a new JSON object
-      String newJson =
-          new JsonUnflattener(json).withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
+          List<String> path = Lists.newArrayList(Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN)
+              .trimResults().omitEmptyStrings().split(field));
 
-      // Set the new JSON object as the new Accumulo Value
-      if (!"{}".equals(newJson)) {
-        setTopValue(new Value(newJson.getBytes(StandardCharsets.UTF_8)));
+          return AbstractStorage.toVisibilityLabels(path).stream().map(label -> vizDataset + label)
+              .noneMatch(auths::contains);
+        });
+
+        // Next, rebuild a new JSON object
+        String newJson =
+            new JsonUnflattener(json).withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
+
+        // Set the new JSON object as the new Accumulo Value
+        if (!"{}".equals(newJson)) {
+          setTopValue(new Value(newJson.getBytes(StandardCharsets.UTF_8)));
+        }
       }
     }
   }

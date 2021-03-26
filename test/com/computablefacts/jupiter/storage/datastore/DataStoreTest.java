@@ -337,15 +337,21 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertEquals("Actors[0]¤children[0]", fl1.field());
     Assert.assertEquals(Sets.newHashSet("FIRST_DATASET_VIZ", "ADM"), fl1.accumuloLabels());
-    Assert.assertEquals(Sets.newHashSet("FIRST_DATASET_ACTORS_0_", "ADM"), fl1.termLabels());
+    Assert.assertEquals(
+        Sets.newHashSet("FIRST_DATASET_ACTORS_0__CHILDREN_0_", "FIRST_DATASET_ACTORS_0_", "ADM"),
+        fl1.termLabels());
 
     Assert.assertEquals("Actors[0]¤children[0]", fl2.field());
     Assert.assertEquals(Sets.newHashSet("SECOND_DATASET_VIZ", "ADM"), fl2.accumuloLabels());
-    Assert.assertEquals(Sets.newHashSet("SECOND_DATASET_ACTORS_0_", "ADM"), fl2.termLabels());
+    Assert.assertEquals(
+        Sets.newHashSet("SECOND_DATASET_ACTORS_0__CHILDREN_0_", "SECOND_DATASET_ACTORS_0_", "ADM"),
+        fl2.termLabels());
 
     Assert.assertEquals("Actors[0]¤children[0]", fl3.field());
     Assert.assertEquals(Sets.newHashSet("THIRD_DATASET_VIZ", "ADM"), fl3.accumuloLabels());
-    Assert.assertEquals(Sets.newHashSet("THIRD_DATASET_ACTORS_0_", "ADM"), fl3.termLabels());
+    Assert.assertEquals(
+        Sets.newHashSet("THIRD_DATASET_ACTORS_0__CHILDREN_0_", "THIRD_DATASET_ACTORS_0_", "ADM"),
+        fl3.termLabels());
 
     // Test TermStore's terms
     Assert.assertEquals(1, countEntitiesInFirstDataset(dataStore, "suri",
@@ -662,8 +668,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("Actors[0]¤children[2]", tc.field());
       Assert.assertEquals("connor", tc.term());
       Assert.assertEquals(10, tc.count());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
-          tc.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
+          "FIRST_DATASET_ACTORS_0__CHILDREN_2_"), tc.labels());
 
       // Single dataset, hits backward index
       list.clear();
@@ -678,8 +684,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("Actors[0]¤children[2]", tc.field());
       Assert.assertEquals("connor", tc.term());
       Assert.assertEquals(10, tc.count());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
-          tc.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
+          "FIRST_DATASET_ACTORS_0__CHILDREN_2_"), tc.labels());
 
       // Cross datasets
       list.clear();
@@ -697,14 +703,14 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Assert.assertEquals(10, tc.count());
 
         if (i == 0) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
-              tc.labels());
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
+              "FIRST_DATASET_ACTORS_0__CHILDREN_2_"), tc.labels());
         } else if (i == 1) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_"),
-              tc.labels());
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_",
+              "SECOND_DATASET_ACTORS_0__CHILDREN_2_"), tc.labels());
         } else {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_"),
-              tc.labels());
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_",
+              "THIRD_DATASET_ACTORS_0__CHILDREN_2_"), tc.labels());
         }
       }
     }
@@ -733,8 +739,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("Actors[0]¤children[2]", tc.field());
       Assert.assertEquals("connor", tc.term());
       Assert.assertEquals(10, tc.cardinality());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
-          tc.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
+          "FIRST_DATASET_ACTORS_0__CHILDREN_2_"), tc.labels());
 
       // Single dataset, hits backward index
       list.clear();
@@ -749,8 +755,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("Actors[0]¤children[2]", tc.field());
       Assert.assertEquals("connor", tc.term());
       Assert.assertEquals(10, tc.cardinality());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
-          tc.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
+          "FIRST_DATASET_ACTORS_0__CHILDREN_2_"), tc.labels());
 
       // Cross datasets
       list.clear();
@@ -768,14 +774,14 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Assert.assertEquals(10, tc.cardinality());
 
         if (i == 0) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_"),
-              tc.labels());
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
+              "FIRST_DATASET_ACTORS_0__CHILDREN_2_"), tc.labels());
         } else if (i == 1) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_"),
-              tc.labels());
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_",
+              "SECOND_DATASET_ACTORS_0__CHILDREN_2_"), tc.labels());
         } else {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_"),
-              tc.labels());
+          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_",
+              "THIRD_DATASET_ACTORS_0__CHILDREN_2_"), tc.labels());
         }
       }
     }
@@ -807,7 +813,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Assert.assertEquals("connor", term.term());
         Assert.assertEquals(1, term.count());
         Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
-            "FIRST_DATASET_ROW_" + i), term.labels());
+            "FIRST_DATASET_ACTORS_0__CHILDREN_2_", "FIRST_DATASET_ROW_" + i), term.labels());
       }
 
       // Single dataset, hits backward index
@@ -827,7 +833,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Assert.assertEquals("connor", term.term());
         Assert.assertEquals(1, term.count());
         Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
-            "FIRST_DATASET_ROW_" + i), term.labels());
+            "FIRST_DATASET_ACTORS_0__CHILDREN_2_", "FIRST_DATASET_ROW_" + i), term.labels());
       }
 
       // Cross datasets
@@ -847,14 +853,20 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Assert.assertEquals(1, term.count());
 
         if (i < 10) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
-              "FIRST_DATASET_ROW_" + (i % 10)), term.labels());
+          Assert.assertEquals(
+              Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS_0_",
+                  "FIRST_DATASET_ACTORS_0__CHILDREN_2_", "FIRST_DATASET_ROW_" + (i % 10)),
+              term.labels());
         } else if (i < 20) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_",
-              "SECOND_DATASET_ROW_" + (i % 10)), term.labels());
+          Assert.assertEquals(
+              Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS_0_",
+                  "SECOND_DATASET_ACTORS_0__CHILDREN_2_", "SECOND_DATASET_ROW_" + (i % 10)),
+              term.labels());
         } else {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_",
-              "THIRD_DATASET_ROW_" + (i % 10)), term.labels());
+          Assert.assertEquals(
+              Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS_0_",
+                  "THIRD_DATASET_ACTORS_0__CHILDREN_2_", "THIRD_DATASET_ROW_" + (i % 10)),
+              term.labels());
         }
       }
     }

@@ -65,6 +65,7 @@ import com.github.wnameless.json.flattener.JsonFlattener;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -1228,16 +1229,18 @@ final public class DataStore {
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkNotNull(spans, "spans should not be null");
 
+    List<String> path = Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN).trimResults()
+        .omitEmptyStrings().splitToList(field);
+
     String vizAdm = Constants.STRING_ADM; // for backward compatibility
     String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
     String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
 
-    int index = field.indexOf(Constants.SEPARATOR_CURRENCY_SIGN);
-    String vizField = AbstractStorage
-        .toVisibilityLabel(vizDataset + (index <= 0 ? field : field.substring(0, index)));
-
     Set<String> vizDocSpecific = Sets.newHashSet(vizUuid);
-    Set<String> vizFieldSpecific = Sets.newHashSet(vizAdm, vizField);
+    Set<String> vizFieldSpecific = Sets.newHashSet(vizAdm);
+
+    AbstractStorage.toVisibilityLabels(path)
+        .forEach(label -> vizFieldSpecific.add(vizDataset + label));
 
     boolean isOk = termStore_.add(writers.index(), stats, dataset, uuid, field, term, spans,
         vizDocSpecific, vizFieldSpecific, writeInForwardIndexOnly);

@@ -2,6 +2,8 @@ package com.computablefacts.jupiter.storage;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -26,6 +28,7 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.nona.Generated;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
@@ -75,6 +78,24 @@ public abstract class AbstractStorage {
     Preconditions.checkNotNull(string, "string should not be null");
 
     return string.replaceAll("\\s+|[^a-zA-Z0-9_]", "_").trim().toUpperCase();
+  }
+
+  /**
+   * Normalize the first 3 levels of a path to match Accumulo visibility labels.
+   *
+   * @param path path.
+   * @return visibility labels.
+   */
+  public static Set<String> toVisibilityLabels(List<String> path) {
+
+    Preconditions.checkNotNull(path, "path should not be null");
+
+    Set<String> set = new HashSet<>();
+
+    for (int i = 0; i < 3 && i < path.size(); i++) {
+      set.add(toVisibilityLabel(Joiner.on("_").join(path.subList(0, i + 1))));
+    }
+    return set;
   }
 
   /**
