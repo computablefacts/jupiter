@@ -43,7 +43,7 @@
         <guava.version>28.0-jre</guava.version>
         <accumulo.version>1.9.2</accumulo.version>
         <hadoop.version>2.7.3</hadoop.version>
-        <zookeeper.version>3.4.9</zookeeper.version>
+        <zookeeper.version>3.4.14</zookeeper.version>
         <jsonflattener.version>0.12.0</jsonflattener.version>
         <error-prone.version>2.3.1</error-prone.version>
         <junit.version>4.13.1</junit.version>
