@@ -12,7 +12,6 @@ import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.queries.AbstractNode;
 import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.Constants;
-import com.computablefacts.jupiter.storage.termstore.IngestStats;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
@@ -119,17 +118,15 @@ public class DataStoreDefaultTokenizerTest extends MiniAccumuloClusterTest {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     try (Writers writers = dataStore.writers()) {
-      try (IngestStats stats = dataStore.newIngestStats()) {
 
-        for (int i = 0; i < 10; i++) {
-          Assert.assertTrue(dataStore.persist(writers, stats, "first_dataset", "row_" + i, json1(i),
-              null, Codecs.defaultTokenizer));
-        }
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(dataStore.persist(writers, "first_dataset", "row_" + i, json1(i), null,
+            Codecs.defaultTokenizer));
+      }
 
-        for (int i = 0; i < 10; i++) {
-          Assert.assertTrue(dataStore.persist(writers, stats, "second_dataset", "row_" + i,
-              json2(i), null, Codecs.defaultTokenizer));
-        }
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(dataStore.persist(writers, "second_dataset", "row_" + i, json2(i), null,
+            Codecs.defaultTokenizer));
       }
     }
   }

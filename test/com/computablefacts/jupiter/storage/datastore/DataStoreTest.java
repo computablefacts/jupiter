@@ -25,9 +25,7 @@ import com.computablefacts.jupiter.queries.AbstractNode;
 import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
-import com.computablefacts.jupiter.storage.termstore.IngestStats;
 import com.computablefacts.jupiter.storage.termstore.Term;
-import com.computablefacts.jupiter.storage.termstore.TermCard;
 import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.base.Preconditions;
@@ -269,8 +267,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         "SECOND_DATASET_ROW_9", "THIRD_DATASET_ROW_0", "THIRD_DATASET_ROW_1", "THIRD_DATASET_ROW_2",
         "THIRD_DATASET_ROW_3", "THIRD_DATASET_ROW_4", "THIRD_DATASET_ROW_5", "THIRD_DATASET_ROW_6",
         "THIRD_DATASET_ROW_7", "THIRD_DATASET_ROW_8", "THIRD_DATASET_ROW_9", "FIRST_DATASET_CNT",
-        "FIRST_DATASET_CARD", "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT", "SECOND_DATASET_CARD",
-        "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_CARD", "THIRD_DATASET_VIZ");
+        "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT", "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT",
+        "THIRD_DATASET_VIZ");
     DataStore dataStore = newDataStore(auths);
 
     // BlobStore
@@ -411,11 +409,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       try (Writers writers = dataStore.writers()) {
 
         // Create a new dataset
-        try (IngestStats stats = dataStore.newIngestStats()) {
-          for (int i = 0; i < 10; i++) {
-            Assert.assertTrue(dataStore.persist(writers, stats, "fourth_dataset", "row_" + i,
-                json2(i), null, Codecs.defaultTokenizer));
-          }
+        for (int i = 0; i < 10; i++) {
+          Assert.assertTrue(dataStore.persist(writers, "fourth_dataset", "row_" + i, json2(i), null,
+              Codecs.defaultTokenizer));
         }
 
         Assert.assertTrue(writers.flush());
@@ -605,77 +601,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Assert.assertEquals("Actors[*]¤children[*]", tc.field());
         Assert.assertEquals("connor", tc.term());
         Assert.assertEquals(10, tc.count());
-
-        if (i == 0) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS",
-              "FIRST_DATASET_ACTORS_CHILDREN"), tc.labels());
-        } else if (i == 1) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS",
-              "SECOND_DATASET_ACTORS_CHILDREN"), tc.labels());
-        } else {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS",
-              "THIRD_DATASET_ACTORS_CHILDREN"), tc.labels());
-        }
-      }
-    }
-  }
-
-  @Test
-  public void testTermCard() throws Exception {
-
-    Authorizations auths =
-        new Authorizations("FIRST_DATASET_ACTORS", "SECOND_DATASET_ACTORS", "THIRD_DATASET_ACTORS");
-    DataStore dataStore = newDataStore(auths);
-
-    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
-
-      // Single dataset, hits forward index
-      List<Pair<String, List<TermCard>>> list = new ArrayList<>();
-      dataStore.termCard(scanners, "first_dataset", normalize("Conno?"))
-          .forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals(1, list.get(0).getSecond().size());
-
-      @Var
-      TermCard tc = list.get(0).getSecond().get(0);
-
-      Assert.assertEquals("Actors[*]¤children[*]", tc.field());
-      Assert.assertEquals("connor", tc.term());
-      Assert.assertEquals(10, tc.cardinality());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS",
-          "FIRST_DATASET_ACTORS_CHILDREN"), tc.labels());
-
-      // Single dataset, hits backward index
-      list.clear();
-      dataStore.termCard(scanners, "first_dataset", normalize("?onnor"))
-          .forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals(1, list.get(0).getSecond().size());
-
-      tc = list.get(0).getSecond().get(0);
-
-      Assert.assertEquals("Actors[*]¤children[*]", tc.field());
-      Assert.assertEquals("connor", tc.term());
-      Assert.assertEquals(10, tc.cardinality());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS",
-          "FIRST_DATASET_ACTORS_CHILDREN"), tc.labels());
-
-      // Cross datasets
-      list.clear();
-      dataStore.termCard(scanners, null, normalize("Connor")).forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals(3, list.get(0).getSecond().size());
-
-      for (int i = 0; i < 3; i++) {
-
-        tc = list.get(0).getSecond().get(i);
-
-        Assert.assertEquals("Actors[*]¤children[*]", tc.field());
-        Assert.assertEquals("connor", tc.term());
-        Assert.assertEquals(10, tc.cardinality());
 
         if (i == 0) {
           Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS",
@@ -942,116 +867,97 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore.Infos infos = dataStore.infos(Sets.newHashSet("first_dataset"), Constants.AUTH_ADM);
     Map<String, Object> json = infos.json();
 
-    Assert.assertEquals(11, ((List<String>) json.get("fields")).size());
+    Assert.assertEquals(10, ((List<Map<String, Object>>) json.get("fields")).size());
 
     Map<String, Object> map = new HashMap<>();
     map.put("dataset", "first_dataset");
-    map.put("field", "");
-    map.put("count", 10L);
-    map.put("cardinality", 10L);
-    map.put("visibility_labels", Sets.newHashSet("ADM", "FIRST_DATASET_RAW_DATA"));
-
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
-
-    map.clear();
-    map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].age");
-    map.put("count", 10L);
-    map.put("cardinality", 10L);
+    map.put("nb_terms", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_AGE"));
 
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
+    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].children[*]");
-    map.put("count", 30L);
-    map.put("cardinality", 10L);
+    map.put("nb_terms", 30L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_CHILDREN"));
 
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
+    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].hasChildren");
-    map.put("count", 10L);
-    map.put("cardinality", 10L);
+    map.put("nb_terms", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_HASCHILDREN"));
 
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
+    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].weight");
-    map.put("count", 10L);
-    map.put("cardinality", 10L);
+    map.put("nb_terms", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_WEIGHT"));
 
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
+    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].Birthdate");
-    map.put("count", 10L);
-    map.put("cardinality", 10L);
+    map.put("nb_terms", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_BIRTHDATE"));
 
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
+    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].Born At");
-    map.put("count", 10L);
-    map.put("cardinality", 10L);
+    map.put("nb_terms", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_BORN_AT"));
 
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
+    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].name");
-    map.put("count", 10L);
-    map.put("cardinality", 10L);
+    map.put("nb_terms", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_NAME"));
 
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
+    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].photo");
-    map.put("count", 10L);
-    map.put("cardinality", 10L);
+    map.put("nb_terms", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_PHOTO"));
 
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
+    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].hasGreyHair");
-    map.put("count", 10L);
-    map.put("cardinality", 10L);
+    map.put("nb_terms", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_HASGREYHAIR"));
 
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
+    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].uuid");
-    map.put("count", 10L);
-    map.put("cardinality", 10L);
+    map.put("nb_terms", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_UUID"));
 
-    Assert.assertTrue(((List<String>) json.get("fields")).contains(map));
+    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     System.out.println(map);
   }
@@ -1061,22 +967,19 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     try (Writers writers = dataStore.writers()) {
-      try (IngestStats stats = dataStore.newIngestStats()) {
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(dataStore.persist(writers, "first_dataset", "row_" + i, json1(i),
+            key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
+      }
 
-        for (int i = 0; i < 10; i++) {
-          Assert.assertTrue(dataStore.persist(writers, stats, "first_dataset", "row_" + i, json1(i),
-              key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
-        }
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(dataStore.persist(writers, "second_dataset", "row_" + i, json1(i),
+            key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
+      }
 
-        for (int i = 0; i < 10; i++) {
-          Assert.assertTrue(dataStore.persist(writers, stats, "second_dataset", "row_" + i,
-              json1(i), key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
-        }
-
-        for (int i = 0; i < 10; i++) {
-          Assert.assertTrue(dataStore.persist(writers, stats, "third_dataset", "row_" + i, json1(i),
-              key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
-        }
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(dataStore.persist(writers, "third_dataset", "row_" + i, json1(i),
+            key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
       }
     }
   }

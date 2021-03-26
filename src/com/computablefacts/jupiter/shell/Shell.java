@@ -30,11 +30,8 @@ import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
 import com.computablefacts.jupiter.storage.datastore.Writers;
-import com.computablefacts.jupiter.storage.termstore.FieldCard;
 import com.computablefacts.jupiter.storage.termstore.FieldCount;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
-import com.computablefacts.jupiter.storage.termstore.IngestStats;
-import com.computablefacts.jupiter.storage.termstore.TermCard;
 import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.Document;
@@ -126,20 +123,12 @@ public class Shell {
         Preconditions.checkState(fieldCount(configurations, datastore, getArg(args, "ds"),
             getArg(args, "field"), getArg(args, "auths")));
         break;
-      case "field_cardinality":
-        Preconditions.checkState(fieldCardinality(configurations, datastore, getArg(args, "ds"),
-            getArg(args, "field"), getArg(args, "auths")));
-        break;
       case "field_labels":
         Preconditions.checkState(fieldLabels(configurations, datastore, getArg(args, "ds"),
             getArg(args, "field"), getArg(args, "auths")));
         break;
       case "term_count":
         Preconditions.checkState(termCount(configurations, datastore, getArg(args, "ds"),
-            getArg(args, "term"), getArg(args, "auths")));
-        break;
-      case "term_cardinality":
-        Preconditions.checkState(termCardinality(configurations, datastore, getArg(args, "ds"),
             getArg(args, "term"), getArg(args, "auths")));
         break;
       case "search":
@@ -248,43 +237,37 @@ public class Shell {
     AtomicInteger ignored = new AtomicInteger(0);
 
     try (Writers writers = ds.writers()) {
-      try (IngestStats stats = ds.newIngestStats()) {
-        Files.compressedLineStream(f, StandardCharsets.UTF_8).forEach(line -> {
+      Files.compressedLineStream(f, StandardCharsets.UTF_8).forEach(line -> {
 
-          String row = line.getValue();
+        String row = line.getValue();
 
-          if (Strings.isNullOrEmpty(row)) {
-            return;
+        if (Strings.isNullOrEmpty(row)) {
+          return;
+        }
+
+        Map<String, Object> json = Codecs.asObject(row);
+        Document document = new Document(json);
+
+        if (!document.fileExists()) { // do not reindex missing files
+          if (logger_.isInfoEnabled()) {
+            logger_.info(LogFormatterManager.logFormatter().message(
+                "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " + document.path())
+                .formatInfo());
+          }
+        } else {
+
+          if (!ds.persist(writers, dataset, document.docId(), row, key -> true,
+              Codecs.defaultTokenizer)) {
+            logger_.error(LogFormatterManager.logFormatter()
+                .message("Persistence of " + document.docId() + " failed").formatError());
           }
 
-          Map<String, Object> json = Codecs.asObject(row);
-          Document document = new Document(json);
-
-          if (!document.fileExists()) { // do not reindex missing files
-            if (logger_.isInfoEnabled()) {
-              logger_.info(LogFormatterManager.logFormatter().message("Number of JSON ignored : "
-                  + ignored.incrementAndGet() + " -> " + document.path()).formatInfo());
-            }
-          } else {
-
-            if (!ds.persist(writers, stats, dataset, document.docId(), row, key -> true,
-                Codecs.defaultTokenizer)) {
-              logger_.error(LogFormatterManager.logFormatter()
-                  .message("Persistence of " + document.docId() + " failed").formatError());
-            }
-
-            if (count.incrementAndGet() % 100 == 0) {
-
-              stats.flush();
-
-              if (logger_.isInfoEnabled()) {
-                logger_.info(LogFormatterManager.logFormatter()
-                    .message("Number of JSON processed : " + count.get()).formatInfo());
-              }
-            }
+          if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
+            logger_.info(LogFormatterManager.logFormatter()
+                .message("Number of JSON processed : " + count.get()).formatInfo());
           }
-        });
-      }
+        }
+      });
     }
 
     stopwatch.stop();
@@ -373,30 +356,6 @@ public class Shell {
     return true;
   }
 
-  public static boolean fieldCardinality(Configurations configurations, String datastore,
-      String dataset, String field, String auths) {
-
-    Preconditions.checkNotNull(configurations, "configurations should not be null");
-    Preconditions.checkNotNull(datastore, "datastore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(field),
-        "field should neither be null nor empty");
-    Preconditions.checkArgument(field.length() >= 3, "Field length must be >= 3 : %s", field);
-
-    DataStore ds = new DataStore(configurations, datastore);
-
-    try (Scanners scanners = ds.scanners(authorizations(auths))) {
-
-      Iterator<FieldCard> iterator = ds.fieldCard(scanners, dataset, field);
-
-      while (iterator.hasNext()) {
-        FieldCard fieldCard = iterator.next();
-        System.out.println(fieldCard.field() + " -> " + fieldCard.cardinality());
-      }
-    }
-    return true;
-  }
-
   public static boolean fieldLabels(Configurations configurations, String datastore, String dataset,
       String field, String auths) {
 
@@ -443,34 +402,6 @@ public class Shell {
 
         for (TermCount tc : termCounts.getSecond()) {
           System.out.println(tc.term() + " -> " + tc.count() + " (" + tc.field() + ")");
-        }
-      }
-    }
-    return true;
-  }
-
-  public static boolean termCardinality(Configurations configurations, String datastore,
-      String dataset, String term, String auths) {
-
-    Preconditions.checkNotNull(configurations, "configurations should not be null");
-    Preconditions.checkNotNull(datastore, "datastore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(term),
-        "term should neither be null nor empty");
-    Preconditions.checkArgument(term.length() >= 3, "Field length must be >= 3 : %s", term);
-
-    DataStore ds = new DataStore(configurations, datastore);
-
-    try (Scanners scanners = ds.scanners(authorizations(auths))) {
-
-      Iterator<Pair<String, List<TermCard>>> iterator = ds.termCard(scanners, dataset, term);
-
-      while (iterator.hasNext()) {
-
-        Pair<String, List<TermCard>> termCards = iterator.next();
-
-        for (TermCard tc : termCards.getSecond()) {
-          System.out.println(tc.term() + " -> " + tc.cardinality() + " (" + tc.field() + ")");
         }
       }
     }

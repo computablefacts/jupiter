@@ -13,7 +13,6 @@ import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
 import com.computablefacts.jupiter.storage.datastore.Writers;
-import com.computablefacts.jupiter.storage.termstore.IngestStats;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
@@ -331,7 +330,7 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
 
         Assert.assertEquals(10,
             query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
-        Assert.assertEquals(0, Iterators.size(iterator));
+        Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
 
@@ -354,7 +353,7 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
 
         Assert.assertEquals(10,
             query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
-        Assert.assertEquals(0, Iterators.size(iterator));
+        Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
   }
@@ -364,17 +363,13 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     try (Writers writers = dataStore.writers()) {
-      try (IngestStats stats = dataStore.newIngestStats()) {
 
-        for (int i = 0; i < 10; i++) {
-          Assert
-              .assertTrue(dataStore.persist(writers, stats, "first_dataset", "row_" + i, json1(i)));
-        }
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(dataStore.persist(writers, "first_dataset", "row_" + i, json1(i)));
+      }
 
-        for (int i = 0; i < 10; i++) {
-          Assert.assertTrue(
-              dataStore.persist(writers, stats, "second_dataset", "row_" + i, json2(i)));
-        }
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(dataStore.persist(writers, "second_dataset", "row_" + i, json2(i)));
       }
     }
   }

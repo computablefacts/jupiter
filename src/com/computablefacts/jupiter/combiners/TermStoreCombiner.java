@@ -30,9 +30,6 @@ public class TermStoreCombiner extends Combiner {
     if (cf.endsWith("IDX")) {
       return reduceIndex(iter);
     }
-    if (cf.endsWith("CARD")) {
-      return reduceCardinality(iter);
-    }
     if (cf.endsWith("CNT")) {
       return reduceCount(iter);
     }
@@ -51,10 +48,6 @@ public class TermStoreCombiner extends Combiner {
           Lists.newArrayList(Splitter.on(Constants.SEPARATOR_NUL).split(iter.next().toString())));
     }
     return new Value(Joiner.on(Constants.SEPARATOR_NUL).join(labels));
-  }
-
-  private Value reduceCardinality(Iterator<Value> iter) {
-    return reduceCount(iter);
   }
 
   private Value reduceCount(Iterator<Value> iter) {

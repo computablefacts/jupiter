@@ -36,13 +36,13 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
         .isEmpty());
 
     Assert.assertTrue(termStore.addLocalityGroup("third_dataset"));
-    Assert.assertEquals(6,
+    Assert.assertEquals(4,
         Tables
             .getLocalityGroups(termStore.configurations().tableOperations(), termStore.tableName())
             .size());
 
     Assert.assertTrue(termStore.addLocalityGroup("third_dataset")); // ensure reentrant
-    Assert.assertEquals(6,
+    Assert.assertEquals(4,
         Tables
             .getLocalityGroups(termStore.configurations().tableOperations(), termStore.tableName())
             .size());
@@ -82,30 +82,14 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testTruncate() throws Exception {
 
-    Authorizations auths = new Authorizations("DS_1", "DS_2", "FIRST_DATASET_CNT",
-        "FIRST_DATASET_CARD", "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT", "SECOND_DATASET_CARD",
-        "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_CARD", "THIRD_DATASET_VIZ");
+    Authorizations auths =
+        new Authorizations("DS_1", "DS_2", "FIRST_DATASET_CNT", "FIRST_DATASET_VIZ",
+            "SECOND_DATASET_CNT", "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_VIZ");
     TermStore termStore = newDataStore(auths);
 
     for (int i = 0; i < 10; i++) {
 
       // Test metadata
-      FieldCard fca1 = fieldCardinalityInFirstDataset(termStore, i, auths);
-      FieldCard fca2 = fieldCardinalityInSecondDataset(termStore, i, auths);
-      FieldCard fca3 = fieldCardinalityInThirdDataset(termStore, i, auths);
-
-      Assert.assertEquals("field_" + i, fca1.field());
-      Assert.assertEquals(Sets.newHashSet("FIRST_DATASET_CARD", "ADM"), fca1.labels());
-      Assert.assertEquals(1, fca1.cardinality());
-
-      Assert.assertEquals("field_" + i, fca2.field());
-      Assert.assertEquals(Sets.newHashSet("SECOND_DATASET_CARD", "ADM"), fca2.labels());
-      Assert.assertEquals(1, fca2.cardinality());
-
-      Assert.assertEquals("field_" + i, fca3.field());
-      Assert.assertEquals(Sets.newHashSet("THIRD_DATASET_CARD", "ADM"), fca3.labels());
-      Assert.assertEquals(1, fca3.cardinality());
-
       FieldCount fco1 = fieldCountInFirstDataset(termStore, i, auths);
       FieldCount fco2 = fieldCountInSecondDataset(termStore, i, auths);
       FieldCount fco3 = fieldCountInThirdDataset(termStore, i, auths);
@@ -149,10 +133,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     for (int i = 0; i < 10; i++) {
 
       // Test metadata
-      Assert.assertNull(fieldCardinalityInFirstDataset(termStore, i, auths));
-      Assert.assertNull(fieldCardinalityInSecondDataset(termStore, i, auths));
-      Assert.assertNull(fieldCardinalityInThirdDataset(termStore, i, auths));
-
       Assert.assertNull(fieldCountInFirstDataset(termStore, i, auths));
       Assert.assertNull(fieldCountInSecondDataset(termStore, i, auths));
       Assert.assertNull(fieldCountInThirdDataset(termStore, i, auths));
@@ -171,18 +151,14 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testRemoveDataset() throws Exception {
 
-    Authorizations auths = new Authorizations("DS_1", "DS_2", "FIRST_DATASET_CNT",
-        "FIRST_DATASET_CARD", "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT", "SECOND_DATASET_CARD",
-        "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_CARD", "THIRD_DATASET_VIZ");
+    Authorizations auths =
+        new Authorizations("DS_1", "DS_2", "FIRST_DATASET_CNT", "FIRST_DATASET_VIZ",
+            "SECOND_DATASET_CNT", "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_VIZ");
     TermStore termStore = newDataStore(auths);
 
     for (int i = 0; i < 10; i++) {
 
       // Test metadata
-      Assert.assertNotNull(fieldCardinalityInFirstDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCardinalityInSecondDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCardinalityInThirdDataset(termStore, i, auths));
-
       Assert.assertNotNull(fieldCountInFirstDataset(termStore, i, auths));
       Assert.assertNotNull(fieldCountInSecondDataset(termStore, i, auths));
       Assert.assertNotNull(fieldCountInThirdDataset(termStore, i, auths));
@@ -205,10 +181,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     for (int i = 0; i < 10; i++) {
 
       // Test metadata
-      Assert.assertNull(fieldCardinalityInFirstDataset(termStore, i, auths));
-      Assert.assertNull(fieldCardinalityInSecondDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCardinalityInThirdDataset(termStore, i, auths));
-
       Assert.assertNull(fieldCountInFirstDataset(termStore, i, auths));
       Assert.assertNull(fieldCountInSecondDataset(termStore, i, auths));
       Assert.assertNotNull(fieldCountInThirdDataset(termStore, i, auths));
@@ -227,18 +199,14 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testRemoveTerms() throws Exception {
 
-    Authorizations auths = new Authorizations("DS_1", "DS_2", "FIRST_DATASET_CNT",
-        "FIRST_DATASET_CARD", "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT", "SECOND_DATASET_CARD",
-        "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_CARD", "THIRD_DATASET_VIZ");
+    Authorizations auths =
+        new Authorizations("DS_1", "DS_2", "FIRST_DATASET_CNT", "FIRST_DATASET_VIZ",
+            "SECOND_DATASET_CNT", "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_VIZ");
     TermStore termStore = newDataStore(auths);
 
     for (int i = 0; i < 10; i++) {
 
       // Test metadata
-      Assert.assertNotNull(fieldCardinalityInFirstDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCardinalityInSecondDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCardinalityInThirdDataset(termStore, i, auths));
-
       Assert.assertNotNull(fieldCountInFirstDataset(termStore, i, auths));
       Assert.assertNotNull(fieldCountInSecondDataset(termStore, i, auths));
       Assert.assertNotNull(fieldCountInThirdDataset(termStore, i, auths));
@@ -267,11 +235,9 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       if (i % 2 == 0) {
 
         // Test metadata
-        Assert.assertNotNull(fieldCardinalityInSecondDataset(termStore, i, auths));
         Assert.assertNotNull(fieldCountInSecondDataset(termStore, i, auths));
         Assert.assertNotNull(fieldLabelsInSecondDataset(termStore, i, auths));
 
-        // TODO : Assert.assertNull(fieldCardFirst(termStore, i, auths));
         // TODO : Assert.assertNull(fieldCountFirst(termStore, i, auths));
         // TODO : Assert.assertNull(fieldLabelsFirst(termStore, i, auths));
 
@@ -281,11 +247,9 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       } else {
 
         // Test metadata
-        Assert.assertNotNull(fieldCardinalityInFirstDataset(termStore, i, auths));
         Assert.assertNotNull(fieldCountInFirstDataset(termStore, i, auths));
         Assert.assertNotNull(fieldLabelsInFirstDataset(termStore, i, auths));
 
-        // TODO : Assert.assertNull(fieldCardSecond(termStore, i, auths));
         // TODO : Assert.assertNull(fieldCountSecond(termStore, i, auths));
         // TODO : Assert.assertNull(fieldLabelsSecond(termStore, i, auths));
 
@@ -295,7 +259,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       }
 
       // Test metadata
-      Assert.assertNotNull(fieldCardinalityInThirdDataset(termStore, i, auths));
       Assert.assertNotNull(fieldCountInThirdDataset(termStore, i, auths));
       Assert.assertNotNull(fieldLabelsInThirdDataset(termStore, i, auths));
 
@@ -352,26 +315,19 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, countEntitiesInThirdDataset(termStore, i, authsDS2));
     }
 
-    Authorizations authsFirstSecondThird = new Authorizations("FIRST_DATASET_CNT",
-        "FIRST_DATASET_CARD", "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT", "SECOND_DATASET_CARD",
-        "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_CARD", "THIRD_DATASET_VIZ");
+    Authorizations authsFirstSecondThird =
+        new Authorizations("FIRST_DATASET_CNT", "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT",
+            "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_VIZ");
 
-    Authorizations authsFirst =
-        new Authorizations("FIRST_DATASET_CNT", "FIRST_DATASET_CARD", "FIRST_DATASET_VIZ");
+    Authorizations authsFirst = new Authorizations("FIRST_DATASET_CNT", "FIRST_DATASET_VIZ");
 
-    Authorizations authsSecond =
-        new Authorizations("SECOND_DATASET_CNT", "SECOND_DATASET_CARD", "SECOND_DATASET_VIZ");
+    Authorizations authsSecond = new Authorizations("SECOND_DATASET_CNT", "SECOND_DATASET_VIZ");
 
-    Authorizations authsThird =
-        new Authorizations("THIRD_DATASET_CNT", "THIRD_DATASET_CARD", "THIRD_DATASET_VIZ");
+    Authorizations authsThird = new Authorizations("THIRD_DATASET_CNT", "THIRD_DATASET_VIZ");
 
     MiniAccumuloClusterUtils.setUserAuths(accumulo(), username, authsFirstSecondThird);
 
     for (int i = 0; i < 10; i++) {
-
-      Assert.assertNotNull(fieldCardinalityInFirstDataset(termStore, i, authsFirst));
-      Assert.assertNull(fieldCardinalityInSecondDataset(termStore, i, authsFirst));
-      Assert.assertNull(fieldCardinalityInThirdDataset(termStore, i, authsFirst));
 
       Assert.assertNotNull(fieldCountInFirstDataset(termStore, i, authsFirst));
       Assert.assertNull(fieldCountInSecondDataset(termStore, i, authsFirst));
@@ -381,10 +337,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertNull(fieldLabelsInSecondDataset(termStore, i, authsFirst));
       Assert.assertNull(fieldLabelsInThirdDataset(termStore, i, authsFirst));
 
-      Assert.assertNull(fieldCardinalityInFirstDataset(termStore, i, authsSecond));
-      Assert.assertNotNull(fieldCardinalityInSecondDataset(termStore, i, authsSecond));
-      Assert.assertNull(fieldCardinalityInThirdDataset(termStore, i, authsSecond));
-
       Assert.assertNull(fieldCountInFirstDataset(termStore, i, authsSecond));
       Assert.assertNotNull(fieldCountInSecondDataset(termStore, i, authsSecond));
       Assert.assertNull(fieldCountInThirdDataset(termStore, i, authsSecond));
@@ -393,10 +345,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertNotNull(fieldLabelsInSecondDataset(termStore, i, authsSecond));
       Assert.assertNull(fieldLabelsInThirdDataset(termStore, i, authsSecond));
 
-      Assert.assertNull(fieldCardinalityInFirstDataset(termStore, i, authsThird));
-      Assert.assertNull(fieldCardinalityInSecondDataset(termStore, i, authsThird));
-      Assert.assertNotNull(fieldCardinalityInThirdDataset(termStore, i, authsThird));
-
       Assert.assertNull(fieldCountInFirstDataset(termStore, i, authsThird));
       Assert.assertNull(fieldCountInSecondDataset(termStore, i, authsThird));
       Assert.assertNotNull(fieldCountInThirdDataset(termStore, i, authsThird));
@@ -404,10 +352,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertNull(fieldLabelsInFirstDataset(termStore, i, authsThird));
       Assert.assertNull(fieldLabelsInSecondDataset(termStore, i, authsThird));
       Assert.assertNotNull(fieldLabelsInThirdDataset(termStore, i, authsThird));
-
-      Assert.assertNotNull(fieldCardinalityInFirstDataset(termStore, i, authsFirstSecondThird));
-      Assert.assertNotNull(fieldCardinalityInSecondDataset(termStore, i, authsFirstSecondThird));
-      Assert.assertNotNull(fieldCardinalityInThirdDataset(termStore, i, authsFirstSecondThird));
 
       Assert.assertNotNull(fieldCountInFirstDataset(termStore, i, authsFirstSecondThird));
       Assert.assertNotNull(fieldCountInSecondDataset(termStore, i, authsFirstSecondThird));
@@ -420,42 +364,10 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
-  public void testFieldCard() throws Exception {
-
-    Authorizations auths = new Authorizations("FIRST_DATASET_CNT", "FIRST_DATASET_CARD",
-        "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT", "SECOND_DATASET_CARD", "SECOND_DATASET_VIZ",
-        "THIRD_DATASET_CNT", "THIRD_DATASET_CARD", "THIRD_DATASET_VIZ");
-    TermStore termStore = newDataStore(auths);
-
-    for (int i = 0; i < 10; i++) {
-
-      FieldCard fc1 = fieldCardinalityInFirstDataset(termStore, i, auths);
-      FieldCard fc2 = fieldCardinalityInSecondDataset(termStore, i, auths);
-      FieldCard fc3 = fieldCardinalityInThirdDataset(termStore, i, auths);
-
-      Assert.assertEquals("field_" + i, fc1.field());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_CARD"),
-          fc1.labels());
-      Assert.assertEquals(1, fc1.cardinality());
-
-      Assert.assertEquals("field_" + i, fc2.field());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_CARD"),
-          fc2.labels());
-      Assert.assertEquals(1, fc2.cardinality());
-
-      Assert.assertEquals("field_" + i, fc3.field());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_CARD"),
-          fc3.labels());
-      Assert.assertEquals(1, fc3.cardinality());
-    }
-  }
-
-  @Test
   public void testFieldCount() throws Exception {
 
-    Authorizations auths = new Authorizations("FIRST_DATASET_CNT", "FIRST_DATASET_CARD",
-        "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT", "SECOND_DATASET_CARD", "SECOND_DATASET_VIZ",
-        "THIRD_DATASET_CNT", "THIRD_DATASET_CARD", "THIRD_DATASET_VIZ");
+    Authorizations auths = new Authorizations("FIRST_DATASET_CNT", "FIRST_DATASET_VIZ",
+        "SECOND_DATASET_CNT", "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_VIZ");
     TermStore termStore = newDataStore(auths);
 
     for (int i = 0; i < 10; i++) {
@@ -482,9 +394,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testFieldLabels() throws Exception {
 
-    Authorizations auths = new Authorizations("FIRST_DATASET_CNT", "FIRST_DATASET_CARD",
-        "FIRST_DATASET_VIZ", "SECOND_DATASET_CNT", "SECOND_DATASET_CARD", "SECOND_DATASET_VIZ",
-        "THIRD_DATASET_CNT", "THIRD_DATASET_CARD", "THIRD_DATASET_VIZ");
+    Authorizations auths = new Authorizations("FIRST_DATASET_CNT", "FIRST_DATASET_VIZ",
+        "SECOND_DATASET_CNT", "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_VIZ");
     TermStore termStore = newDataStore(auths);
 
     for (int i = 0; i < 10; i++) {
@@ -530,7 +441,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("field_1", tc.field());
       Assert.assertEquals("term_1", tc.term());
       Assert.assertEquals(2, tc.count());
-      Assert.assertEquals(Sets.newHashSet("DS_2"), tc.labels());
+      Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), tc.labels());
     }
   }
 
@@ -557,7 +468,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
         Assert.assertEquals("field_" + i, tc.field());
         Assert.assertEquals("term_" + i, tc.term());
         Assert.assertEquals(2, tc.count());
-        Assert.assertEquals(Sets.newHashSet("DS_2"), tc.labels());
+        Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), tc.labels());
       }
     }
   }
@@ -582,7 +493,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("field_1", tc.field());
       Assert.assertEquals("term_1", tc.term());
       Assert.assertEquals(2, tc.count());
-      Assert.assertEquals(Sets.newHashSet("DS_2"), tc.labels());
+      Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), tc.labels());
     }
   }
 
@@ -606,107 +517,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("field_1", tc.field());
       Assert.assertEquals("term_1", tc.term());
       Assert.assertEquals(2, tc.count());
-      Assert.assertEquals(Sets.newHashSet("DS_2"), tc.labels());
-    }
-  }
-
-  @Test
-  public void testTermCardExactMatch() throws Exception {
-
-    Authorizations auths = new Authorizations("DS_1", "DS_2");
-    TermStore termStore = newDataStore(auths);
-
-    try (Scanner scanner = termStore.scanner(auths)) {
-
-      List<Pair<String, List<TermCard>>> list = new ArrayList<>();
-      termStore.termCard(scanner, "third_dataset", "term_1").forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals("term_1", list.get(0).getFirst());
-      Assert.assertEquals(1, list.get(0).getSecond().size());
-
-      TermCard tc = list.get(0).getSecond().get(0);
-
-      Assert.assertEquals("field_1", tc.field());
-      Assert.assertEquals("term_1", tc.term());
-      Assert.assertEquals(1, tc.cardinality());
-      Assert.assertEquals(Sets.newHashSet("DS_2"), tc.labels());
-    }
-  }
-
-  @Test
-  public void testTermCardPrefixMatch() throws Exception {
-
-    Authorizations auths = new Authorizations("DS_1", "DS_2");
-    TermStore termStore = newDataStore(auths);
-
-    try (Scanner scanner = termStore.scanner(auths)) {
-
-      List<Pair<String, List<TermCard>>> list = new ArrayList<>();
-      termStore.termCard(scanner, "third_dataset", "term_*").forEachRemaining(list::add);
-
-      Assert.assertEquals(10, list.size());
-
-      for (int i = 0; i < 10; i++) {
-
-        Assert.assertEquals("term_" + i, list.get(i).getFirst());
-        Assert.assertEquals(1, list.get(i).getSecond().size());
-
-        TermCard tc = list.get(i).getSecond().get(0);
-
-        Assert.assertEquals("field_" + i, tc.field());
-        Assert.assertEquals("term_" + i, tc.term());
-        Assert.assertEquals(1, tc.cardinality());
-        Assert.assertEquals(Sets.newHashSet("DS_2"), tc.labels());
-      }
-    }
-  }
-
-  @Test
-  public void testTermCardSuffixMatch() throws Exception {
-
-    Authorizations auths = new Authorizations("DS_1", "DS_2");
-    TermStore termStore = newDataStore(auths);
-
-    try (Scanner scanner = termStore.scanner(auths)) {
-
-      List<Pair<String, List<TermCard>>> list = new ArrayList<>();
-      termStore.termCard(scanner, "third_dataset", "*_1").forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals("term_1", list.get(0).getFirst());
-      Assert.assertEquals(1, list.get(0).getSecond().size());
-
-      TermCard tc = list.get(0).getSecond().get(0);
-
-      Assert.assertEquals("field_1", tc.field());
-      Assert.assertEquals("term_1", tc.term());
-      Assert.assertEquals(1, tc.cardinality());
-      Assert.assertEquals(Sets.newHashSet("DS_2"), tc.labels());
-    }
-  }
-
-  @Test
-  public void testTermCardInfixMatch() throws Exception {
-
-    Authorizations auths = new Authorizations("DS_1", "DS_2");
-    TermStore termStore = newDataStore(auths);
-
-    try (Scanner scanner = termStore.scanner(auths)) {
-
-      List<Pair<String, List<TermCard>>> list = new ArrayList<>();
-      termStore.termCard(scanner, "third_dataset", "term?1").forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals("term_1", list.get(0).getFirst());
-      Assert.assertEquals(1, list.get(0).getSecond().size());
-
-      TermCard tc = list.get(0).getSecond().get(0);
-
-      Assert.assertEquals("field_1", tc.field());
-      Assert.assertEquals("term_1", tc.term());
-      Assert.assertEquals(1, tc.cardinality());
-      Assert.assertEquals(Sets.newHashSet("DS_2"), tc.labels());
+      Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), tc.labels());
     }
   }
 
@@ -1001,86 +812,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     }
   }
 
-  @Test
-  public void testNumericalRangeCardClosedBeginClosedEnd() throws Exception {
-
-    Authorizations auths = new Authorizations("DS_1", "DS_2");
-    TermStore termStore = newDataStore(auths);
-
-    try (Scanner scanner = termStore.scanner(auths)) {
-
-      List<TermCard> list = new ArrayList<>();
-      Iterator<TermCard> iterator =
-          termStore.numericalRangeCard((ScannerBase) scanner, "fourth_dataset", "3", "8", null);
-
-      while (iterator.hasNext()) {
-        list.add(iterator.next());
-      }
-
-      Assert.assertEquals(5, list.size());
-      Assert.assertEquals("3", list.get(0).term());
-      Assert.assertEquals("4", list.get(1).term());
-      Assert.assertEquals("5", list.get(2).term());
-      Assert.assertEquals("6", list.get(3).term());
-      Assert.assertEquals("7", list.get(4).term());
-    }
-  }
-
-  @Test
-  public void testNumericalRangeCardClosedBeginOpenedEnd() throws Exception {
-
-    Authorizations auths = new Authorizations("DS_1", "DS_2");
-    TermStore termStore = newDataStore(auths);
-
-    try (Scanner scanner = termStore.scanner(auths)) {
-
-      List<TermCard> list = new ArrayList<>();
-      Iterator<TermCard> iterator =
-          termStore.numericalRangeCard((ScannerBase) scanner, "fourth_dataset", "3", null, null);
-
-      while (iterator.hasNext()) {
-        list.add(iterator.next());
-      }
-
-      Assert.assertEquals(7, list.size());
-      Assert.assertEquals("3", list.get(0).term());
-      Assert.assertEquals("4", list.get(1).term());
-      Assert.assertEquals("5", list.get(2).term());
-      Assert.assertEquals("6", list.get(3).term());
-      Assert.assertEquals("7", list.get(4).term());
-      Assert.assertEquals("8", list.get(5).term());
-      Assert.assertEquals("9", list.get(6).term());
-    }
-  }
-
-  @Test
-  public void testNumericalRangeCardOpenedBeginClosedEnd() throws Exception {
-
-    Authorizations auths = new Authorizations("DS_1", "DS_2");
-    TermStore termStore = newDataStore(auths);
-
-    try (Scanner scanner = termStore.scanner(auths)) {
-
-      List<TermCard> list = new ArrayList<>();
-      Iterator<TermCard> iterator =
-          termStore.numericalRangeCard((ScannerBase) scanner, "fourth_dataset", null, "8", null);
-
-      while (iterator.hasNext()) {
-        list.add(iterator.next());
-      }
-
-      Assert.assertEquals(8, list.size());
-      Assert.assertEquals("0", list.get(0).term());
-      Assert.assertEquals("1", list.get(1).term());
-      Assert.assertEquals("2", list.get(2).term());
-      Assert.assertEquals("3", list.get(3).term());
-      Assert.assertEquals("4", list.get(4).term());
-      Assert.assertEquals("5", list.get(5).term());
-      Assert.assertEquals("6", list.get(6).term());
-      Assert.assertEquals("7", list.get(7).term());
-    }
-  }
-
   private FieldLabels fieldLabelsInFirstDataset(TermStore termStore, int field,
       Authorizations authorizations) {
     return fieldLabels(termStore, "first_dataset", "field_" + field, authorizations);
@@ -1139,34 +870,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     }
   }
 
-  private FieldCard fieldCardinalityInFirstDataset(TermStore termStore, int field,
-      Authorizations authorizations) {
-    return fieldCardinality(termStore, "first_dataset", "field_" + field, authorizations);
-  }
-
-  private FieldCard fieldCardinalityInSecondDataset(TermStore termStore, int field,
-      Authorizations authorizations) {
-    return fieldCardinality(termStore, "second_dataset", "field_" + field, authorizations);
-  }
-
-  private FieldCard fieldCardinalityInThirdDataset(TermStore termStore, int field,
-      Authorizations authorizations) {
-    return fieldCardinality(termStore, "third_dataset", "field_" + field, authorizations);
-  }
-
-  private FieldCard fieldCardinality(TermStore termStore, String dataset, String field,
-      Authorizations authorizations) {
-
-    Preconditions.checkNotNull(termStore, "termStore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(field, "field should not be null");
-
-    try (Scanner scanner = termStore.scanner(authorizations)) {
-      Iterator<FieldCard> iterator = termStore.fieldCard(scanner, dataset, Sets.newHashSet(field));
-      return iterator.hasNext() ? iterator.next() : null;
-    }
-  }
-
   private int countEntitiesInFirstDataset(TermStore termStore, int term,
       Authorizations authorizations) {
     return countEntities(termStore, "first_dataset", term, authorizations);
@@ -1212,47 +915,32 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Preconditions.checkNotNull(termStore, "termStore should not be null");
 
     try (BatchWriter writer = termStore.writer()) {
-      try (IngestStats stats = new IngestStats(termStore, writer)) {
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(termStore.add(writer, "first_dataset", "row_" + i, "field_" + i,
+            "term_" + i, Lists.newArrayList(new Pair<>(0, ("term_" + i).length())),
+            Sets.newHashSet(), Sets.newHashSet("DS_1")));
+      }
 
-        for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(termStore.add(writer, "second_dataset", "row_" + i, "field_" + i,
+            "term_" + i, Lists.newArrayList(new Pair<>(0, ("term_" + i).length())),
+            Sets.newHashSet(), Sets.newHashSet("DS_2")));
+      }
 
-          stats.card("first_dataset", "field_" + i, 1);
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(
+            termStore.add(writer, "third_dataset", "row_" + i, "field_" + i, "term_" + i,
+                Lists.newArrayList(new Pair<>(0, ("term_" + i).length()),
+                    new Pair<>(10, 10 + ("term_" + i).length())),
+                Sets.newHashSet(), Sets.newHashSet("DS_1", "DS_2")));
+      }
 
-          Assert.assertTrue(termStore.add(writer, stats, "first_dataset", "row_" + i, "field_" + i,
-              "term_" + i, Lists.newArrayList(new Pair<>(0, ("term_" + i).length())),
-              Sets.newHashSet("DS_1"), Sets.newHashSet()));
-        }
-
-        for (int i = 0; i < 10; i++) {
-
-          stats.card("second_dataset", "field_" + i, 1);
-
-          Assert.assertTrue(termStore.add(writer, stats, "second_dataset", "row_" + i, "field_" + i,
-              "term_" + i, Lists.newArrayList(new Pair<>(0, ("term_" + i).length())),
-              Sets.newHashSet("DS_2"), Sets.newHashSet()));
-        }
-
-        for (int i = 0; i < 10; i++) {
-
-          stats.card("third_dataset", "field_" + i, 1);
-
-          Assert.assertTrue(
-              termStore.add(writer, stats, "third_dataset", "row_" + i, "field_" + i, "term_" + i,
-                  Lists.newArrayList(new Pair<>(0, ("term_" + i).length()),
-                      new Pair<>(10, 10 + ("term_" + i).length())),
-                  Sets.newHashSet("DS_1"), Sets.newHashSet("DS_2")));
-        }
-
-        for (int i = 0; i < 10; i++) {
-
-          stats.card("fourth_dataset", "field_" + i, 1);
-
-          Assert.assertTrue(termStore.add(writer, stats, "fourth_dataset", "row_" + i, "field_" + i,
-              BigDecimalCodec.encode(Integer.toString(i)),
-              Lists.newArrayList(new Pair<>(0, ("term_" + i).length()),
-                  new Pair<>(10, 10 + ("term_" + i).length())),
-              Sets.newHashSet("DS_1"), Sets.newHashSet("DS_2"), true));
-        }
+      for (int i = 0; i < 10; i++) {
+        Assert.assertTrue(termStore.add(writer, "fourth_dataset", "row_" + i, "field_" + i,
+            BigDecimalCodec.encode(Integer.toString(i)),
+            Lists.newArrayList(new Pair<>(0, ("term_" + i).length()),
+                new Pair<>(10, 10 + ("term_" + i).length())),
+            Sets.newHashSet(), Sets.newHashSet("DS_1", "DS_2"), true));
       }
     }
   }

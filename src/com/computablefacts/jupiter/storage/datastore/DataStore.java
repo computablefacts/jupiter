@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -50,12 +49,9 @@ import com.computablefacts.jupiter.storage.DedupIterator;
 import com.computablefacts.jupiter.storage.FlattenIterator;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
-import com.computablefacts.jupiter.storage.termstore.FieldCard;
 import com.computablefacts.jupiter.storage.termstore.FieldCount;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
-import com.computablefacts.jupiter.storage.termstore.IngestStats;
 import com.computablefacts.jupiter.storage.termstore.Term;
-import com.computablefacts.jupiter.storage.termstore.TermCard;
 import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.nona.Generated;
@@ -229,16 +225,6 @@ final public class DataStore {
   @Deprecated
   public Writers writers() {
     return new Writers(configurations(), name());
-  }
-
-  /**
-   * Get stats writer.
-   *
-   * @return writer.
-   */
-  @Deprecated
-  public IngestStats newIngestStats() {
-    return new IngestStats(termStore_, termStore_.writer());
   }
 
   @Deprecated
@@ -424,8 +410,8 @@ final public class DataStore {
   }
 
   /**
-   * Remove documents from a given dataset. This method does not update the *CARD et *CNT datasets.
-   * Hence, cardinalities and counts may become out of sync.
+   * Remove documents from a given dataset. This method does not update the *CNT datasets. Hence,
+   * counts may become out of sync.
    *
    * @param dataset dataset.
    * @param docIds a set of documents ids to remove.
@@ -479,15 +465,13 @@ final public class DataStore {
    * Persist a single JSON object.
    *
    * @param writers writers.
-   * @param stats ingest stats (optional)
    * @param dataset dataset.
    * @param uuid unique identifier.
    * @param json JSON object.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean persist(Writers writers, IngestStats stats, String dataset, String uuid,
-      String json) {
-    return persist(writers, stats, dataset, uuid, json, key -> true, Codecs.nopTokenizer,
+  public boolean persist(Writers writers, String dataset, String uuid, String json) {
+    return persist(writers, dataset, uuid, json, key -> true, Codecs.nopTokenizer,
         Codecs.nopLexicoder);
   }
 
@@ -495,7 +479,6 @@ final public class DataStore {
    * Persist a single JSON object.
    *
    * @param writers writers.
-   * @param stats ingest stats (optional)
    * @param dataset dataset.
    * @param uuid unique identifier.
    * @param json JSON object.
@@ -503,9 +486,9 @@ final public class DataStore {
    *        This predicate should return true iif the field's value must be tokenized.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean persist(Writers writers, IngestStats stats, String dataset, String uuid,
-      String json, Predicate<String> keepField) {
-    return persist(writers, stats, dataset, uuid, json, keepField, Codecs.nopTokenizer,
+  public boolean persist(Writers writers, String dataset, String uuid, String json,
+      Predicate<String> keepField) {
+    return persist(writers, dataset, uuid, json, keepField, Codecs.nopTokenizer,
         Codecs.nopLexicoder);
   }
 
@@ -513,7 +496,6 @@ final public class DataStore {
    * Persist a single JSON object.
    *
    * @param writers writers.
-   * @param stats ingest stats (optional)
    * @param dataset dataset.
    * @param uuid unique identifier.
    * @param json JSON object.
@@ -522,16 +504,15 @@ final public class DataStore {
    * @param tokenizer string tokenizer (optional).
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean persist(Writers writers, IngestStats stats, String dataset, String uuid,
-      String json, Predicate<String> keepField, Function<String, SpanSequence> tokenizer) {
-    return persist(writers, stats, dataset, uuid, json, keepField, tokenizer, Codecs.nopLexicoder);
+  public boolean persist(Writers writers, String dataset, String uuid, String json,
+      Predicate<String> keepField, Function<String, SpanSequence> tokenizer) {
+    return persist(writers, dataset, uuid, json, keepField, tokenizer, Codecs.nopLexicoder);
   }
 
   /**
    * Persist a single JSON object.
    *
    * @param writers writers.
-   * @param stats ingest stats (optional)
    * @param dataset dataset.
    * @param uuid unique identifier.
    * @param json JSON object.
@@ -541,8 +522,8 @@ final public class DataStore {
    * @param lexicoder represents java Objects as sortable strings.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean persist(Writers writers, IngestStats stats, String dataset, String uuid,
-      String json, Predicate<String> keepField, Function<String, SpanSequence> tokenizer,
+  public boolean persist(Writers writers, String dataset, String uuid, String json,
+      Predicate<String> keepField, Function<String, SpanSequence> tokenizer,
       Function<Object, Span> lexicoder) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
@@ -558,13 +539,12 @@ final public class DataStore {
           .formatDebug());
     }
 
-    if (!persistBlob(writers, stats, dataset, uuid, json)) {
+    if (!persistBlob(writers, dataset, uuid, json)) {
       return false;
     }
 
     @Var
     SpanSequence spanSequence = null;
-    Set<String> fieldsSeen = new HashSet<>();
     Map<String, Object> newJson =
         new JsonFlattener(json).withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
 
@@ -620,15 +600,9 @@ final public class DataStore {
 
       spanSequence = null; // free memory
 
-      // Increment field cardinality
-      if (stats != null && !fieldsSeen.contains(newField)) {
-        stats.card(dataset, newField, 1);
-        fieldsSeen.add(newField);
-      }
-
       // Persist spans
       for (String span : spans.keySet()) {
-        if (!persistTerm(writers, stats, dataset, uuid, newField, span, spans.get(span),
+        if (!persistTerm(writers, dataset, uuid, newField, span, spans.get(span),
             writeInForwardIndexOnly)) {
           return false;
         }
@@ -672,23 +646,6 @@ final public class DataStore {
   }
 
   /**
-   * Get cardinality by field.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset.
-   * @param field field.
-   * @return count.
-   */
-  public Iterator<FieldCard> fieldCard(Scanners scanners, String dataset, String field) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return termStore_.fieldCard(scanners.index(), dataset,
-        field == null ? null : Sets.newHashSet(field));
-  }
-
-  /**
    * Get count by term.
    *
    * @param scanners scanners.
@@ -727,48 +684,6 @@ final public class DataStore {
         "index scanner must guarantee the result order");
 
     return termStore_.numericalRangeCount((Scanner) scanners.index(), dataset, minTerm, maxTerm,
-        keepFields);
-  }
-
-  /**
-   * Get cardinality by term.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset (optional).
-   * @param term term.
-   * @return count.
-   */
-  public Iterator<Pair<String, List<TermCard>>> termCard(Scanners scanners, String dataset,
-      String term) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkArgument(scanners.index() instanceof Scanner,
-        "index scanner must guarantee the result order");
-
-    return termStore_.termCard((Scanner) scanners.index(), dataset, term);
-  }
-
-  /**
-   * Get cardinality by term.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset (optional).
-   * @param minTerm number (optional). Beginning of the range (included).
-   * @param maxTerm number (optional). End of the range (included).
-   * @param keepFields fields patterns to keep (optional).
-   * @return iterator.
-   */
-  public Iterator<Pair<String, List<TermCard>>> numericalRangeCard(Scanners scanners,
-      String dataset, String minTerm, String maxTerm, Set<String> keepFields) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkArgument(minTerm != null || maxTerm != null,
-        "minTerm and maxTerm cannot be null at the same time");
-    Preconditions.checkArgument(scanners.index() instanceof Scanner,
-        "index scanner must guarantee the result order");
-
-    return termStore_.numericalRangeCard((Scanner) scanners.index(), dataset, minTerm, maxTerm,
         keepFields);
   }
 
@@ -1180,13 +1095,6 @@ final public class DataStore {
 
       datasets.forEach(dataset -> {
 
-        Iterator<FieldCard> fieldCardIterator = fieldCard(scanners, dataset, null);
-
-        while (fieldCardIterator.hasNext()) {
-          FieldCard fieldCard = fieldCardIterator.next();
-          infos.addCardinality(dataset, fieldCard.field(), fieldCard.cardinality());
-        }
-
         Iterator<FieldCount> fieldCountIterator = fieldCount(scanners, dataset, null);
 
         while (fieldCountIterator.hasNext()) {
@@ -1209,14 +1117,12 @@ final public class DataStore {
    * Persist a single JSON object.
    *
    * @param writers writers.
-   * @param stats ingest stats (optional)
    * @param dataset dataset.
    * @param uuid unique identifier.
    * @param blob JSON string.
    * @return true if the operation succeeded, false otherwise.
    */
-  private boolean persistBlob(Writers writers, IngestStats stats, String dataset, String uuid,
-      String blob) {
+  private boolean persistBlob(Writers writers, String dataset, String uuid, String blob) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -1241,13 +1147,6 @@ final public class DataStore {
 
       return false;
     }
-
-    // Increment blob count
-    if (stats != null) {
-      stats.count(dataset, "", 1);
-      stats.card(dataset, "", 1);
-      stats.visibility(dataset, "", Sets.newHashSet(vizAdm, vizRawData));
-    }
     return true;
   }
 
@@ -1255,7 +1154,6 @@ final public class DataStore {
    * Persist a single term.
    *
    * @param writers writers.
-   * @param stats ingest stats (optional)
    * @param dataset dataset.
    * @param uuid unique identifier.
    * @param field field name.
@@ -1265,9 +1163,8 @@ final public class DataStore {
    *        written in the forward index only.
    * @return true if the operation succeeded, false otherwise.
    */
-  private boolean persistTerm(Writers writers, IngestStats stats, String dataset, String uuid,
-      String field, String term, List<Pair<Integer, Integer>> spans,
-      boolean writeInForwardIndexOnly) {
+  private boolean persistTerm(Writers writers, String dataset, String uuid, String field,
+      String term, List<Pair<Integer, Integer>> spans, boolean writeInForwardIndexOnly) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -1289,7 +1186,7 @@ final public class DataStore {
     AbstractStorage.toVisibilityLabels(path)
         .forEach(label -> vizFieldSpecific.add(vizDataset + label));
 
-    boolean isOk = termStore_.add(writers.index(), stats, dataset, uuid, field, term, spans,
+    boolean isOk = termStore_.add(writers.index(), dataset, uuid, field, term, spans,
         vizDocSpecific, vizFieldSpecific, writeInForwardIndexOnly);
 
     if (!isOk) {
@@ -1297,36 +1194,18 @@ final public class DataStore {
           .error(LogFormatterManager.logFormatter().message("write failed").add("dataset", dataset)
               .add("uuid", uuid).add("field", field).add("term", term).formatError());
     }
-
-    if (stats != null) {
-
-      // Do not store visibility labels generated from the document UUID because there is one
-      // for each document
-      stats.removeVisibilityLabel(dataset, field, vizUuid);
-    }
     return isOk;
   }
 
   final public static class Infos {
 
     private final String name_;
-    private final Table<String, String, Long> fieldsCardinalities_ = HashBasedTable.create();
     private final Table<String, String, Long> fieldsCounts_ = HashBasedTable.create();
     private final Table<String, String, Set<String>> fieldsVisibilityLabels_ =
         HashBasedTable.create();
 
     public Infos(String name) {
       name_ = name;
-    }
-
-    public void addCardinality(String dataset, String field, long card) {
-
-      Preconditions.checkNotNull(dataset, "dataset should not be null");
-      Preconditions.checkNotNull(field, "field should not be null");
-      Preconditions.checkArgument(!fieldsCardinalities_.contains(dataset, field),
-          "(%s, %s) already set", dataset, field);
-
-      fieldsCardinalities_.put(dataset, field, card);
     }
 
     public void addCount(String dataset, String field, long count) {
@@ -1353,16 +1232,12 @@ final public class DataStore {
     public Map<String, Object> json() {
 
       List<Map<String, Object>> fields = Sets.union(
-          fieldsCardinalities_.cellSet().stream()
+          fieldsCounts_.cellSet().stream()
               .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
               .collect(Collectors.toSet()),
-          Sets.union(
-              fieldsCounts_.cellSet().stream()
-                  .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
-                  .collect(Collectors.toSet()),
-              fieldsVisibilityLabels_.cellSet().stream()
-                  .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
-                  .collect(Collectors.toSet())))
+          fieldsVisibilityLabels_.cellSet().stream()
+              .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+              .collect(Collectors.toSet()))
           .stream().map(cell -> {
 
             String dataset = cell.getKey();
@@ -1371,11 +1246,7 @@ final public class DataStore {
             Map<String, Object> map = new HashMap<>();
             map.put("dataset", dataset);
             map.put("field", field.replace(Constants.SEPARATOR_CURRENCY_SIGN, '.'));
-            map.put("cardinality",
-                fieldsCardinalities_.contains(dataset, field)
-                    ? fieldsCardinalities_.get(dataset, field)
-                    : 0);
-            map.put("count",
+            map.put("nb_terms",
                 fieldsCounts_.contains(dataset, field) ? fieldsCounts_.get(dataset, field) : 0);
             map.put("visibility_labels",
                 fieldsVisibilityLabels_.contains(dataset, field)

@@ -22,7 +22,7 @@ import com.computablefacts.jupiter.storage.DedupIterator;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
 import com.computablefacts.jupiter.storage.datastore.Writers;
-import com.computablefacts.jupiter.storage.termstore.TermCard;
+import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
@@ -154,12 +154,12 @@ final public class TerminalNode extends AbstractNode {
 
           @Var
           long card = 0;
-          Iterator<Pair<String, List<TermCard>>> iter =
-              dataStore.numericalRangeCard(scanners, dataset, minTerm, maxTerm, keepFields);
+          Iterator<Pair<String, List<TermCount>>> iter =
+              dataStore.numericalRangeCount(scanners, dataset, minTerm, maxTerm, keepFields);
 
           while (iter.hasNext()) {
-            Pair<String, List<TermCard>> pair = iter.next();
-            card += pair.getSecond().stream().mapToLong(TermCard::cardinality).sum();
+            Pair<String, List<TermCount>> pair = iter.next();
+            card += pair.getSecond().stream().mapToLong(TermCount::count).sum();
           }
           return card;
         }
@@ -196,12 +196,12 @@ final public class TerminalNode extends AbstractNode {
 
       for (String term : terms) {
 
-        Iterator<Pair<String, List<TermCard>>> iter = dataStore.termCard(scanners, dataset,
+        Iterator<Pair<String, List<TermCount>>> iter = dataStore.termCount(scanners, dataset,
             WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"));
 
         while (iter.hasNext()) {
-          Pair<String, List<TermCard>> pair = iter.next();
-          card += pair.getSecond().stream().mapToLong(TermCard::cardinality).sum();
+          Pair<String, List<TermCount>> pair = iter.next();
+          card += pair.getSecond().stream().mapToLong(TermCount::count).sum();
         }
       }
       return card;
@@ -214,14 +214,14 @@ final public class TerminalNode extends AbstractNode {
 
       for (String term : terms) {
 
-        Iterator<Pair<String, List<TermCard>>> iter = dataStore.termCard(scanners, dataset, term);
+        Iterator<Pair<String, List<TermCount>>> iter = dataStore.termCount(scanners, dataset, term);
 
         @Var
         long sum = 0;
 
         while (iter.hasNext()) {
-          Pair<String, List<TermCard>> pair = iter.next();
-          sum += pair.getSecond().stream().mapToLong(TermCard::cardinality).sum();
+          Pair<String, List<TermCount>> pair = iter.next();
+          sum += pair.getSecond().stream().mapToLong(TermCount::count).sum();
         }
 
         card = Math.max(card, sum);

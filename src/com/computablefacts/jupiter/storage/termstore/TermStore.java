@@ -59,13 +59,10 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row        | Column Family   | Column Qualifier  | Visibility                               | Value
  * ============+=================+===================+==========================================+=================================
- *  <field>    | <dataset>_CARD  | (empty)           | ADM|<dataset>_CARD                       | <#documents>
  *  <field>    | <dataset>_CNT   | (empty)           | ADM|<dataset>_CNT                        | <#occurrences>
  *  <field>    | <dataset>_VIZ   | (empty)           | ADM|<dataset>_VIZ                        | viz1\0viz2\0
- *  <mret>     | <dataset>_BCARD | <field>           | ADM|<dataset>_<field>                    | <#documents>
  *  <mret>     | <dataset>_BCNT  | <field>           | ADM|<dataset>_<field>                    | <#occurrences>
  *  <mret>     | <dataset>_BIDX  | <doc_id>\0<field> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
- *  <term>     | <dataset>_FCARD | <field>           | ADM|<dataset>_<field>                    | <#documents>
  *  <term>     | <dataset>_FCNT  | <field>           | ADM|<dataset>_<field>                    | <#occurrences>
  *  <term>     | <dataset>_FIDX  | <doc_id>\0<field> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
  * </pre>
@@ -87,10 +84,6 @@ final public class TermStore extends AbstractStorage {
     return dataset + "_CNT";
   }
 
-  static String card(String dataset) {
-    return dataset + "_CARD";
-  }
-
   static String visibility(String dataset) {
     return dataset + "_VIZ";
   }
@@ -99,20 +92,12 @@ final public class TermStore extends AbstractStorage {
     return dataset + "_FCNT";
   }
 
-  private static String forwardCard(String dataset) {
-    return dataset + "_FCARD";
-  }
-
   private static String forwardIndex(String dataset) {
     return dataset + "_FIDX";
   }
 
   private static String backwardCount(String dataset) {
     return dataset + "_BCNT";
-  }
-
-  private static String backwardCard(String dataset) {
-    return dataset + "_BCARD";
   }
 
   private static String backwardIndex(String dataset) {
@@ -242,55 +227,6 @@ final public class TermStore extends AbstractStorage {
     });
   }
 
-  private static Iterator<TermCard> scanCards(ScannerBase scanner, String dataset,
-      Set<String> keepFields, boolean isTermBackward, Range range) {
-
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(range, "range should not be null");
-
-    if (keepFields != null && !keepFields.isEmpty()) {
-      IteratorSetting setting =
-          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreDocFieldFilter.class);
-      TermStoreDocFieldFilter.setFieldsToKeep(setting, keepFields);
-      scanner.addScanIterator(setting);
-    }
-
-    if (dataset != null) {
-      scanner.fetchColumnFamily(new Text(dataset));
-    } else {
-
-      IteratorSetting setting = new IteratorSetting(23, "WildcardFilter", WildcardFilter.class);
-      WildcardFilter.applyOnColumnFamily(setting);
-      WildcardFilter.addWildcard(setting, isTermBackward ? "*_BCARD" : "*_FCARD");
-
-      scanner.addScanIterator(setting);
-    }
-    if (!setRange(scanner, range)) {
-      return Constants.ITERATOR_EMPTY;
-    }
-    return Iterators.transform(scanner.iterator(), entry -> {
-
-      Key key = entry.getKey();
-      Value value = entry.getValue();
-
-      // Extract term from ROW
-      String termm = isTermBackward ? reverse(key.getRow().toString()) : key.getRow().toString();
-
-      // Extract field from CQ
-      String field = key.getColumnQualifier().toString();
-
-      // Extract cardinality from VALUE
-      long cardinality = Long.parseLong(value.toString(), 10);
-
-      // Extract visibility labels
-      String cv = key.getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(
-          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
-
-      return new TermCard(field, termm, labels, cardinality);
-    });
-  }
-
   /**
    * Initialize the storage layer.
    *
@@ -389,9 +325,8 @@ final public class TermStore extends AbstractStorage {
           .add("dataset", dataset).formatInfo());
     }
 
-    Set<String> cfs = Sets.newHashSet(count(dataset), card(dataset), visibility(dataset),
-        forwardCount(dataset), forwardCard(dataset), forwardIndex(dataset), backwardCount(dataset),
-        backwardCard(dataset), backwardIndex(dataset));
+    Set<String> cfs = Sets.newHashSet(count(dataset), visibility(dataset), forwardCount(dataset),
+        forwardIndex(dataset), backwardCount(dataset), backwardIndex(dataset));
     return remove(deleter, cfs);
   }
 
@@ -461,11 +396,9 @@ final public class TermStore extends AbstractStorage {
 
     isOk = isOk && super.remove(deleter, term, forwardIndex(dataset), null);
     isOk = isOk && super.remove(deleter, term, forwardCount(dataset), null);
-    isOk = isOk && super.remove(deleter, term, forwardCard(dataset), null);
 
     isOk = isOk && super.remove(deleter, reverse(term), backwardIndex(dataset), null);
     isOk = isOk && super.remove(deleter, reverse(term), backwardCount(dataset), null);
-    isOk = isOk && super.remove(deleter, reverse(term), backwardCard(dataset), null);
 
     return isOk;
   }
@@ -491,26 +424,18 @@ final public class TermStore extends AbstractStorage {
     int size = groups.size();
 
     String forwardCount = forwardCount(dataset);
-    String forwardCard = forwardCard(dataset);
     String forwardIndex = forwardIndex(dataset);
     String backwardCount = backwardCount(dataset);
-    String backwardCard = backwardCard(dataset);
     String backwardIndex = backwardIndex(dataset);
 
     if (!groups.containsKey(forwardCount)) {
       groups.put(forwardCount, Sets.newHashSet(new Text(forwardCount)));
-    }
-    if (!groups.containsKey(forwardCard)) {
-      groups.put(forwardCard, Sets.newHashSet(new Text(forwardCard)));
     }
     if (!groups.containsKey(forwardIndex)) {
       groups.put(forwardIndex, Sets.newHashSet(new Text(forwardIndex)));
     }
     if (!groups.containsKey(backwardCount)) {
       groups.put(backwardCount, Sets.newHashSet(new Text(backwardCount)));
-    }
-    if (!groups.containsKey(backwardCard)) {
-      groups.put(backwardCard, Sets.newHashSet(new Text(backwardCard)));
     }
     if (!groups.containsKey(backwardIndex)) {
       groups.put(backwardIndex, Sets.newHashSet(new Text(backwardIndex)));
@@ -524,7 +449,6 @@ final public class TermStore extends AbstractStorage {
    * the caller. This method should be called only once for each (dataset, docId, field, term).
    *
    * @param writer batch writer.
-   * @param stats ingest stats.
    * @param dataset dataset.
    * @param docId document id.
    * @param field field name.
@@ -534,11 +458,11 @@ final public class TermStore extends AbstractStorage {
    * @param fieldSpecificLabels visibility labels specific to a given field.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean add(BatchWriter writer, IngestStats stats, String dataset, String docId,
-      String field, String term, List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
+  public boolean add(BatchWriter writer, String dataset, String docId, String field, String term,
+      List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
       Set<String> fieldSpecificLabels) {
-    return add(writer, stats, dataset, docId, field, term, spans, docSpecificLabels,
-        fieldSpecificLabels, false);
+    return add(writer, dataset, docId, field, term, spans, docSpecificLabels, fieldSpecificLabels,
+        false);
   }
 
   /**
@@ -546,7 +470,6 @@ final public class TermStore extends AbstractStorage {
    * the caller. This method should be called only once for each (dataset, docId, field, term).
    *
    * @param writer batch writer.
-   * @param stats ingest stats.
    * @param dataset dataset.
    * @param docId document id.
    * @param field field name.
@@ -558,8 +481,8 @@ final public class TermStore extends AbstractStorage {
    *        written in the forward index only.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean add(BatchWriter writer, IngestStats stats, String dataset, String docId,
-      String field, String term, List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
+  public boolean add(BatchWriter writer, String dataset, String docId, String field, String term,
+      List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
       Set<String> fieldSpecificLabels, boolean writeInForwardIndexOnly) {
 
     Preconditions.checkNotNull(writer, "writer should not be null");
@@ -592,24 +515,26 @@ final public class TermStore extends AbstractStorage {
                         .collect(Collectors.toList())));
     Value newCount = new Value(Integer.toString(spans.size(), 10));
 
-    if (stats != null) {
-      stats.count(dataset, field, spans.size());
-      stats.visibility(dataset, field, fieldSpecificLabels);
-      stats.visibility(dataset, field, docSpecificLabels);
-    }
-
     // Column visibility from labels
+    ColumnVisibility vizFieldCount = new ColumnVisibility(Constants.STRING_ADM
+        + Constants.SEPARATOR_PIPE + AbstractStorage.toVisibilityLabel(count(dataset)));
+    ColumnVisibility vizFieldLabels = new ColumnVisibility(Constants.STRING_ADM
+        + Constants.SEPARATOR_PIPE + AbstractStorage.toVisibilityLabel(visibility(dataset)));
+
     ColumnVisibility vizFieldSpecific =
         new ColumnVisibility(Joiner.on(Constants.SEPARATOR_PIPE).join(fieldSpecificLabels));
     ColumnVisibility viz = new ColumnVisibility(Joiner.on(Constants.SEPARATOR_PIPE)
         .join(Sets.union(docSpecificLabels, fieldSpecificLabels)));
 
-    // Forward index
+    // Ingest stats
     @Var
-    boolean isOk =
-        add(writer, newTerm, new Text(forwardCount(dataset)), newField, vizFieldSpecific, newCount);
-    isOk = isOk && add(writer, newTerm, new Text(forwardCard(dataset)), newField, vizFieldSpecific,
-        Constants.VALUE_ONE);
+    boolean isOk = add(writer, newField, new Text(count(dataset)), null, vizFieldCount, newCount);
+    isOk = isOk && add(writer, newField, new Text(visibility(dataset)), null, vizFieldLabels,
+        new Value(Joiner.on(Constants.SEPARATOR_NUL).join(fieldSpecificLabels)));
+
+    // Forward index
+    isOk = isOk && add(writer, newTerm, new Text(forwardCount(dataset)), newField, vizFieldSpecific,
+        newCount);
     isOk =
         isOk && add(writer, newTerm, new Text(forwardIndex(dataset)), newDocField, viz, newSpans);
 
@@ -618,8 +543,6 @@ final public class TermStore extends AbstractStorage {
       // Backward index
       isOk = isOk && add(writer, newTermReversed, new Text(backwardCount(dataset)), newField,
           vizFieldSpecific, newCount);
-      isOk = isOk && add(writer, newTermReversed, new Text(backwardCard(dataset)), newField,
-          vizFieldSpecific, Constants.VALUE_ONE);
       isOk = isOk && add(writer, newTermReversed, new Text(backwardIndex(dataset)), newDocField,
           viz, newSpans);
     }
@@ -673,56 +596,6 @@ final public class TermStore extends AbstractStorage {
           Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
       return new FieldCount(field, labels, count);
-    });
-  }
-
-  /**
-   * Get the number of documents indexed for each field.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset.
-   * @param fields fields.
-   * @return count.
-   */
-  public Iterator<FieldCard> fieldCard(ScannerBase scanner, String dataset, Set<String> fields) {
-
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("fields", fields).formatInfo());
-    }
-
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(card(dataset)));
-
-    if (fields != null) {
-
-      List<Range> ranges = fields.stream().map(Range::exact).collect(Collectors.toList());
-
-      if (!setRanges(scanner, ranges)) {
-        return Constants.ITERATOR_EMPTY;
-      }
-    }
-    return Iterators.transform(scanner.iterator(), entry -> {
-
-      Key key = entry.getKey();
-      Value value = entry.getValue();
-
-      // Extract term from ROW
-      String field = key.getRow().toString();
-
-      // Extract term cardinality from VALUE
-      long cardinality = Long.parseLong(value.toString(), 10);
-
-      // Extract visibility labels
-      String cv = key.getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(
-          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
-
-      return new FieldCard(field, labels, cardinality);
     });
   }
 
@@ -932,162 +805,6 @@ final public class TermStore extends AbstractStorage {
       scanner.addScanIterator(setting);
     }
     return scanCounts(scanner, newDataset, Sets.newHashSet(), isTermBackward, range);
-  }
-
-  /**
-   * Get the number of documents with matching numbers in a given range for each field.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset.
-   * @param minTerm number (optional). Beginning of the range (included).
-   * @param maxTerm number (optional). End of the range (excluded).
-   * @param keepFields fields patterns to keep (optional).
-   * @return an iterator sorted in lexicographic order by term.
-   */
-  public Iterator<Pair<String, List<TermCard>>> numericalRangeCard(Scanner scanner, String dataset,
-      String minTerm, String maxTerm, Set<String> keepFields) {
-    return new GroupByTermIterator<>(
-        numericalRangeCard((ScannerBase) scanner, dataset, minTerm, maxTerm, keepFields));
-  }
-
-  /**
-   * Get the number of documents with matching numbers in a given range for each field.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset.
-   * @param minTerm number (optional). Beginning of the range (included).
-   * @param maxTerm number (optional). End of the range (excluded).
-   * @param keepFields fields patterns to keep (optional).
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
-   */
-  public Iterator<TermCard> numericalRangeCard(ScannerBase scanner, String dataset, String minTerm,
-      String maxTerm, Set<String> keepFields) {
-
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkArgument(minTerm != null || maxTerm != null,
-        "minTerm and maxTerm cannot be null at the same time");
-
-    if (minTerm != null && !Strings.isNumber(minTerm)) {
-      logger_.error(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
-          .add("has_keep_fields", keepFields != null).message("minTerm must be a number!")
-          .formatError());
-      return Constants.ITERATOR_EMPTY;
-    }
-    if (maxTerm != null && !Strings.isNumber(maxTerm)) {
-      logger_.error(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
-          .add("has_keep_fields", keepFields != null).message("maxTerm must be a number!")
-          .formatError());
-      return Constants.ITERATOR_EMPTY;
-    }
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
-          .add("has_keep_fields", keepFields != null).formatInfo());
-    }
-
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-
-    Range range;
-
-    if (minTerm == null) {
-      Key startKey = new Key();
-      Key endKey = new Key(BigDecimalCodec.encode(maxTerm));
-      range = new Range(startKey, endKey);
-    } else if (maxTerm == null) {
-      Key startKey = new Key(BigDecimalCodec.encode(minTerm));
-      range = new Range(startKey, null);
-    } else {
-      Key startKey = new Key(BigDecimalCodec.encode(minTerm));
-      Key endKey = new Key(BigDecimalCodec.encode(maxTerm));
-      range = new Range(startKey, endKey);
-    }
-
-    String newDataset = dataset == null ? null : forwardCard(dataset);
-
-    return Iterators.transform(scanCards(scanner, newDataset, keepFields, false, range),
-        term -> new TermCard(term.field(), BigDecimalCodec.decode(term.term()), term.labels(),
-            term.cardinality()));
-  }
-
-  /**
-   * Get the number of documents of each matching term for each field.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset.
-   * @param term term. Might contain wildcard characters.
-   * @return an iterator sorted in lexicographic order by term.
-   */
-  public Iterator<Pair<String, List<TermCard>>> termCard(Scanner scanner, String dataset,
-      String term) {
-    return new GroupByTermIterator<>(termCard((ScannerBase) scanner, dataset, term));
-  }
-
-  /**
-   * Get the number of documents of each matching term for each field.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset (optional).
-   * @param term term. Might contain wildcard characters.
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
-   */
-  public Iterator<TermCard> termCard(ScannerBase scanner, String dataset, String term) {
-
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkArgument(
-        !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
-        "term cannot start AND end with a wildcard");
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("term", term).formatInfo());
-    }
-
-    // TODO: add "filter by field"
-
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-
-    String newTerm;
-    String newDataset;
-
-    boolean isTermBackward = WildcardMatcher.startsWithWildcard(term);
-
-    if (isTermBackward) {
-      newTerm = reverse(term);
-      newDataset = dataset == null ? null : backwardCard(dataset);
-    } else {
-      newTerm = term;
-      newDataset = dataset == null ? null : forwardCard(dataset);
-    }
-
-    Range range;
-
-    if (!WildcardMatcher.hasWildcards(newTerm)) {
-      if (newDataset == null) {
-        range = Range.exact(newTerm);
-      } else {
-        range = Range.exact(newTerm, newDataset);
-      }
-    } else {
-
-      range = Range.prefix(WildcardMatcher.prefix(newTerm));
-
-      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
-      WildcardFilter.applyOnRow(setting);
-      WildcardFilter.addWildcard(setting, newTerm);
-
-      scanner.addScanIterator(setting);
-    }
-    return scanCards(scanner, newDataset, Sets.newHashSet(), isTermBackward, range);
   }
 
   /**
