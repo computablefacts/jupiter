@@ -848,36 +848,47 @@ final public class DataStore {
   }
 
   /**
-   * Get all blobs from the blob storage layer. Note that using a BatchScanner improves performances
+   * Get all JSON from the blob storage layer. Note that using a BatchScanner improves performances
    * a lot.
    *
+   * When fields are specified, The <dataset>_RAW_DATA auth is not enough to get access to the full
+   * JSON document. The user must also have the <dataset>_<field> auth for each requested field.
+   * 
    * @param scanners scanners.
    * @param dataset dataset.
+   * @param fields JSON fields to keep.
    * @return list of documents.
    */
-  public Iterator<Blob<Value>> blobScan(Scanners scanners, String dataset) {
+  public Iterator<Blob<Value>> blobScan(Scanners scanners, String dataset, Set<String> fields) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(fields, "fields should not be null");
 
-    return blobStore_.get(scanners.blob(), dataset);
+    return blobStore_.get(scanners.blob(), dataset, fields, Sets.newHashSet());
   }
 
   /**
-   * Get blobs from the blob storage layer.
+   * Get JSON from the blob storage layer.
+   *
+   * When fields are specified, The <dataset>_RAW_DATA auth is not enough to get access to the full
+   * JSON document. The user must also have the <dataset>_<field> auth for each requested field.
    *
    * @param scanners scanners.
    * @param dataset dataset.
+   * @param fields JSON fields to keep.
    * @param uuids documents unique identifiers.
    * @return list of documents.
    */
-  public Iterator<Blob<Value>> blobScan(Scanners scanners, String dataset, Set<String> uuids) {
+  public Iterator<Blob<Value>> blobScan(Scanners scanners, String dataset, Set<String> fields,
+      Set<String> uuids) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(fields, "fields should not be null");
     Preconditions.checkNotNull(uuids, "uuids should not be null");
 
-    return blobStore_.get(scanners.blob(), dataset, uuids);
+    return blobStore_.get(scanners.blob(), dataset, fields, uuids);
   }
 
   /**
@@ -1209,8 +1220,8 @@ final public class DataStore {
    * @return true if the operation succeeded, false otherwise.
    */
   private boolean persistTerm(Writers writers, IngestStats stats, String dataset, String uuid,
-      String field,
-      String term, List<Pair<Integer, Integer>> spans, boolean writeInForwardIndexOnly) {
+      String field, String term, List<Pair<Integer, Integer>> spans,
+      boolean writeInForwardIndexOnly) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");

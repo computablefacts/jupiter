@@ -399,12 +399,14 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     try (Scanners scanners = dataStore.scanners(auths2)) { // keep order
 
-      Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, "first_dataset");
+      Iterator<Blob<Value>> iterator =
+          dataStore.blobScan(scanners, "first_dataset", Sets.newHashSet("*name"));
 
       while (iterator.hasNext()) {
         Blob<Value> blob = iterator.next();
         list1.add(blob);
         Assert.assertEquals("row_" + (list1.size() - 1), blob.key());
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", blob.value().toString());
       }
     }
 
@@ -415,7 +417,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Scanners scanners = new Scanners(dataStore.configurations(), dataStore.name(), auths1, 2)) { // out-of-order
 
       Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, "first_dataset",
-          Sets.newHashSet("row_0", "row_1", "row_2", "row_3", "row_4"));
+          Sets.newHashSet(), Sets.newHashSet("row_0", "row_1", "row_2", "row_3", "row_4"));
 
       while (iterator.hasNext()) {
         Blob<Value> blob = iterator.next();
@@ -1200,7 +1202,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     try (Scanners scanners = dataStore.scanners(authorizations)) { // keep order
 
       List<Blob<Value>> list = new ArrayList<>();
-      Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, dataset);
+      Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, dataset, Sets.newHashSet());
 
       while (iterator.hasNext()) {
         list.add(iterator.next());
