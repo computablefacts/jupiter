@@ -2,19 +2,22 @@ package com.computablefacts.jupiter.iterators;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.nona.Generated;
@@ -23,16 +26,20 @@ import com.github.wnameless.json.flattener.JsonFlattener;
 import com.github.wnameless.json.unflattener.JsonUnflattener;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-public class BlobStoreFilterOutJsonFieldsIterator extends AnonymizingIterator {
+public class BlobStoreFilterOutJsonFieldsIterator
+    implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
 
-  private static final String TYPE_JSON = Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL;
+  private static final String TYPE_JSON = Blob.TYPE_JSON + "" + SEPARATOR_NUL;
   private static final String FIELDS_CRITERION = "f";
 
+  private SortedKeyValueIterator<Key, Value> source_;
+  private Map<String, String> options_;
+  private Key topKey_;
+  private Value topValue_;
   private Set<String> keepFields_;
 
   public BlobStoreFilterOutJsonFieldsIterator() {}
@@ -51,36 +58,74 @@ public class BlobStoreFilterOutJsonFieldsIterator extends AnonymizingIterator {
     options.put(FIELDS_CRITERION, "Fields patterns to keep.");
 
     return new IteratorOptions("BlobStoreFilterOutJsonFieldsIterator",
-        "BlobStoreFilterOutJsonFieldsIterator filters out the JSON fields stored in the Accumulo Value for which the user does not have the right auths.",
+        "BlobStoreFilterOutJsonFieldsIterator filters out the JSON fields stored in the Accumulo Value the user did not explicitly asked for.",
         options, null);
   }
 
   @Override
   public boolean validateOptions(Map<String, String> options) {
-    if (options.containsKey(FIELDS_CRITERION)) {
-      return super.validateOptions(options) && options.get(FIELDS_CRITERION) != null;
-    }
-    return false;
+    return options.containsKey(FIELDS_CRITERION) && options.get(FIELDS_CRITERION) != null;
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options,
-      IteratorEnvironment env) {
-
-    super.init(source, options, env);
-
+      IteratorEnvironment environment) {
+    source_ = source;
+    options_ = new HashMap<>(options);
     keepFields_ = options.containsKey(FIELDS_CRITERION)
         ? Sets.newHashSet(Splitter.on(SEPARATOR_NUL).split(options.get(FIELDS_CRITERION)))
         : null;
   }
 
   @Override
-  protected AnonymizingIterator create() {
-    return new BlobStoreFilterOutJsonFieldsIterator();
+  public boolean hasTop() {
+    return topKey_ != null;
   }
 
   @Override
-  protected void setTopKeyValue(Key key, Value value) {
+  public void next() throws IOException {
+    if (source_.hasTop()) {
+      setTopKeyValue(source_.getTopKey(), source_.getTopValue());
+      source_.next();
+    } else {
+      topKey_ = null;
+      topValue_ = null;
+    }
+  }
+
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
+    source_.seek(range, columnFamilies, inclusive);
+    next();
+  }
+
+  @Override
+  public Key getTopKey() {
+    return topKey_;
+  }
+
+  protected void setTopKey(Key key) {
+    topKey_ = new Key(key);
+  }
+
+  @Override
+  public Value getTopValue() {
+    return topValue_;
+  }
+
+  protected void setTopValue(Value value) {
+    topValue_ = new Value(value);
+  }
+
+  @Override
+  public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment environment) {
+    AnonymizingIterator iterator = new BlobStoreJsonFieldsAnonymizingIterator();
+    iterator.init(source_.deepCopy(environment), options_, environment);
+    return iterator;
+  }
+
+  private void setTopKeyValue(Key key, Value value) {
 
     setTopKey(key);
 
@@ -90,38 +135,21 @@ public class BlobStoreFilterOutJsonFieldsIterator extends AnonymizingIterator {
       setTopValue(value);
     } else {
 
-      setTopValue(Constants.VALUE_ANONYMIZED);
+      Map<String, Object> json = new JsonFlattener(value.toString())
+          .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
 
-      if (keepFields_ != null && !keepFields_.isEmpty()) {
+      // First, remove all fields that have not been explicitly asked for
+      json.keySet().removeIf(field -> !acceptField(field));
 
-        String vizDataset =
-            AbstractStorage.toVisibilityLabel(key.getColumnFamily().toString() + "_");
-        Map<String, Object> json = new JsonFlattener(value.toString())
-            .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
+      // Then, rebuild a new JSON object
+      String newJson =
+          new JsonUnflattener(json).withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
 
-        // First, remove all fields that have not been explicitly asked for
-        json.keySet().removeIf(field -> !acceptField(field));
-
-        // Then, ensure the user has the right to visualize the remaining fields
-        Set<String> auths = parsedAuths();
-
-        json.keySet().removeIf(field -> {
-
-          List<String> path = Lists.newArrayList(Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN)
-              .trimResults().omitEmptyStrings().split(field));
-
-          return AbstractStorage.toVisibilityLabels(path).stream().map(label -> vizDataset + label)
-              .noneMatch(auths::contains);
-        });
-
-        // Next, rebuild a new JSON object
-        String newJson =
-            new JsonUnflattener(json).withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
-
-        // Set the new JSON object as the new Accumulo Value
-        if (!"{}".equals(newJson)) {
-          setTopValue(new Value(newJson.getBytes(StandardCharsets.UTF_8)));
-        }
+      // Next, set the new JSON object as the new Accumulo Value
+      if ("{}".equals(newJson)) {
+        setTopValue(Constants.VALUE_ANONYMIZED);
+      } else {
+        setTopValue(new Value(newJson.getBytes(StandardCharsets.UTF_8)));
       }
     }
   }

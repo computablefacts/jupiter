@@ -852,8 +852,8 @@ final public class DataStore {
    * Get all JSON from the blob storage layer. Note that using a BatchScanner improves performances
    * a lot.
    *
-   * When fields are specified, The <dataset>_RAW_DATA auth is not enough to get access to the full
-   * JSON document. The user must also have the <dataset>_<field> auth for each requested field.
+   * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
+   * must also have the <dataset>_<field> auth for each requested field.
    * 
    * @param scanners scanners.
    * @param dataset dataset.
@@ -871,8 +871,8 @@ final public class DataStore {
   /**
    * Get JSON from the blob storage layer.
    *
-   * When fields are specified, The <dataset>_RAW_DATA auth is not enough to get access to the full
-   * JSON document. The user must also have the <dataset>_<field> auth for each requested field.
+   * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
+   * must also have the <dataset>_<field> auth for each requested field.
    *
    * @param scanners scanners.
    * @param dataset dataset.

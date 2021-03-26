@@ -23,6 +23,7 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.iterators.BlobStoreAnonymizingIterator;
 import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterator;
+import com.computablefacts.jupiter.iterators.BlobStoreJsonFieldsAnonymizingIterator;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
@@ -241,6 +242,9 @@ final public class BlobStore extends AbstractStorage {
   /**
    * Get one or more blobs.
    *
+   * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
+   * must also have the <dataset>_<field> auth for each requested field.
+   *
    * @param scanner scanner.
    * @param dataset dataset/namespace.
    * @param keepFields fields to keep if Accumulo Values are JSON objects (optional).
@@ -269,14 +273,19 @@ final public class BlobStore extends AbstractStorage {
 
     scanner.addScanIterator(setting);
 
+    IteratorSetting setting2 =
+        new IteratorSetting(22, BlobStoreJsonFieldsAnonymizingIterator.class);
+    BlobStoreJsonFieldsAnonymizingIterator.setAuthorizations(setting2, scanner.getAuthorizations());
+
+    scanner.addScanIterator(setting2);
+
     if (keepFields != null) {
 
-      IteratorSetting setting2 =
-          new IteratorSetting(22, BlobStoreFilterOutJsonFieldsIterator.class);
-      BlobStoreFilterOutJsonFieldsIterator.setAuthorizations(setting2, scanner.getAuthorizations());
-      BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting2, keepFields);
+      IteratorSetting setting3 =
+          new IteratorSetting(23, BlobStoreFilterOutJsonFieldsIterator.class);
+      BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting3, keepFields);
 
-      scanner.addScanIterator(setting2);
+      scanner.addScanIterator(setting3);
     }
 
     List<Range> ranges;
