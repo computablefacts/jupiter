@@ -856,14 +856,13 @@ final public class DataStore {
    * 
    * @param scanners scanners.
    * @param dataset dataset.
-   * @param fields JSON fields to keep.
+   * @param fields JSON fields to keep (optional).
    * @return list of documents.
    */
-  public Iterator<Blob<Value>> blobScan(Scanners scanners, String dataset, Set<String> fields) {
+  public Iterator<Blob<Value>> jsonScan(Scanners scanners, String dataset, Set<String> fields) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(fields, "fields should not be null");
 
     return blobStore_.get(scanners.blob(), dataset, fields, Sets.newHashSet());
   }
@@ -876,16 +875,15 @@ final public class DataStore {
    *
    * @param scanners scanners.
    * @param dataset dataset.
-   * @param fields JSON fields to keep.
+   * @param fields JSON fields to keep (optional).
    * @param uuids documents unique identifiers.
    * @return list of documents.
    */
-  public Iterator<Blob<Value>> blobScan(Scanners scanners, String dataset, Set<String> fields,
+  public Iterator<Blob<Value>> jsonScan(Scanners scanners, String dataset, Set<String> fields,
       Set<String> uuids) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(fields, "fields should not be null");
     Preconditions.checkNotNull(uuids, "uuids should not be null");
 
     return blobStore_.get(scanners.blob(), dataset, fields, uuids);

@@ -400,7 +400,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     try (Scanners scanners = dataStore.scanners(auths2)) { // keep order
 
       Iterator<Blob<Value>> iterator =
-          dataStore.blobScan(scanners, "first_dataset", Sets.newHashSet("*name"));
+          dataStore.jsonScan(scanners, "first_dataset", Sets.newHashSet());
 
       while (iterator.hasNext()) {
         Blob<Value> blob = iterator.next();
@@ -416,7 +416,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     try (
         Scanners scanners = new Scanners(dataStore.configurations(), dataStore.name(), auths1, 2)) { // out-of-order
 
-      Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, "first_dataset",
+      Iterator<Blob<Value>> iterator = dataStore.jsonScan(scanners, "first_dataset",
           Sets.newHashSet(), Sets.newHashSet("row_0", "row_1", "row_2", "row_3", "row_4"));
 
       while (iterator.hasNext()) {
@@ -1202,7 +1202,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     try (Scanners scanners = dataStore.scanners(authorizations)) { // keep order
 
       List<Blob<Value>> list = new ArrayList<>();
-      Iterator<Blob<Value>> iterator = dataStore.blobScan(scanners, dataset, Sets.newHashSet());
+      Iterator<Blob<Value>> iterator = dataStore.jsonScan(scanners, dataset, Sets.newHashSet());
 
       while (iterator.hasNext()) {
         list.add(iterator.next());

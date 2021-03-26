@@ -507,7 +507,7 @@ public class Shell {
               docIds.add(iterator.next());
             }
 
-            Iterator<Blob<Value>> iter = ds.blobScan(batchScanners, dataset, docIds);
+            Iterator<Blob<Value>> iter = ds.jsonScan(batchScanners, dataset, null, docIds);
 
             while (iter.hasNext()) {
               Blob<Value> blob = iter.next();
