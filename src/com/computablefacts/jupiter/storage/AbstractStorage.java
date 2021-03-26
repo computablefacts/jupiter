@@ -77,7 +77,8 @@ public abstract class AbstractStorage {
 
     Preconditions.checkNotNull(string, "string should not be null");
 
-    return string.replaceAll("\\s+|[^a-zA-Z0-9_]", "_").trim().toUpperCase();
+    return string.replaceAll("\\[\\d+\\]|\\[\\*\\]", "").replaceAll("\\s+|[^a-zA-Z0-9_]", "_")
+        .trim().toUpperCase();
   }
 
   /**

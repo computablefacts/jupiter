@@ -57,6 +57,8 @@ public class AbstractStorageTest extends MiniAccumuloClusterTest {
         AbstractStorage.toVisibilityLabel("2001:0db8:0001:0000:0000:0ab9:C0A8:0102"));
     Assert.assertEquals("000_0000_00_00T00_00_00_000Z",
         AbstractStorage.toVisibilityLabel("000|0000-00-00T00:00:00.000Z"));
+    Assert.assertEquals("ACTORS_CHILDREN_NAME",
+        AbstractStorage.toVisibilityLabel("actors[0]¤children[1].name"));
   }
 
   @Test
@@ -69,6 +71,8 @@ public class AbstractStorageTest extends MiniAccumuloClusterTest {
         AbstractStorage.toVisibilityLabels(Lists.newArrayList("data", "user", "username")));
     Assert.assertEquals(Sets.newHashSet("DATA", "DATA_USER", "DATA_USER_USERNAME"),
         AbstractStorage.toVisibilityLabels(Lists.newArrayList("data", "user", "username", "raw")));
+    Assert.assertEquals(Sets.newHashSet("ACTORS", "ACTORS_CHILDREN", "ACTORS_CHILDREN_NAME"),
+        AbstractStorage.toVisibilityLabels(Lists.newArrayList("actors[0]", "children[1]", "name")));
   }
 
   @Test

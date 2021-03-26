@@ -2,10 +2,12 @@ package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -67,8 +69,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Table;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -560,6 +564,7 @@ final public class DataStore {
 
     @Var
     SpanSequence spanSequence = null;
+    Set<String> fieldsSeen = new HashSet<>();
     Map<String, Object> newJson =
         new JsonFlattener(json).withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
 
@@ -584,6 +589,7 @@ final public class DataStore {
 
       @Var
       boolean writeInForwardIndexOnly = false;
+      String newField = field.replaceAll("\\[\\d+\\]", "[*]");
 
       if (tokenizer == null || !(value instanceof String)) {
 
@@ -615,13 +621,14 @@ final public class DataStore {
       spanSequence = null; // free memory
 
       // Increment field cardinality
-      if (stats != null) {
-        stats.card(dataset, field, 1);
+      if (stats != null && !fieldsSeen.contains(newField)) {
+        stats.card(dataset, newField, 1);
+        fieldsSeen.add(newField);
       }
 
       // Persist spans
       for (String span : spans.keySet()) {
-        if (!persistTerm(writers, stats, dataset, uuid, field, span, spans.get(span),
+        if (!persistTerm(writers, stats, dataset, uuid, newField, span, spans.get(span),
             writeInForwardIndexOnly)) {
           return false;
         }
@@ -1159,6 +1166,46 @@ final public class DataStore {
   }
 
   /**
+   * Return misc. infos about a given list of datasets.
+   *
+   * @param datasets a list of datasets.
+   * @param auths the user authorizations.
+   * @return {@link Infos}.
+   */
+  public Infos infos(Set<String> datasets, Authorizations auths) {
+
+    Infos infos = new Infos(name());
+
+    try (Scanners scanners = scanners(auths)) {
+
+      datasets.forEach(dataset -> {
+
+        Iterator<FieldCard> fieldCardIterator = fieldCard(scanners, dataset, null);
+
+        while (fieldCardIterator.hasNext()) {
+          FieldCard fieldCard = fieldCardIterator.next();
+          infos.addCardinality(dataset, fieldCard.field(), fieldCard.cardinality());
+        }
+
+        Iterator<FieldCount> fieldCountIterator = fieldCount(scanners, dataset, null);
+
+        while (fieldCountIterator.hasNext()) {
+          FieldCount fieldCount = fieldCountIterator.next();
+          infos.addCount(dataset, fieldCount.field(), fieldCount.count());
+        }
+
+        Iterator<FieldLabels> fieldLabelsIterator = fieldLabels(scanners, dataset, null);
+
+        while (fieldLabelsIterator.hasNext()) {
+          FieldLabels fieldLabels = fieldLabelsIterator.next();
+          infos.addVisibilityLabels(dataset, fieldLabels.field(), fieldLabels.termLabels());
+        }
+      });
+    }
+    return infos;
+  }
+
+  /**
    * Persist a single JSON object.
    *
    * @param writers writers.
@@ -1258,5 +1305,91 @@ final public class DataStore {
       stats.removeVisibilityLabel(dataset, field, vizUuid);
     }
     return isOk;
+  }
+
+  final public static class Infos {
+
+    private final String name_;
+    private final Table<String, String, Long> fieldsCardinalities_ = HashBasedTable.create();
+    private final Table<String, String, Long> fieldsCounts_ = HashBasedTable.create();
+    private final Table<String, String, Set<String>> fieldsVisibilityLabels_ =
+        HashBasedTable.create();
+
+    public Infos(String name) {
+      name_ = name;
+    }
+
+    public void addCardinality(String dataset, String field, long card) {
+
+      Preconditions.checkNotNull(dataset, "dataset should not be null");
+      Preconditions.checkNotNull(field, "field should not be null");
+      Preconditions.checkArgument(!fieldsCardinalities_.contains(dataset, field),
+          "(%s, %s) already set", dataset, field);
+
+      fieldsCardinalities_.put(dataset, field, card);
+    }
+
+    public void addCount(String dataset, String field, long count) {
+
+      Preconditions.checkNotNull(dataset, "dataset should not be null");
+      Preconditions.checkNotNull(field, "field should not be null");
+      Preconditions.checkArgument(!fieldsCounts_.contains(dataset, field), "(%s, %s) already set",
+          dataset, field);
+
+      fieldsCounts_.put(dataset, field, count);
+    }
+
+    public void addVisibilityLabels(String dataset, String field, Set<String> labels) {
+
+      Preconditions.checkNotNull(dataset, "dataset should not be null");
+      Preconditions.checkNotNull(field, "field should not be null");
+      Preconditions.checkNotNull(labels, "labels should not be null");
+      Preconditions.checkArgument(!fieldsVisibilityLabels_.contains(dataset, field),
+          "(%s, %s) already set", dataset, field);
+
+      fieldsVisibilityLabels_.put(dataset, field, labels);
+    }
+
+    public Map<String, Object> json() {
+
+      List<Map<String, Object>> fields = Sets.union(
+          fieldsCardinalities_.cellSet().stream()
+              .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+              .collect(Collectors.toSet()),
+          Sets.union(
+              fieldsCounts_.cellSet().stream()
+                  .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+                  .collect(Collectors.toSet()),
+              fieldsVisibilityLabels_.cellSet().stream()
+                  .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+                  .collect(Collectors.toSet())))
+          .stream().map(cell -> {
+
+            String dataset = cell.getKey();
+            String field = cell.getValue();
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("dataset", dataset);
+            map.put("field", field.replace(Constants.SEPARATOR_CURRENCY_SIGN, '.'));
+            map.put("cardinality",
+                fieldsCardinalities_.contains(dataset, field)
+                    ? fieldsCardinalities_.get(dataset, field)
+                    : 0);
+            map.put("count",
+                fieldsCounts_.contains(dataset, field) ? fieldsCounts_.get(dataset, field) : 0);
+            map.put("visibility_labels",
+                fieldsVisibilityLabels_.contains(dataset, field)
+                    ? fieldsVisibilityLabels_.get(dataset, field)
+                    : Sets.newHashSet());
+
+            return map;
+          }).collect(Collectors.toList());
+
+      Map<String, Object> map = new HashMap<>();
+      map.put("name", name_);
+      map.put("fields", fields);
+
+      return map;
+    }
   }
 }

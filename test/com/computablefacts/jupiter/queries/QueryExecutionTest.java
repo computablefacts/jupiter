@@ -261,7 +261,7 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
 
     DataStore dataStore = newDataStore(Constants.AUTH_ADM);
     @Var
-    AbstractNode query = QueryBuilder.build("Actors[0]¤uuid:\"item?0\" AND Actors[0]¤name:*cruise");
+    AbstractNode query = QueryBuilder.build("Actors[*]¤uuid:\"item?0\" AND Actors[*]¤name:*cruise");
 
     try (Scanners scanners = dataStore.scanners(Constants.AUTH_ADM)) {
       try (Writers writers = dataStore.writers()) {
@@ -284,7 +284,7 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
     }
 
     query =
-        QueryBuilder.build("NOT(NOT(Actors[0]¤uuid:\"item?0\") OR NOT(Actors[0]¤name:*cruise))");
+        QueryBuilder.build("NOT(NOT(Actors[*]¤uuid:\"item?0\") OR NOT(Actors[*]¤name:*cruise))");
 
     try (Scanners scanners = dataStore.scanners(Constants.AUTH_ADM)) {
       try (Writers writers = dataStore.writers()) {
@@ -313,7 +313,7 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
     DataStore dataStore = newDataStore(Constants.AUTH_ADM);
     @Var
     AbstractNode query =
-        QueryBuilder.build("Actors[0]¤uuid:\"item?0\" AND Actors[0]¤name:\"*downey jr.\"");
+        QueryBuilder.build("Actors[*]¤uuid:\"item?0\" AND Actors[*]¤name:\"*downey jr.\"");
 
     try (Scanners scanners = dataStore.scanners(Constants.AUTH_ADM)) {
       try (Writers writers = dataStore.writers()) {
@@ -336,7 +336,7 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
     }
 
     query = QueryBuilder
-        .build("NOT(NOT(Actors[0]¤uuid:\"item?0\") OR NOT(Actors[0]¤name:\"*downey jr.\"))");
+        .build("NOT(NOT(Actors[*]¤uuid:\"item?0\") OR NOT(Actors[*]¤name:\"*downey jr.\"))");
 
     try (Scanners scanners = dataStore.scanners(Constants.AUTH_ADM)) {
       try (Writers writers = dataStore.writers()) {

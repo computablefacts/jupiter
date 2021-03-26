@@ -1187,21 +1187,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     return entities(termStore, dataset, "term_" + term, authorizations).size();
   }
 
-  private List<Term> entitiesInFirstDataset(TermStore termStore, String term,
-      Authorizations authorizations) {
-    return entities(termStore, "first_dataset", term, authorizations);
-  }
-
-  private List<Term> entitiesInSecondDataset(TermStore termStore, String term,
-      Authorizations authorizations) {
-    return entities(termStore, "second_dataset", term, authorizations);
-  }
-
-  private List<Term> entitiesInThirdDataset(TermStore termStore, String term,
-      Authorizations authorizations) {
-    return entities(termStore, "third_dataset", term, authorizations);
-  }
-
   private List<Term> entities(TermStore termStore, String dataset, String term,
       Authorizations authorizations) {
 
