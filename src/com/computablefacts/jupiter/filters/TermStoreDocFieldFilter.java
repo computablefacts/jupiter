@@ -15,6 +15,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.computablefacts.jupiter.BloomFilters;
+import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Joiner;
@@ -104,13 +105,22 @@ public class TermStoreDocFieldFilter extends Filter {
 
     String doc;
     String field;
+    int type;
 
     if (index < 0) {
       doc = null;
       field = cq;
+      type = Term.TYPE_UNKNOWN;
     } else {
       doc = cq.substring(0, index);
-      field = cq.substring(index + 1);
+      int index2 = cq.lastIndexOf(SEPARATOR_NUL);
+      if (index == index2) {
+        field = cq.substring(index + 1);
+        type = Term.TYPE_UNKNOWN;
+      } else {
+        field = cq.substring(index + 1, index2);
+        type = Integer.parseInt(cq.substring(index2 + 1), 10);
+      }
     }
 
     if (keepDocs_ != null && doc != null) {
@@ -123,6 +133,7 @@ public class TermStoreDocFieldFilter extends Filter {
         return false;
       }
     }
+    // TODO : backport filter on term type
     return true;
   }
 

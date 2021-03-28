@@ -93,7 +93,7 @@ public class TermStoreDocFieldFilterTest {
 
     Assert.assertEquals(1,
         list.stream().filter(e -> e.getColumnFamily().toString().equals("DATASET_2")
-            && e.getColumnQualifier().toString().endsWith("FIELD_1")).count());
+            && e.getColumnQualifier().toString().endsWith("FIELD_1\0" + "2")).count());
 
     Assert.assertEquals(1,
         list.stream().filter(e -> e.getColumnFamily().toString().equals("DATASET_1")
@@ -101,7 +101,7 @@ public class TermStoreDocFieldFilterTest {
 
     Assert.assertEquals(1,
         list.stream().filter(e -> e.getColumnFamily().toString().equals("DATASET_2")
-            && e.getColumnQualifier().toString().endsWith("FIELD_2")).count());
+            && e.getColumnQualifier().toString().endsWith("FIELD_2\0" + "2")).count());
   }
 
   @Test
@@ -151,9 +151,9 @@ public class TermStoreDocFieldFilterTest {
     map.put(new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_2", 0), new Value("1"));
     map.put(new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_3", 0), new Value("1"));
 
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_1", 0), new Value("2"));
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_2", 0), new Value("2"));
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_3", 0), new Value("2"));
+    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_1\0" + "2", 0), new Value("2"));
+    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_2\0" + "2", 0), new Value("2"));
+    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_3\0" + "2", 0), new Value("2"));
 
     return map;
   }
