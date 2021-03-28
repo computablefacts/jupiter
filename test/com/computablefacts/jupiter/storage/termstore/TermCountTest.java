@@ -10,17 +10,17 @@ public class TermCountTest {
 
   @Test(expected = NullPointerException.class)
   public void testNullField() {
-    TermCount tc = new TermCount(null, "term", Sets.newHashSet(), 0);
+    TermCount tc = new TermCount(null, Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullTerm() {
-    TermCount tc = new TermCount("field", null, Sets.newHashSet(), 0);
+    TermCount tc = new TermCount("field", Term.TYPE_UNKNOWN, null, Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabels() {
-    TermCount tc = new TermCount("field", "term", null, 0);
+    TermCount tc = new TermCount("field", Term.TYPE_STRING, "term", null, 0);
   }
 
   @Test

@@ -411,7 +411,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         // Create a new dataset
         for (int i = 0; i < 10; i++) {
           Assert.assertTrue(dataStore.persist(writers, "fourth_dataset", "row_" + i, json2(i), null,
-              Codecs.defaultTokenizer));
+              Codecs.defaultTokenizer, Codecs.nopLexicoder));
         }
 
         Assert.assertTrue(writers.flush());

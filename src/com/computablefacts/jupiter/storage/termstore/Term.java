@@ -21,16 +21,22 @@ import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
 @CheckReturnValue
-final public class Term implements HasTerm, Comparable<Term> {
+final public class Term implements HasTerm, HasTermType, Comparable<Term> {
+
+  public static final int TYPE_UNKNOWN = 0;
+  public static final int TYPE_STRING = 1;
+  public static final int TYPE_NUMBER = 2;
+  public static final int TYPE_DATE = 3;
 
   private final String docId_;
   private final String field_;
+  private final int termType_;
   private final String term_;
   private final Set<String> labels_;
   private final long count_;
   private final List<ComparablePair<Integer, Integer>> spans_;
 
-  public Term(String docId, String field, String term, Set<String> labels, long count,
+  public Term(String docId, String field, int termType, String term, Set<String> labels, long count,
       List<ComparablePair<Integer, Integer>> spans) {
 
     Preconditions.checkNotNull(docId, "docId should not be null");
@@ -45,6 +51,7 @@ final public class Term implements HasTerm, Comparable<Term> {
 
     docId_ = docId;
     field_ = field;
+    termType_ = termType;
     term_ = term;
     labels_ = new HashSet<>(labels);
     count_ = count;
@@ -55,8 +62,8 @@ final public class Term implements HasTerm, Comparable<Term> {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("docId", docId_).add("field", field_)
-        .add("term", term_).add("labels", labels_).add("count", count_).add("spans", spans_)
-        .toString();
+        .add("term", term_).add("term_type", termType_).add("labels", labels_).add("count", count_)
+        .add("spans", spans_).toString();
   }
 
   @Override
@@ -69,13 +76,14 @@ final public class Term implements HasTerm, Comparable<Term> {
     }
     Term term = (Term) obj;
     return Objects.equal(docId_, term.docId_) && Objects.equal(field_, term.field_)
-        && Objects.equal(term_, term.term_) && Objects.equal(labels_, term.labels_)
-        && Objects.equal(count_, term.count_) && Objects.equal(spans_, term.spans_);
+        && Objects.equal(termType_, term.termType_) && Objects.equal(term_, term.term_)
+        && Objects.equal(labels_, term.labels_) && Objects.equal(count_, term.count_)
+        && Objects.equal(spans_, term.spans_);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(docId_, field_, term_, labels_, count_, spans_);
+    return Objects.hashCode(docId_, field_, termType_, term_, labels_, count_, spans_);
   }
 
   @Override
@@ -83,7 +91,8 @@ final public class Term implements HasTerm, Comparable<Term> {
 
     @Var
     int cmp = ComparisonChain.start().compare(docId_, term.docId_).compare(field_, term.field_)
-        .compare(term_, term.term_).compare(count_, term.count_).result();
+        .compare(termType_, term.termType_).compare(term_, term.term_).compare(count_, term.count_)
+        .result();
 
     if (cmp != 0) {
       return cmp;
@@ -97,9 +106,40 @@ final public class Term implements HasTerm, Comparable<Term> {
     return compare(spans_, term.spans_);
   }
 
+  @Generated
+  @Override
+  public int termType() {
+    return termType_;
+  }
+
+  @Generated
   @Override
   public String term() {
     return term_;
+  }
+
+  @Generated
+  @Override
+  public boolean isUnknown() {
+    return termType_ == TYPE_UNKNOWN;
+  }
+
+  @Generated
+  @Override
+  public boolean isString() {
+    return termType_ == TYPE_STRING;
+  }
+
+  @Generated
+  @Override
+  public boolean isNumber() {
+    return termType_ == Term.TYPE_NUMBER;
+  }
+
+  @Generated
+  @Override
+  public boolean isDate() {
+    return termType_ == Term.TYPE_DATE;
   }
 
   @Generated

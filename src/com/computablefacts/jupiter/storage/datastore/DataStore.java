@@ -6,6 +6,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -468,54 +469,6 @@ final public class DataStore {
    * @param dataset dataset.
    * @param uuid unique identifier.
    * @param json JSON object.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean persist(Writers writers, String dataset, String uuid, String json) {
-    return persist(writers, dataset, uuid, json, key -> true, Codecs.nopTokenizer,
-        Codecs.nopLexicoder);
-  }
-
-  /**
-   * Persist a single JSON object.
-   *
-   * @param writers writers.
-   * @param dataset dataset.
-   * @param uuid unique identifier.
-   * @param json JSON object.
-   * @param keepField filter applied on all JSON attributes before value tokenization (optional).
-   *        This predicate should return true iif the field's value must be tokenized.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean persist(Writers writers, String dataset, String uuid, String json,
-      Predicate<String> keepField) {
-    return persist(writers, dataset, uuid, json, keepField, Codecs.nopTokenizer,
-        Codecs.nopLexicoder);
-  }
-
-  /**
-   * Persist a single JSON object.
-   *
-   * @param writers writers.
-   * @param dataset dataset.
-   * @param uuid unique identifier.
-   * @param json JSON object.
-   * @param keepField filter applied on all JSON attributes before value tokenization (optional).
-   *        This predicate should return true iif the field's value must be tokenized.
-   * @param tokenizer string tokenizer (optional).
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean persist(Writers writers, String dataset, String uuid, String json,
-      Predicate<String> keepField, Function<String, SpanSequence> tokenizer) {
-    return persist(writers, dataset, uuid, json, keepField, tokenizer, Codecs.nopLexicoder);
-  }
-
-  /**
-   * Persist a single JSON object.
-   *
-   * @param writers writers.
-   * @param dataset dataset.
-   * @param uuid unique identifier.
-   * @param json JSON object.
    * @param keepField filter applied on all JSON attributes before value tokenization (optional).
    *        This predicate should return true iif the field's value must be tokenized.
    * @param tokenizer string tokenizer (optional).
@@ -569,6 +522,8 @@ final public class DataStore {
 
       @Var
       boolean writeInForwardIndexOnly = false;
+      @Var
+      int termType = Term.TYPE_UNKNOWN;
       String newField = field.replaceAll("\\[\\d+\\]", "[*]");
 
       if (tokenizer == null || !(value instanceof String)) {
@@ -577,12 +532,23 @@ final public class DataStore {
         spanSequence = new SpanSequence();
         spanSequence.add(Objects.requireNonNull(lexicoder.apply(value)));
         writeInForwardIndexOnly = !(value instanceof String);
+
+        if (value instanceof String) {
+          termType = Term.TYPE_STRING;
+        } else if (value instanceof Number) {
+          termType = Term.TYPE_NUMBER;
+        } else if (value instanceof Date) {
+          termType = Term.TYPE_DATE;
+        } else {
+          termType = Term.TYPE_UNKNOWN;
+        }
       } else if (Codecs.isProbablyBase64((String) value)) {
 
         // Base64 strings are NOT indexed
         continue;
       } else {
         spanSequence = Objects.requireNonNull(tokenizer.apply((String) value));
+        termType = Term.TYPE_STRING;
       }
 
       // Group by spans
@@ -602,7 +568,7 @@ final public class DataStore {
 
       // Persist spans
       for (String span : spans.keySet()) {
-        if (!persistTerm(writers, dataset, uuid, newField, span, spans.get(span),
+        if (!persistTerm(writers, dataset, uuid, newField, termType, span, spans.get(span),
             writeInForwardIndexOnly)) {
           return false;
         }
@@ -1157,6 +1123,7 @@ final public class DataStore {
    * @param dataset dataset.
    * @param uuid unique identifier.
    * @param field field name.
+   * @param termType the type of the term i.e. string, number, etc.
    * @param term term.
    * @param spans positions of the term in the document.
    * @param writeInForwardIndexOnly allow the caller to explicitly specify that the term must be
@@ -1164,7 +1131,8 @@ final public class DataStore {
    * @return true if the operation succeeded, false otherwise.
    */
   private boolean persistTerm(Writers writers, String dataset, String uuid, String field,
-      String term, List<Pair<Integer, Integer>> spans, boolean writeInForwardIndexOnly) {
+      int termType, String term, List<Pair<Integer, Integer>> spans,
+      boolean writeInForwardIndexOnly) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");

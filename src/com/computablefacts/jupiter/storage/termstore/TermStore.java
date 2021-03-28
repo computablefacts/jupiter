@@ -57,14 +57,14 @@ import com.google.errorprone.annotations.Var;
  * </p>
  *
  * <pre>
- *  Row        | Column Family   | Column Qualifier  | Visibility                               | Value
- * ============+=================+===================+==========================================+=================================
- *  <field>    | <dataset>_CNT   | (empty)           | ADM|<dataset>_CNT                        | <#occurrences>
- *  <field>    | <dataset>_VIZ   | (empty)           | ADM|<dataset>_VIZ                        | viz1\0viz2\0
- *  <mret>     | <dataset>_BCNT  | <field>           | ADM|<dataset>_<field>                    | <#occurrences>
- *  <mret>     | <dataset>_BIDX  | <doc_id>\0<field> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
- *  <term>     | <dataset>_FCNT  | <field>           | ADM|<dataset>_<field>                    | <#occurrences>
- *  <term>     | <dataset>_FIDX  | <doc_id>\0<field> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
+ *  Row        | Column Family   | Column Qualifier               | Visibility                               | Value
+ * ============+=================+================================+==========================================+=================================
+ *  <field>    | <dataset>_CNT   | (empty)                        | ADM|<dataset>_CNT                        | <#occurrences>
+ *  <field>    | <dataset>_VIZ   | (empty)                        | ADM|<dataset>_VIZ                        | viz1\0viz2\0
+ *  <mret>     | <dataset>_BCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
+ *  <mret>     | <dataset>_BIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
+ *  <term>     | <dataset>_FCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
+ *  <term>     | <dataset>_FIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
  * </pre>
  *
  * <p>
@@ -152,7 +152,18 @@ final public class TermStore extends AbstractStorage {
       String cq = key.getColumnQualifier().toString();
       int index = cq.indexOf(Constants.SEPARATOR_NUL);
       String docId = cq.substring(0, index);
-      String field = cq.substring(index + 1);
+      int index2 = cq.lastIndexOf(Constants.SEPARATOR_NUL);
+
+      String field;
+      int termType;
+
+      if (index == index2) {
+        field = cq.substring(index + 1);
+        termType = Term.TYPE_UNKNOWN;
+      } else {
+        field = cq.substring(index + 1, index2);
+        termType = Integer.parseInt(cq.substring(index2 + 1), 10);
+      }
 
       // Extract count and spans from VALUE
       String val = value.toString();
@@ -174,7 +185,7 @@ final public class TermStore extends AbstractStorage {
       Set<String> labels = Sets.newHashSet(
           Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
-      return new Term(docId, field, termm, labels, count, ranges);
+      return new Term(docId, field, termType, termm, labels, count, ranges);
     });
   }
 
@@ -213,7 +224,19 @@ final public class TermStore extends AbstractStorage {
       String termm = isTermBackward ? reverse(key.getRow().toString()) : key.getRow().toString();
 
       // Extract field from CQ
-      String field = key.getColumnQualifier().toString();
+      String cq = key.getColumnQualifier().toString();
+      int index = cq.indexOf(Constants.SEPARATOR_NUL);
+
+      String field;
+      int termType;
+
+      if (index < 0) {
+        field = cq;
+        termType = Term.TYPE_UNKNOWN;
+      } else {
+        field = cq.substring(0, index);
+        termType = Integer.parseInt(cq.substring(index + 1), 10);
+      }
 
       // Extract count from VALUE
       long count = Long.parseLong(value.toString(), 10);
@@ -223,7 +246,7 @@ final public class TermStore extends AbstractStorage {
       Set<String> labels = Sets.newHashSet(
           Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
-      return new TermCount(field, termm, labels, count);
+      return new TermCount(field, termType, termm, labels, count);
     });
   }
 
@@ -585,7 +608,19 @@ final public class TermStore extends AbstractStorage {
       Value value = entry.getValue();
 
       // Extract term from ROW
-      String field = key.getRow().toString();
+      String cq = key.getRow().toString();
+      int index = cq.indexOf(Constants.SEPARATOR_NUL);
+
+      String field;
+      int termType;
+
+      if (index < 0) {
+        field = cq;
+        termType = Term.TYPE_UNKNOWN;
+      } else {
+        field = cq.substring(0, index);
+        termType = Integer.parseInt(cq.substring(index + 1), 10);
+      }
 
       // Extract term count from VALUE
       long count = Long.parseLong(value.toString(), 10);
@@ -595,7 +630,7 @@ final public class TermStore extends AbstractStorage {
       Set<String> labels = Sets.newHashSet(
           Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
-      return new FieldCount(field, labels, count);
+      return new FieldCount(field, termType, labels, count);
     });
   }
 
@@ -728,8 +763,8 @@ final public class TermStore extends AbstractStorage {
     String newDataset = dataset == null ? null : forwardCount(dataset);
 
     return Iterators.transform(scanCounts(scanner, newDataset, keepFields, false, range),
-        term -> new TermCount(term.field(), BigDecimalCodec.decode(term.term()), term.labels(),
-            term.count()));
+        term -> new TermCount(term.field(), term.termType(), BigDecimalCodec.decode(term.term()),
+            term.labels(), term.count()));
   }
 
   /**
@@ -870,8 +905,8 @@ final public class TermStore extends AbstractStorage {
     String newDataset = dataset == null ? null : forwardIndex(dataset);
 
     return Iterators.transform(scanTerms(scanner, newDataset, keepFields, keepDocs, false, range),
-        term -> new Term(term.docId(), term.field(), BigDecimalCodec.decode(term.term()),
-            term.labels(), term.count(), term.spans()));
+        term -> new Term(term.docId(), term.field(), term.termType(),
+            BigDecimalCodec.decode(term.term()), term.labels(), term.count(), term.spans()));
   }
 
   /**

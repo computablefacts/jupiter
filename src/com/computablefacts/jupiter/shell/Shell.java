@@ -257,7 +257,7 @@ public class Shell {
         } else {
 
           if (!ds.persist(writers, dataset, document.docId(), row, key -> true,
-              Codecs.defaultTokenizer)) {
+              Codecs.defaultTokenizer, Codecs.nopLexicoder)) {
             logger_.error(LogFormatterManager.logFormatter()
                 .message("Persistence of " + document.docId() + " failed").formatError());
           }
