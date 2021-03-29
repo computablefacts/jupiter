@@ -1018,94 +1018,102 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Map<String, Object> map = new HashMap<>();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].age");
-    map.put("nb_terms", 10L);
+    map.put("nb_index_entries", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_AGE"));
+    map.put("types", Sets.newHashSet("NUMBER"));
 
     Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].children[*]");
-    map.put("nb_terms", 30L);
+    map.put("nb_index_entries", 30L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_CHILDREN"));
+    map.put("types", Sets.newHashSet("STRING"));
 
     Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].hasChildren");
-    map.put("nb_terms", 10L);
+    map.put("nb_index_entries", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_HASCHILDREN"));
+    map.put("types", Sets.newHashSet("BOOLEAN"));
 
     Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].weight");
-    map.put("nb_terms", 10L);
+    map.put("nb_index_entries", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_WEIGHT"));
+    map.put("types", Sets.newHashSet("NUMBER"));
 
     Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].Birthdate");
-    map.put("nb_terms", 10L);
+    map.put("nb_index_entries", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_BIRTHDATE"));
+    map.put("types", Sets.newHashSet("STRING"));
 
     Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].Born At");
-    map.put("nb_terms", 10L);
+    map.put("nb_index_entries", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_BORN_AT"));
+    map.put("types", Sets.newHashSet("STRING"));
 
     Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].name");
-    map.put("nb_terms", 10L);
+    map.put("nb_index_entries", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_NAME"));
+    map.put("types", Sets.newHashSet("STRING"));
 
     Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].photo");
-    map.put("nb_terms", 10L);
+    map.put("nb_index_entries", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_PHOTO"));
+    map.put("types", Sets.newHashSet("STRING"));
 
     Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].hasGreyHair");
-    map.put("nb_terms", 10L);
+    map.put("nb_index_entries", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_HASGREYHAIR"));
+    map.put("types", Sets.newHashSet("BOOLEAN"));
 
     Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
     map.put("field", "Actors[*].uuid");
-    map.put("nb_terms", 10L);
+    map.put("nb_index_entries", 10L);
     map.put("visibility_labels",
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_UUID"));
+    map.put("types", Sets.newHashSet("NUMBER"));
 
     Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
-
-    System.out.println(map);
   }
 
   private void fillDataStore(DataStore dataStore) {

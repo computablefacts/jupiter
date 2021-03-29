@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -539,6 +540,8 @@ final public class DataStore {
           termType = Term.TYPE_NUMBER;
         } else if (value instanceof Date) {
           termType = Term.TYPE_DATE;
+        } else if (value instanceof Boolean) {
+          termType = Term.TYPE_BOOLEAN;
         } else {
           termType = Term.TYPE_UNKNOWN;
         }
@@ -1065,14 +1068,15 @@ final public class DataStore {
 
         while (fieldCountIterator.hasNext()) {
           FieldCount fieldCount = fieldCountIterator.next();
-          infos.addCount(dataset, fieldCount.field(), fieldCount.count());
+          infos.addCount(dataset, fieldCount.field(), fieldCount.termType(), fieldCount.count());
         }
 
         Iterator<FieldLabels> fieldLabelsIterator = fieldLabels(scanners, dataset, null);
 
         while (fieldLabelsIterator.hasNext()) {
           FieldLabels fieldLabels = fieldLabelsIterator.next();
-          infos.addVisibilityLabels(dataset, fieldLabels.field(), fieldLabels.termLabels());
+          infos.addVisibilityLabels(dataset, fieldLabels.field(), fieldLabels.termType(),
+              fieldLabels.termLabels());
         }
       });
     }
@@ -1171,30 +1175,41 @@ final public class DataStore {
     private final Table<String, String, Long> fieldsCounts_ = HashBasedTable.create();
     private final Table<String, String, Set<String>> fieldsVisibilityLabels_ =
         HashBasedTable.create();
+    private final Table<String, String, Set<String>> fieldsTypes_ = HashBasedTable.create();
 
     public Infos(String name) {
       name_ = name;
     }
 
-    public void addCount(String dataset, String field, long count) {
+    public void addCount(String dataset, String field, int type, long count) {
 
       Preconditions.checkNotNull(dataset, "dataset should not be null");
       Preconditions.checkNotNull(field, "field should not be null");
-      Preconditions.checkArgument(!fieldsCounts_.contains(dataset, field), "(%s, %s) already set",
-          dataset, field);
 
-      fieldsCounts_.put(dataset, field, count);
+      if (fieldsCounts_.contains(dataset, field)) {
+        long oldCount = fieldsCounts_.get(dataset, field);
+        fieldsCounts_.remove(dataset, field);
+        fieldsCounts_.put(dataset, field, oldCount + count);
+      } else {
+        fieldsCounts_.put(dataset, field, count);
+      }
+
+      addType(dataset, field, type);
     }
 
-    public void addVisibilityLabels(String dataset, String field, Set<String> labels) {
+    public void addVisibilityLabels(String dataset, String field, int type, Set<String> labels) {
 
       Preconditions.checkNotNull(dataset, "dataset should not be null");
       Preconditions.checkNotNull(field, "field should not be null");
       Preconditions.checkNotNull(labels, "labels should not be null");
-      Preconditions.checkArgument(!fieldsVisibilityLabels_.contains(dataset, field),
-          "(%s, %s) already set", dataset, field);
 
-      fieldsVisibilityLabels_.put(dataset, field, labels);
+      if (fieldsVisibilityLabels_.contains(dataset, field)) {
+        fieldsVisibilityLabels_.get(dataset, field).addAll(labels);
+      } else {
+        fieldsVisibilityLabels_.put(dataset, field, new HashSet<>(labels));
+      }
+
+      addType(dataset, field, type);
     }
 
     public Map<String, Object> json() {
@@ -1214,11 +1229,14 @@ final public class DataStore {
             Map<String, Object> map = new HashMap<>();
             map.put("dataset", dataset);
             map.put("field", field.replace(Constants.SEPARATOR_CURRENCY_SIGN, '.'));
-            map.put("nb_terms",
+            map.put("nb_index_entries",
                 fieldsCounts_.contains(dataset, field) ? fieldsCounts_.get(dataset, field) : 0);
             map.put("visibility_labels",
                 fieldsVisibilityLabels_.contains(dataset, field)
                     ? fieldsVisibilityLabels_.get(dataset, field)
+                    : Sets.newHashSet());
+            map.put("types",
+                fieldsTypes_.contains(dataset, field) ? fieldsTypes_.get(dataset, field)
                     : Sets.newHashSet());
 
             return map;
@@ -1229,6 +1247,23 @@ final public class DataStore {
       map.put("fields", fields);
 
       return map;
+    }
+
+    private void addType(String dataset, String field, int type) {
+
+      Preconditions.checkNotNull(dataset, "dataset should not be null");
+      Preconditions.checkNotNull(field, "field should not be null");
+
+      String newType = type == Term.TYPE_STRING ? "STRING"
+          : type == Term.TYPE_DATE ? "DATE"
+              : type == Term.TYPE_NUMBER ? "NUMBER"
+                  : type == Term.TYPE_BOOLEAN ? "BOOLEAN" : "UNKNOWN";
+
+      if (fieldsTypes_.contains(dataset, field)) {
+        fieldsTypes_.get(dataset, field).add(newType);
+      } else {
+        fieldsTypes_.put(dataset, field, Sets.newHashSet(newType));
+      }
     }
   }
 }

@@ -27,6 +27,7 @@ final public class Term implements HasTerm, HasTermType, Comparable<Term> {
   public static final int TYPE_STRING = 1;
   public static final int TYPE_NUMBER = 2;
   public static final int TYPE_DATE = 3;
+  public static final int TYPE_BOOLEAN = 4;
 
   private final String docId_;
   private final String field_;
