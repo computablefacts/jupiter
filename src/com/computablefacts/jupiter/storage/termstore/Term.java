@@ -133,13 +133,13 @@ final public class Term implements HasTerm, HasTermType, Comparable<Term> {
   @Generated
   @Override
   public boolean isNumber() {
-    return termType_ == Term.TYPE_NUMBER;
+    return termType_ == TYPE_NUMBER;
   }
 
   @Generated
   @Override
   public boolean isDate() {
-    return termType_ == Term.TYPE_DATE;
+    return termType_ == TYPE_DATE;
   }
 
   @Generated

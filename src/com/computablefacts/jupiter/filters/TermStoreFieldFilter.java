@@ -14,7 +14,6 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.WildcardMatcher;
@@ -24,19 +23,11 @@ import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-public class TermStoreDocFieldFilter extends Filter {
+public class TermStoreFieldFilter extends Filter {
 
-  private static final String DOCS_CRITERION = "d";
   private static final String FIELDS_CRITERION = "f";
 
-  private BloomFilters<String> keepDocs_;
   private Set<String> keepFields_;
-
-  public static void setDocsToKeep(IteratorSetting setting, BloomFilters<String> bf) {
-    if (bf != null) {
-      setting.addOption(DOCS_CRITERION, BloomFilters.toString(bf));
-    }
-  }
 
   public static void setFieldsToKeep(IteratorSetting setting, Set<String> fields) {
     if (fields != null) {
@@ -49,11 +40,10 @@ public class TermStoreDocFieldFilter extends Filter {
   public IteratorOptions describeOptions() {
 
     Map<String, String> options = new HashMap<>();
-    options.put(DOCS_CRITERION, "Documents to keep.");
     options.put(FIELDS_CRITERION, "Fields patterns to keep.");
 
-    return new IteratorOptions("TermStoreDocFieldFilter",
-        "TermStoreDocFieldFilter accepts or rejects each Key/Value pair based on documents and/or fields filters.",
+    return new IteratorOptions("TermStoreFieldFilter",
+        "TermStoreFieldFilter accepts or rejects each Key/Value pair based on fields filters.",
         options, null);
   }
 
@@ -61,11 +51,6 @@ public class TermStoreDocFieldFilter extends Filter {
   public boolean validateOptions(Map<String, String> options) {
     if (options.size() < 1 || options.size() > 2) {
       return false;
-    }
-    if (options.containsKey(DOCS_CRITERION)) {
-      if (options.get(DOCS_CRITERION) == null) {
-        return false;
-      }
     }
     if (options.containsKey(FIELDS_CRITERION)) {
       return options.get(FIELDS_CRITERION) != null;
@@ -78,15 +63,6 @@ public class TermStoreDocFieldFilter extends Filter {
       IteratorEnvironment env) throws IOException {
 
     super.init(source, options, env);
-
-    if (!options.containsKey(DOCS_CRITERION)) {
-      keepDocs_ = null;
-    } else {
-      keepDocs_ = BloomFilters.fromString(options.get(DOCS_CRITERION));
-      if (keepDocs_ == null) {
-        keepDocs_ = new BloomFilters<>();
-      }
-    }
 
     keepFields_ = options.containsKey(FIELDS_CRITERION)
         ? Sets.newHashSet(Splitter.on(SEPARATOR_NUL).split(options.get(FIELDS_CRITERION)))
@@ -102,25 +78,18 @@ public class TermStoreDocFieldFilter extends Filter {
 
     String cq = key.getColumnQualifier().toString();
     int index = cq.indexOf(SEPARATOR_NUL);
-    String doc = cq.substring(0, index);
 
     String field;
     int type;
 
-    int index2 = cq.lastIndexOf(SEPARATOR_NUL);
-    if (index == index2) {
-      field = cq.substring(index + 1);
+    if (index < 0) {
+      field = cq;
       type = Term.TYPE_UNKNOWN;
     } else {
-      field = cq.substring(index + 1, index2);
-      type = Integer.parseInt(cq.substring(index2 + 1), 10);
+      field = cq.substring(0, index);
+      type = Integer.parseInt(cq.substring(index + 1), 10);
     }
 
-    if (keepDocs_ != null && doc != null) {
-      if (!acceptDoc(doc)) {
-        return false;
-      }
-    }
     if (keepFields_ != null && field != null) {
       if (!acceptField(field)) {
         return false;
@@ -137,9 +106,5 @@ public class TermStoreDocFieldFilter extends Filter {
       }
     }
     return false;
-  }
-
-  private boolean acceptDoc(String doc) {
-    return keepDocs_.mightContain(doc);
   }
 }

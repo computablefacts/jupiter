@@ -222,12 +222,80 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Authorizations auths = Constants.AUTH_ADM;
     DataStore dataStore = newDataStore(auths);
 
-    // TODO
+    List<Term> terms = new ArrayList<>();
+
+    try (Scanners scanners = dataStore.scanners(auths)) {
+
+      dataStore.numericalRangeScan(scanners, "first_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(10, terms.size());
+
+      terms.forEach(term -> {
+        Assert.assertEquals("Actors[*]¤age", term.field());
+        Assert.assertEquals("56", term.term());
+        Assert.assertTrue(term.isNumber());
+      });
+
+      terms.clear();
+
+      dataStore.numericalRangeScan(scanners, "second_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(10, terms.size());
+
+      terms.forEach(term -> {
+        Assert.assertEquals("Actors[*]¤age", term.field());
+        Assert.assertEquals("56", term.term());
+        Assert.assertTrue(term.isNumber());
+      });
+
+      terms.clear();
+
+      dataStore.numericalRangeScan(scanners, "third_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(10, terms.size());
+
+      terms.forEach(term -> {
+        Assert.assertEquals("Actors[*]¤age", term.field());
+        Assert.assertEquals("56", term.term());
+        Assert.assertTrue(term.isNumber());
+      });
+    }
 
     Assert.assertTrue(dataStore.remove("first_dataset"));
     Assert.assertTrue(dataStore.remove("second_dataset"));
 
-    // TODO
+    try (Scanners scanners = dataStore.scanners(auths)) {
+
+      terms.clear();
+
+      dataStore.numericalRangeScan(scanners, "first_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(0, terms.size());
+
+      terms.clear();
+
+      dataStore.numericalRangeScan(scanners, "second_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(0, terms.size());
+
+      terms.clear();
+
+      dataStore.numericalRangeScan(scanners, "third_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(10, terms.size());
+
+      terms.forEach(term -> {
+        Assert.assertEquals("Actors[*]¤age", term.field());
+        Assert.assertEquals("56", term.term());
+        Assert.assertTrue(term.isNumber());
+      });
+    }
   }
 
   @Test
@@ -236,7 +304,47 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Authorizations auths = Constants.AUTH_ADM;
     DataStore dataStore = newDataStore(auths);
 
-    // TODO
+    List<Term> terms = new ArrayList<>();
+
+    try (Scanners scanners = dataStore.scanners(auths)) {
+
+      dataStore.numericalRangeScan(scanners, "first_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(10, terms.size());
+
+      terms.forEach(term -> {
+        Assert.assertEquals("Actors[*]¤age", term.field());
+        Assert.assertEquals("56", term.term());
+        Assert.assertTrue(term.isNumber());
+      });
+
+      terms.clear();
+
+      dataStore.numericalRangeScan(scanners, "second_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(10, terms.size());
+
+      terms.forEach(term -> {
+        Assert.assertEquals("Actors[*]¤age", term.field());
+        Assert.assertEquals("56", term.term());
+        Assert.assertTrue(term.isNumber());
+      });
+
+      terms.clear();
+
+      dataStore.numericalRangeScan(scanners, "third_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(10, terms.size());
+
+      terms.forEach(term -> {
+        Assert.assertEquals("Actors[*]¤age", term.field());
+        Assert.assertEquals("56", term.term());
+        Assert.assertTrue(term.isNumber());
+      });
+    }
 
     for (int i = 0; i < 100; i++) {
       if (i % 2 == 0) { // remove even rows from dataset 1
@@ -246,13 +354,51 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       }
     }
 
-    // TODO
+    try (Scanners scanners = dataStore.scanners(auths)) {
 
-    // Ensure odd rows remain in dataset 1
-    // TODO
+      terms.clear();
 
-    // Ensure even rows remain in dataset 2
-    // TODO
+      dataStore.numericalRangeScan(scanners, "first_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(5, terms.size());
+
+      terms.forEach(term -> { // Ensure odd rows remain in dataset 1
+        Assert.assertEquals(1,
+            Integer.parseInt(term.docId().substring(term.docId().indexOf("_") + 1), 10) % 2);
+        Assert.assertEquals("Actors[*]¤age", term.field());
+        Assert.assertEquals("56", term.term());
+        Assert.assertTrue(term.isNumber());
+      });
+
+      terms.clear();
+
+      dataStore.numericalRangeScan(scanners, "second_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(5, terms.size());
+
+      terms.forEach(term -> { // Ensure even rows remain in dataset 2
+        Assert.assertEquals(0,
+            Integer.parseInt(term.docId().substring(term.docId().indexOf("_") + 1), 10) % 2);
+        Assert.assertEquals("Actors[*]¤age", term.field());
+        Assert.assertEquals("56", term.term());
+        Assert.assertTrue(term.isNumber());
+      });
+
+      terms.clear();
+
+      dataStore.numericalRangeScan(scanners, "third_dataset", "50", "60")
+          .forEachRemaining(terms::add);
+
+      Assert.assertEquals(10, terms.size());
+
+      terms.forEach(term -> {
+        Assert.assertEquals("Actors[*]¤age", term.field());
+        Assert.assertEquals("56", term.term());
+        Assert.assertTrue(term.isNumber());
+      });
+    }
   }
 
   @Test

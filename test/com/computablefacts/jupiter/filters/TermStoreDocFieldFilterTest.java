@@ -17,6 +17,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.computablefacts.jupiter.BloomFilters;
+import com.computablefacts.jupiter.storage.termstore.Term;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
 
@@ -92,16 +93,20 @@ public class TermStoreDocFieldFilterTest {
             && e.getColumnQualifier().toString().endsWith("FIELD_1")).count());
 
     Assert.assertEquals(1,
-        list.stream().filter(e -> e.getColumnFamily().toString().equals("DATASET_2")
-            && e.getColumnQualifier().toString().endsWith("FIELD_1\0" + "2")).count());
+        list.stream()
+            .filter(e -> e.getColumnFamily().toString().equals("DATASET_2")
+                && e.getColumnQualifier().toString().endsWith("FIELD_1\0" + Term.TYPE_NUMBER))
+            .count());
 
     Assert.assertEquals(1,
         list.stream().filter(e -> e.getColumnFamily().toString().equals("DATASET_1")
             && e.getColumnQualifier().toString().endsWith("FIELD_2")).count());
 
     Assert.assertEquals(1,
-        list.stream().filter(e -> e.getColumnFamily().toString().equals("DATASET_2")
-            && e.getColumnQualifier().toString().endsWith("FIELD_2\0" + "2")).count());
+        list.stream()
+            .filter(e -> e.getColumnFamily().toString().equals("DATASET_2")
+                && e.getColumnQualifier().toString().endsWith("FIELD_2\0" + Term.TYPE_NUMBER))
+            .count());
   }
 
   @Test
@@ -151,9 +156,12 @@ public class TermStoreDocFieldFilterTest {
     map.put(new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_2", 0), new Value("1"));
     map.put(new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_3", 0), new Value("1"));
 
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_1\0" + "2", 0), new Value("2"));
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_2\0" + "2", 0), new Value("2"));
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_3\0" + "2", 0), new Value("2"));
+    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_1\0" + Term.TYPE_NUMBER, 0),
+        new Value("2"));
+    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_2\0" + Term.TYPE_NUMBER, 0),
+        new Value("2"));
+    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_3\0" + Term.TYPE_NUMBER, 0),
+        new Value("2"));
 
     return map;
   }

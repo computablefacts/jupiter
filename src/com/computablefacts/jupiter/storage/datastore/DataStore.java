@@ -1154,13 +1154,13 @@ final public class DataStore {
     AbstractStorage.toVisibilityLabels(path)
         .forEach(label -> vizFieldSpecific.add(vizDataset + label));
 
-    boolean isOk = termStore_.add(writers.index(), dataset, uuid, field, term, spans,
+    boolean isOk = termStore_.add(writers.index(), dataset, uuid, field, termType, term, spans,
         vizDocSpecific, vizFieldSpecific, writeInForwardIndexOnly);
 
     if (!isOk) {
-      logger_
-          .error(LogFormatterManager.logFormatter().message("write failed").add("dataset", dataset)
-              .add("uuid", uuid).add("field", field).add("term", term).formatError());
+      logger_.error(LogFormatterManager.logFormatter().message("write failed")
+          .add("dataset", dataset).add("uuid", uuid).add("field", field).add("term_type", termType)
+          .add("term", term).formatError());
     }
     return isOk;
   }

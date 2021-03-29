@@ -35,6 +35,7 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.combiners.TermStoreCombiner;
 import com.computablefacts.jupiter.filters.TermStoreDocFieldFilter;
+import com.computablefacts.jupiter.filters.TermStoreFieldFilter;
 import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
@@ -57,14 +58,14 @@ import com.google.errorprone.annotations.Var;
  * </p>
  *
  * <pre>
- *  Row        | Column Family   | Column Qualifier               | Visibility                               | Value
- * ============+=================+================================+==========================================+=================================
- *  <field>    | <dataset>_CNT   | (empty)                        | ADM|<dataset>_CNT                        | <#occurrences>
- *  <field>    | <dataset>_VIZ   | (empty)                        | ADM|<dataset>_VIZ                        | viz1\0viz2\0
- *  <mret>     | <dataset>_BCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
- *  <mret>     | <dataset>_BIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
- *  <term>     | <dataset>_FCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
- *  <term>     | <dataset>_FIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
+ *  Row                     | Column Family   | Column Qualifier               | Visibility                               | Value
+ * =========================+=================+================================+==========================================+=================================
+ *  <field>\0<term_type>    | <dataset>_CNT   | (empty)                        | ADM|<dataset>_CNT                        | <#occurrences>
+ *  <field>\0<term_type>    | <dataset>_VIZ   | (empty)                        | ADM|<dataset>_VIZ                        | viz1\0viz2\0
+ *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
+ *  <mret>                  | <dataset>_BIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
+ *  <term>                  | <dataset>_FCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
+ *  <term>                  | <dataset>_FIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
  * </pre>
  *
  * <p>
@@ -197,8 +198,8 @@ final public class TermStore extends AbstractStorage {
 
     if (keepFields != null && !keepFields.isEmpty()) {
       IteratorSetting setting =
-          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreDocFieldFilter.class);
-      TermStoreDocFieldFilter.setFieldsToKeep(setting, keepFields);
+          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreFieldFilter.class);
+      TermStoreFieldFilter.setFieldsToKeep(setting, keepFields);
       scanner.addScanIterator(setting);
     }
 
@@ -475,17 +476,18 @@ final public class TermStore extends AbstractStorage {
    * @param dataset dataset.
    * @param docId document id.
    * @param field field name.
+   * @param termType the type of the term i.e. string, number, etc.
    * @param term term.
    * @param spans positions of the term in the document.
    * @param docSpecificLabels visibility labels specific to a given document.
    * @param fieldSpecificLabels visibility labels specific to a given field.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean add(BatchWriter writer, String dataset, String docId, String field, String term,
-      List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
+  public boolean add(BatchWriter writer, String dataset, String docId, String field, int termType,
+      String term, List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
       Set<String> fieldSpecificLabels) {
-    return add(writer, dataset, docId, field, term, spans, docSpecificLabels, fieldSpecificLabels,
-        false);
+    return add(writer, dataset, docId, field, termType, term, spans, docSpecificLabels,
+        fieldSpecificLabels, false);
   }
 
   /**
@@ -496,6 +498,7 @@ final public class TermStore extends AbstractStorage {
    * @param dataset dataset.
    * @param docId document id.
    * @param field field name.
+   * @param termType the type of the term i.e. string, number, etc.
    * @param term term.
    * @param spans positions of the term in the document.
    * @param docSpecificLabels visibility labels specific to a given document.
@@ -504,8 +507,8 @@ final public class TermStore extends AbstractStorage {
    *        written in the forward index only.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean add(BatchWriter writer, String dataset, String docId, String field, String term,
-      List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
+  public boolean add(BatchWriter writer, String dataset, String docId, String field, int termType,
+      String term, List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
       Set<String> fieldSpecificLabels, boolean writeInForwardIndexOnly) {
 
     Preconditions.checkNotNull(writer, "writer should not be null");
@@ -518,16 +521,18 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(fieldSpecificLabels, "fieldSpecificLabels should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("doc_id", docId).add("field", field).add("term", term)
-          .add("doc_specific_labels", docSpecificLabels)
-          .add("field_specific_labels", fieldSpecificLabels).formatDebug());
+      logger_.info(
+          LogFormatterManager.logFormatter().add("table_name", tableName()).add("dataset", dataset)
+              .add("doc_id", docId).add("field", field).add("term_type", termType).add("term", term)
+              .add("doc_specific_labels", docSpecificLabels)
+              .add("field_specific_labels", fieldSpecificLabels).formatDebug());
     }
 
     Text newTerm = new Text(term);
     Text newTermReversed = new Text(reverse(term));
-    Text newField = new Text(field);
-    Text newDocField = new Text(docId + Constants.SEPARATOR_NUL + field);
+    Text newField = new Text(field + Constants.SEPARATOR_NUL + termType);
+    Text newDocField =
+        new Text(docId + Constants.SEPARATOR_NUL + field + Constants.SEPARATOR_NUL + termType);
     Value newSpans =
         new Value(
             Integer.toString(spans.size(), 10) + Constants.SEPARATOR_NUL
@@ -596,7 +601,8 @@ final public class TermStore extends AbstractStorage {
 
     if (fields != null) {
 
-      List<Range> ranges = fields.stream().map(Range::exact).collect(Collectors.toList());
+      List<Range> ranges = fields.stream().map(field -> field + Constants.SEPARATOR_NUL)
+          .map(Range::prefix).collect(Collectors.toList());
 
       if (!setRanges(scanner, ranges)) {
         return Constants.ITERATOR_EMPTY;
@@ -659,7 +665,8 @@ final public class TermStore extends AbstractStorage {
 
     if (fields != null) {
 
-      List<Range> ranges = fields.stream().map(Range::exact).collect(Collectors.toList());
+      List<Range> ranges = fields.stream().map(field -> field + Constants.SEPARATOR_NUL)
+          .map(Range::prefix).collect(Collectors.toList());
 
       if (!setRanges(scanner, ranges)) {
         return Constants.ITERATOR_EMPTY;
@@ -671,7 +678,19 @@ final public class TermStore extends AbstractStorage {
       Value value = entry.getValue();
 
       // Extract term from ROW
-      String field = key.getRow().toString();
+      String row = key.getRow().toString();
+      int index = row.indexOf(Constants.SEPARATOR_NUL);
+
+      String field;
+      int termType;
+
+      if (index < 0) {
+        field = row;
+        termType = Term.TYPE_UNKNOWN;
+      } else {
+        field = row.substring(0, index);
+        termType = Integer.parseInt(row.substring(index + 1), 10);
+      }
 
       // Extract term labels from VALUE
       Set<String> labelsTerm =
@@ -682,7 +701,7 @@ final public class TermStore extends AbstractStorage {
       Set<String> labelsAccumulo = Sets.newHashSet(
           Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
-      return new FieldLabels(field, labelsAccumulo, labelsTerm);
+      return new FieldLabels(field, termType, labelsAccumulo, labelsTerm);
     });
   }
 
@@ -762,7 +781,9 @@ final public class TermStore extends AbstractStorage {
 
     String newDataset = dataset == null ? null : forwardCount(dataset);
 
-    return Iterators.transform(scanCounts(scanner, newDataset, keepFields, false, range),
+    return Iterators.transform(
+        Iterators.filter(scanCounts(scanner, newDataset, keepFields, false, range),
+            TermCount::isNumber),
         term -> new TermCount(term.field(), term.termType(), BigDecimalCodec.decode(term.term()),
             term.labels(), term.count()));
   }
@@ -904,7 +925,9 @@ final public class TermStore extends AbstractStorage {
 
     String newDataset = dataset == null ? null : forwardIndex(dataset);
 
-    return Iterators.transform(scanTerms(scanner, newDataset, keepFields, keepDocs, false, range),
+    return Iterators.transform(
+        Iterators.filter(scanTerms(scanner, newDataset, keepFields, keepDocs, false, range),
+            Term::isNumber),
         term -> new Term(term.docId(), term.field(), term.termType(),
             BigDecimalCodec.decode(term.term()), term.labels(), term.count(), term.spans()));
   }

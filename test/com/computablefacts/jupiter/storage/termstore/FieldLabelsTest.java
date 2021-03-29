@@ -10,17 +10,17 @@ public class FieldLabelsTest {
 
   @Test(expected = NullPointerException.class)
   public void testNullField() {
-    FieldLabels fl = new FieldLabels(null, Sets.newHashSet(), Sets.newHashSet());
+    FieldLabels fl = new FieldLabels(null, Term.TYPE_UNKNOWN, Sets.newHashSet(), Sets.newHashSet());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabelsAccumulo() {
-    FieldLabels fl = new FieldLabels("term", null, Sets.newHashSet());
+    FieldLabels fl = new FieldLabels("term", Term.TYPE_UNKNOWN, null, Sets.newHashSet());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabelsTerm() {
-    FieldLabels fl = new FieldLabels("term", Sets.newHashSet(), null);
+    FieldLabels fl = new FieldLabels("term", Term.TYPE_UNKNOWN, Sets.newHashSet(), null);
   }
 
   @Test
