@@ -33,11 +33,9 @@ public class BlobStoreJsonFieldsAnonymizingIteratorTest {
   }
 
   @Test
-  public void testNoFilters() throws Exception {
+  public void testNoMatchingAuthorizations() throws Exception {
 
-    BlobStoreJsonFieldsAnonymizingIterator iterator =
-        iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_NAME", "DATASET_1_AGE",
-            "DATASET_1_CITY"));
+    BlobStoreJsonFieldsAnonymizingIterator iterator = iterator(new Authorizations());
 
     @Var
     int countDataset1 = 0;
@@ -50,7 +48,7 @@ public class BlobStoreJsonFieldsAnonymizingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"name\":\"John\",\"age\":31,\"city\":\"New York\"}", value);
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
@@ -66,7 +64,7 @@ public class BlobStoreJsonFieldsAnonymizingIteratorTest {
   }
 
   @Test
-  public void testFiltersNotMatchingAuths() throws Exception {
+  public void testTwoMatchingAuthorizations1() throws Exception {
 
     BlobStoreJsonFieldsAnonymizingIterator iterator =
         iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_AGE", "DATASET_1_CITY"));
@@ -98,7 +96,7 @@ public class BlobStoreJsonFieldsAnonymizingIteratorTest {
   }
 
   @Test
-  public void testFiltersMatchingAuths() throws Exception {
+  public void testTwoMatchingAuthorizations2() throws Exception {
 
     BlobStoreJsonFieldsAnonymizingIterator iterator =
         iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_AGE", "DATASET_2_CITY"));
@@ -147,32 +145,24 @@ public class BlobStoreJsonFieldsAnonymizingIteratorTest {
 
     SortedMap<Key, Value> map = new TreeMap<>();
 
-    map.put(
-        new Key("KEY_1", "DATASET_1", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-            new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
-        new Value("{\"name\":\"John\", \"age\":31, \"city\":\"New York\"}"));
-    map.put(
-        new Key("KEY_2", "DATASET_1", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-            new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
-        new Value("{\"name\":\"John\", \"age\":31, \"city\":\"New York\"}"));
-    map.put(
-        new Key("KEY_3", "DATASET_1", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-            new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
-        new Value("{\"name\":\"John\", \"age\":31, \"city\":\"New York\"}"));
+    map.put(new Key("KEY_1", "DATASET_1", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
+        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("KEY_2", "DATASET_1", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
+        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("KEY_3", "DATASET_1", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
+        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
 
-    map.put(
-        new Key("KEY_1", "DATASET_2", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-            new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
-        new Value("{\"name\":\"John\", \"age\":31, \"city\":\"New York\"}"));
-    map.put(
-        new Key("KEY_2", "DATASET_2", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-            new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
-        new Value("{\"name\":\"John\", \"age\":31, \"city\":\"New York\"}"));
-    map.put(
-        new Key("KEY_3", "DATASET_2", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-            new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
-        new Value("{\"name\":\"John\", \"age\":31, \"city\":\"New York\"}"));
+    map.put(new Key("KEY_1", "DATASET_2", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
+        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("KEY_2", "DATASET_2", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
+        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("KEY_3", "DATASET_2", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
+        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
 
     return map;
+  }
+
+  private String json() {
+    return "{\"name\":\"John\", \"age\":31, \"city\":\"New York\"}";
   }
 }

@@ -2,7 +2,6 @@ package com.computablefacts.jupiter.iterators;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -11,32 +10,22 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
-import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
 
-public class BlobStoreFilterOutJsonFieldsIteratorTest {
+public class BlobStoreJsonFieldsAnonymizingIteratorIllegalQuotedCharacterTest {
 
   @Test
-  public void testNullFields() {
+  public void testWithoutIllegalQuotedCharacterInFilteredFields() throws Exception {
 
-    BlobStoreFilterOutJsonFieldsIterator iterator = new BlobStoreFilterOutJsonFieldsIterator();
-    IteratorSetting iteratorSetting =
-        new IteratorSetting(1, BlobStoreFilterOutJsonFieldsIterator.class);
-    BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(iteratorSetting, null);
-
-    Assert.assertFalse(iterator.validateOptions(iteratorSetting.getOptions()));
-  }
-
-  @Test
-  public void testNoMatchingFields() throws Exception {
-
-    BlobStoreFilterOutJsonFieldsIterator iterator = iterator(Sets.newHashSet());
+    BlobStoreJsonFieldsAnonymizingIterator iterator =
+        iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_NAME", "DATASET_1_AGE"));
 
     @Var
     int countDataset1 = 0;
@@ -49,7 +38,7 @@ public class BlobStoreFilterOutJsonFieldsIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals("{\"name\":\"John\",\"age\":31}", value);
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
@@ -65,40 +54,10 @@ public class BlobStoreFilterOutJsonFieldsIteratorTest {
   }
 
   @Test
-  public void testOneMatchingField() throws Exception {
+  public void testFiltersWithIllegalQuotedCharacterInFilteredFields() throws Exception {
 
-    BlobStoreFilterOutJsonFieldsIterator iterator = iterator(Sets.newHashSet("name"));
-
-    @Var
-    int countDataset1 = 0;
-    @Var
-    int countDataset2 = 0;
-
-    while (iterator.hasTop()) {
-
-      String cf = iterator.getTopKey().getColumnFamily().toString();
-      String value = iterator.getTopValue().toString();
-
-      if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"name\":\"John\"}", value);
-        countDataset1++;
-      }
-      if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"name\":\"John\"}", value);
-        countDataset2++;
-      }
-
-      iterator.next();
-    }
-
-    Assert.assertEquals(3, countDataset1);
-    Assert.assertEquals(3, countDataset2);
-  }
-
-  @Test
-  public void testTwoMatchingFields() throws Exception {
-
-    BlobStoreFilterOutJsonFieldsIterator iterator = iterator(Sets.newHashSet("age", "city"));
+    BlobStoreJsonFieldsAnonymizingIterator iterator =
+        iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_NAME", "DATASET_1_CITY"));
 
     @Var
     int countDataset1 = 0;
@@ -111,11 +70,11 @@ public class BlobStoreFilterOutJsonFieldsIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"age\":31,\"city\":\"New York\"}", value);
+        Assert.assertEquals("{\"name\":\"John\",\"city\":\"New\\u0007York\"}", value);
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"age\":31,\"city\":\"New York\"}", value);
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
         countDataset2++;
       }
 
@@ -126,11 +85,11 @@ public class BlobStoreFilterOutJsonFieldsIteratorTest {
     Assert.assertEquals(3, countDataset2);
   }
 
-  private BlobStoreFilterOutJsonFieldsIterator iterator(Set<String> fields) throws IOException {
+  private BlobStoreJsonFieldsAnonymizingIterator iterator(Authorizations auths) throws IOException {
 
-    BlobStoreFilterOutJsonFieldsIterator iterator = new BlobStoreFilterOutJsonFieldsIterator();
-    IteratorSetting setting = new IteratorSetting(1, BlobStoreFilterOutJsonFieldsIterator.class);
-    BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting, fields);
+    BlobStoreJsonFieldsAnonymizingIterator iterator = new BlobStoreJsonFieldsAnonymizingIterator();
+    IteratorSetting setting = new IteratorSetting(1, BlobStoreJsonFieldsAnonymizingIterator.class);
+    BlobStoreJsonFieldsAnonymizingIterator.setAuthorizations(setting, auths);
 
     Assert.assertTrue(iterator.validateOptions(setting.getOptions()));
 
@@ -162,6 +121,6 @@ public class BlobStoreFilterOutJsonFieldsIteratorTest {
   }
 
   private String json() {
-    return "{\"name\":\"John\", \"age\":31, \"city\":\"New York\"}";
+    return "{\"name\":\"John\", \"age\":31, \"city\":\"New\\u0007York\"}";
   }
 }

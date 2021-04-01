@@ -22,6 +22,9 @@ import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.WildcardMatcher;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.wnameless.json.base.JacksonJsonCore;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.github.wnameless.json.unflattener.JsonUnflattener;
 import com.google.common.base.Joiner;
@@ -41,6 +44,8 @@ public class BlobStoreFilterOutJsonFieldsIterator
   private Key topKey_;
   private Value topValue_;
   private Set<String> keepFields_;
+  private ObjectMapper mapper_;
+  private JacksonJsonCore jsonCore_;
 
   public BlobStoreFilterOutJsonFieldsIterator() {}
 
@@ -75,6 +80,9 @@ public class BlobStoreFilterOutJsonFieldsIterator
     keepFields_ = options.containsKey(FIELDS_CRITERION)
         ? Sets.newHashSet(Splitter.on(SEPARATOR_NUL).split(options.get(FIELDS_CRITERION)))
         : null;
+    mapper_ = new ObjectMapper();
+    mapper_.configure(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature(), true);
+    jsonCore_ = new JacksonJsonCore(mapper_);
   }
 
   @Override
@@ -135,15 +143,15 @@ public class BlobStoreFilterOutJsonFieldsIterator
       setTopValue(value);
     } else {
 
-      Map<String, Object> json = new JsonFlattener(value.toString())
+      Map<String, Object> json = new JsonFlattener(jsonCore_, value.toString())
           .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
 
       // First, remove all fields that have not been explicitly asked for
       json.keySet().removeIf(field -> !acceptField(field));
 
       // Then, rebuild a new JSON object
-      String newJson =
-          new JsonUnflattener(json).withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
+      String newJson = new JsonUnflattener(jsonCore_, json)
+          .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
 
       // Next, set the new JSON object as the new Accumulo Value
       if ("{}".equals(newJson)) {

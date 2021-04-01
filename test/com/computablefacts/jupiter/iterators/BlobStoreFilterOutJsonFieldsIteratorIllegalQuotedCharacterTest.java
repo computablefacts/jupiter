@@ -20,23 +20,12 @@ import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
 
-public class BlobStoreFilterOutJsonFieldsIteratorTest {
+public class BlobStoreFilterOutJsonFieldsIteratorIllegalQuotedCharacterTest {
 
   @Test
-  public void testNullFields() {
+  public void testWithoutIllegalQuotedCharacterInMatchedFields() throws Exception {
 
-    BlobStoreFilterOutJsonFieldsIterator iterator = new BlobStoreFilterOutJsonFieldsIterator();
-    IteratorSetting iteratorSetting =
-        new IteratorSetting(1, BlobStoreFilterOutJsonFieldsIterator.class);
-    BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(iteratorSetting, null);
-
-    Assert.assertFalse(iterator.validateOptions(iteratorSetting.getOptions()));
-  }
-
-  @Test
-  public void testNoMatchingFields() throws Exception {
-
-    BlobStoreFilterOutJsonFieldsIterator iterator = iterator(Sets.newHashSet());
+    BlobStoreFilterOutJsonFieldsIterator iterator = iterator(Sets.newHashSet("name", "age"));
 
     @Var
     int countDataset1 = 0;
@@ -49,11 +38,11 @@ public class BlobStoreFilterOutJsonFieldsIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals("{\"name\":\"John\",\"age\":31}", value);
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals("{\"name\":\"John\",\"age\":31}", value);
         countDataset2++;
       }
 
@@ -65,40 +54,9 @@ public class BlobStoreFilterOutJsonFieldsIteratorTest {
   }
 
   @Test
-  public void testOneMatchingField() throws Exception {
+  public void testFiltersWithIllegalQuotedCharacterInMatchedFields() throws Exception {
 
-    BlobStoreFilterOutJsonFieldsIterator iterator = iterator(Sets.newHashSet("name"));
-
-    @Var
-    int countDataset1 = 0;
-    @Var
-    int countDataset2 = 0;
-
-    while (iterator.hasTop()) {
-
-      String cf = iterator.getTopKey().getColumnFamily().toString();
-      String value = iterator.getTopValue().toString();
-
-      if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"name\":\"John\"}", value);
-        countDataset1++;
-      }
-      if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"name\":\"John\"}", value);
-        countDataset2++;
-      }
-
-      iterator.next();
-    }
-
-    Assert.assertEquals(3, countDataset1);
-    Assert.assertEquals(3, countDataset2);
-  }
-
-  @Test
-  public void testTwoMatchingFields() throws Exception {
-
-    BlobStoreFilterOutJsonFieldsIterator iterator = iterator(Sets.newHashSet("age", "city"));
+    BlobStoreFilterOutJsonFieldsIterator iterator = iterator(Sets.newHashSet("name", "city"));
 
     @Var
     int countDataset1 = 0;
@@ -111,11 +69,11 @@ public class BlobStoreFilterOutJsonFieldsIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"age\":31,\"city\":\"New York\"}", value);
+        Assert.assertEquals("{\"name\":\"John\",\"city\":\"New\\u0007York\"}", value);
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"age\":31,\"city\":\"New York\"}", value);
+        Assert.assertEquals("{\"name\":\"John\",\"city\":\"New\\u0007York\"}", value);
         countDataset2++;
       }
 
@@ -162,6 +120,6 @@ public class BlobStoreFilterOutJsonFieldsIteratorTest {
   }
 
   private String json() {
-    return "{\"name\":\"John\", \"age\":31, \"city\":\"New York\"}";
+    return "{\"name\":\"John\", \"age\":31, \"city\":\"New\\u0007York\"}";
   }
 }

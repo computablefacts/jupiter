@@ -8,11 +8,16 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.nona.Generated;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.wnameless.json.base.JacksonJsonCore;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.github.wnameless.json.unflattener.JsonUnflattener;
 import com.google.common.base.Splitter;
@@ -23,6 +28,10 @@ import com.google.errorprone.annotations.CheckReturnValue;
 public class BlobStoreJsonFieldsAnonymizingIterator extends AnonymizingIterator {
 
   private static final String TYPE_JSON = Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL;
+
+  private ObjectMapper mapper_;
+  private JacksonJsonCore jsonCore_;
+  private Set<String> auths_;
 
   public BlobStoreJsonFieldsAnonymizingIterator() {}
 
@@ -36,6 +45,19 @@ public class BlobStoreJsonFieldsAnonymizingIterator extends AnonymizingIterator 
     return new IteratorOptions("BlobStoreJsonFieldsAnonymizingIterator",
         "BlobStoreJsonFieldsAnonymizingIterator filters out the JSON fields stored in the Accumulo Value for which the user does not have the right auths.",
         options, null);
+  }
+
+  @Override
+  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options,
+      IteratorEnvironment environment) {
+
+    mapper_ = new ObjectMapper();
+    mapper_.configure(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature(), true);
+    jsonCore_ = new JacksonJsonCore(mapper_);
+
+    super.init(source, options, environment);
+
+    auths_ = parsedAuths();
   }
 
   @Override
@@ -55,24 +77,22 @@ public class BlobStoreJsonFieldsAnonymizingIterator extends AnonymizingIterator 
     } else {
 
       String vizDataset = AbstractStorage.toVisibilityLabel(key.getColumnFamily().toString() + "_");
-      Map<String, Object> json = new JsonFlattener(value.toString())
+      Map<String, Object> json = new JsonFlattener(jsonCore_, value.toString())
           .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
 
       // First, ensure the user has the right to visualize the returned fields
-      Set<String> auths = parsedAuths();
-
       json.keySet().removeIf(field -> {
 
         List<String> path = Lists.newArrayList(Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN)
             .trimResults().omitEmptyStrings().split(field));
 
         return AbstractStorage.toVisibilityLabels(path).stream().map(label -> vizDataset + label)
-            .noneMatch(auths::contains);
+            .noneMatch(auths_::contains);
       });
 
       // Then, rebuild a new JSON object
-      String newJson =
-          new JsonUnflattener(json).withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
+      String newJson = new JsonUnflattener(jsonCore_, json)
+          .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
 
       // Next, set the new JSON object as the new Accumulo Value
       if ("{}".equals(newJson)) {
