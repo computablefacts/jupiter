@@ -13,7 +13,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -26,7 +25,6 @@ import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.termstore.Term;
-import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
@@ -691,158 +689,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     }
   }
 
-  @Test
-  public void testTermCount() throws Exception {
-
-    Authorizations auths =
-        new Authorizations("FIRST_DATASET_ACTORS", "SECOND_DATASET_ACTORS", "THIRD_DATASET_ACTORS");
-    DataStore dataStore = newDataStore(auths);
-
-    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
-
-      // Single dataset, hits forward index
-      List<Pair<String, List<TermCount>>> list = new ArrayList<>();
-      dataStore.termCount(scanners, "first_dataset", normalize("Conno?"))
-          .forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals(1, list.get(0).getSecond().size());
-
-      @Var
-      TermCount tc = list.get(0).getSecond().get(0);
-
-      Assert.assertEquals("Actors[*]¤children[*]", tc.field());
-      Assert.assertEquals("connor", tc.term());
-      Assert.assertEquals(10, tc.count());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS",
-          "FIRST_DATASET_ACTORS_CHILDREN"), tc.labels());
-
-      // Single dataset, hits backward index
-      list.clear();
-      dataStore.termCount(scanners, "first_dataset", normalize("?onnor"))
-          .forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals(1, list.get(0).getSecond().size());
-
-      tc = list.get(0).getSecond().get(0);
-
-      Assert.assertEquals("Actors[*]¤children[*]", tc.field());
-      Assert.assertEquals("connor", tc.term());
-      Assert.assertEquals(10, tc.count());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS",
-          "FIRST_DATASET_ACTORS_CHILDREN"), tc.labels());
-
-      // Cross datasets
-      list.clear();
-      dataStore.termCount(scanners, null, normalize("Connor")).forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals(3, list.get(0).getSecond().size());
-
-      for (int i = 0; i < 3; i++) {
-
-        tc = list.get(0).getSecond().get(i);
-
-        Assert.assertEquals("Actors[*]¤children[*]", tc.field());
-        Assert.assertEquals("connor", tc.term());
-        Assert.assertEquals(10, tc.count());
-
-        if (i == 0) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS",
-              "FIRST_DATASET_ACTORS_CHILDREN"), tc.labels());
-        } else if (i == 1) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS",
-              "SECOND_DATASET_ACTORS_CHILDREN"), tc.labels());
-        } else {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS",
-              "THIRD_DATASET_ACTORS_CHILDREN"), tc.labels());
-        }
-      }
-    }
-  }
-
-  @Test
-  public void testTermScan() throws Exception {
-
-    Authorizations auths =
-        new Authorizations("FIRST_DATASET_ACTORS", "SECOND_DATASET_ACTORS", "THIRD_DATASET_ACTORS");
-    DataStore dataStore = newDataStore(auths);
-
-    try (Scanners scanners = dataStore.scanners(auths)) { // keep order
-
-      // Single dataset, hits forward index
-      List<Pair<String, List<Term>>> list = new ArrayList<>();
-      dataStore.termScan(scanners, "first_dataset", normalize("Conno?"))
-          .forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals(10, list.get(0).getSecond().size());
-
-      for (int i = 0; i < 10; i++) {
-
-        Term term = list.get(0).getSecond().get(i);
-
-        Assert.assertEquals("row_" + i, term.docId());
-        Assert.assertEquals("Actors[*]¤children[*]", term.field());
-        Assert.assertEquals("connor", term.term());
-        Assert.assertEquals(1, term.count());
-        Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS",
-            "FIRST_DATASET_ACTORS_CHILDREN", "FIRST_DATASET_ROW_" + i), term.labels());
-      }
-
-      // Single dataset, hits backward index
-      list.clear();
-      dataStore.termScan(scanners, "first_dataset", normalize("?onnor"))
-          .forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals(10, list.get(0).getSecond().size());
-
-      for (int i = 0; i < 10; i++) {
-
-        Term term = list.get(0).getSecond().get(i);
-
-        Assert.assertEquals("row_" + i, term.docId());
-        Assert.assertEquals("Actors[*]¤children[*]", term.field());
-        Assert.assertEquals("connor", term.term());
-        Assert.assertEquals(1, term.count());
-        Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS",
-            "FIRST_DATASET_ACTORS_CHILDREN", "FIRST_DATASET_ROW_" + i), term.labels());
-      }
-
-      // Cross datasets
-      list.clear();
-      dataStore.termScan(scanners, null, normalize("Connor")).forEachRemaining(list::add);
-
-      Assert.assertEquals(1, list.size());
-      Assert.assertEquals(30, list.get(0).getSecond().size());
-
-      for (int i = 0; i < 30; i++) {
-
-        Term term = list.get(0).getSecond().get(i);
-
-        Assert.assertEquals("row_" + (i % 10), term.docId());
-        Assert.assertEquals("Actors[*]¤children[*]", term.field());
-        Assert.assertEquals("connor", term.term());
-        Assert.assertEquals(1, term.count());
-
-        if (i < 10) {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_ACTORS",
-              "FIRST_DATASET_ACTORS_CHILDREN", "FIRST_DATASET_ROW_" + (i % 10)), term.labels());
-        } else if (i < 20) {
-          Assert.assertEquals(
-              Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_ACTORS",
-                  "SECOND_DATASET_ACTORS_CHILDREN", "SECOND_DATASET_ROW_" + (i % 10)),
-              term.labels());
-        } else {
-          Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_ACTORS",
-              "THIRD_DATASET_ACTORS_CHILDREN", "THIRD_DATASET_ROW_" + (i % 10)), term.labels());
-        }
-      }
-    }
-  }
-
   @Test(expected = IllegalArgumentException.class)
   public void testNumericalRangeScanOpenedBeginOpenedEnd() throws Exception {
 
@@ -940,7 +786,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -960,7 +806,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -980,7 +826,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -1000,7 +846,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
       }
     }

@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,7 +113,7 @@ final public class TerminalNode extends AbstractNode {
   }
 
   @Override
-  public long cardinality(DataStore dataStore, Scanners scanners, String dataset,
+  public long count(DataStore dataStore, Scanners scanners, String dataset,
       Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
@@ -153,15 +152,16 @@ final public class TerminalNode extends AbstractNode {
           String maxTerm = "*".equals(max) ? null : max;
 
           @Var
-          long card = 0;
-          Iterator<Pair<String, List<TermCount>>> iter =
-              dataStore.numericalRangeCount(scanners, dataset, minTerm, maxTerm, keepFields);
+          long count = 0;
+
+          Iterator<TermCount> iter = dataStore.termStore().numericalRangeCount(scanners.index(),
+              dataset, minTerm, maxTerm, keepFields);
 
           while (iter.hasNext()) {
-            Pair<String, List<TermCount>> pair = iter.next();
-            card += pair.getSecond().stream().mapToLong(TermCount::count).sum();
+            TermCount termCount = iter.next();
+            count += termCount.count();
           }
-          return card;
+          return count;
         }
       }
       return 0; // Invalid range
@@ -192,41 +192,41 @@ final public class TerminalNode extends AbstractNode {
     if (Inflectional.equals(form_)) {
 
       @Var
-      long card = 0;
+      long count = 0;
 
       for (String term : terms) {
 
-        Iterator<Pair<String, List<TermCount>>> iter = dataStore.termCount(scanners, dataset,
+        Iterator<TermCount> iter = dataStore.termStore().termCount(scanners.index(), dataset,
             WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"));
 
         while (iter.hasNext()) {
-          Pair<String, List<TermCount>> pair = iter.next();
-          card += pair.getSecond().stream().mapToLong(TermCount::count).sum();
+          TermCount termCount = iter.next();
+          count += termCount.count();
         }
       }
-      return card;
+      return count;
     }
 
     if (Literal.equals(form_)) {
 
       @Var
-      long card = 0;
+      long count = 0;
 
       for (String term : terms) {
 
-        Iterator<Pair<String, List<TermCount>>> iter = dataStore.termCount(scanners, dataset, term);
+        Iterator<TermCount> iter = dataStore.termStore().termCount(scanners.index(), dataset, term);
 
         @Var
         long sum = 0;
 
         while (iter.hasNext()) {
-          Pair<String, List<TermCount>> pair = iter.next();
-          sum += pair.getSecond().stream().mapToLong(TermCount::count).sum();
+          TermCount termCount = iter.next();
+          sum += termCount.count();
         }
 
-        card = Math.max(card, sum);
+        count = Math.max(count, sum);
       }
-      return card;
+      return count;
     }
 
     if (Thesaurus.equals(form_)) {

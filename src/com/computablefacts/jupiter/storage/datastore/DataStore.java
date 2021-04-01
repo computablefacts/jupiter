@@ -48,13 +48,11 @@ import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.DedupIterator;
-import com.computablefacts.jupiter.storage.FlattenIterator;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.jupiter.storage.termstore.FieldCount;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
 import com.computablefacts.jupiter.storage.termstore.Term;
-import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.Codecs;
@@ -615,86 +613,6 @@ final public class DataStore {
   }
 
   /**
-   * Get count by term.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset (optional).
-   * @param term term.
-   * @return count.
-   */
-  public Iterator<Pair<String, List<TermCount>>> termCount(Scanners scanners, String dataset,
-      String term) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkArgument(scanners.index() instanceof Scanner,
-        "index scanner must guarantee the result order");
-
-    return termStore_.termCount((Scanner) scanners.index(), dataset, term);
-  }
-
-  /**
-   * Get count by term.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset (optional).
-   * @param minTerm number (optional). Beginning of the range (included).
-   * @param maxTerm number (optional). End of the range (included).
-   * @param keepFields fields patterns to keep (optional).
-   * @return iterator.
-   */
-  public Iterator<Pair<String, List<TermCount>>> numericalRangeCount(Scanners scanners,
-      String dataset, String minTerm, String maxTerm, Set<String> keepFields) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkArgument(minTerm != null || maxTerm != null,
-        "minTerm and maxTerm cannot be null at the same time");
-    Preconditions.checkArgument(scanners.index() instanceof Scanner,
-        "index scanner must guarantee the result order");
-
-    return termStore_.numericalRangeCount((Scanner) scanners.index(), dataset, minTerm, maxTerm,
-        keepFields);
-  }
-
-  /**
-   * Get UUIDs grouped by terms.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset (optional).
-   * @param term term.
-   * @return iterator.
-   */
-  public Iterator<Pair<String, List<Term>>> termScan(Scanners scanners, String dataset,
-      String term) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-
-    return termScan(scanners, dataset, term, null, null);
-  }
-
-  /**
-   * Get UUIDs grouped by terms.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset (optional).
-   * @param term term.
-   * @param keepFields fields patterns to keep (optional).
-   * @param keepDocs document ids to keep (optional).
-   * @return iterator.
-   */
-  public Iterator<Pair<String, List<Term>>> termScan(Scanners scanners, String dataset, String term,
-      Set<String> keepFields, BloomFilters<String> keepDocs) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkArgument(scanners.index() instanceof Scanner,
-        "index scanner must guarantee the result order");
-
-    return termStore_.termScan((Scanner) scanners.index(), dataset, term, keepFields, keepDocs);
-  }
-
-  /**
    * Get UUIDs ordered in lexicographic order.
    *
    * @param scanners scanners.
@@ -929,8 +847,8 @@ final public class DataStore {
 
       // TODO : if terms is a sorted Collection, ensure that the order of appearance is respected.
 
-      Iterator<Pair<String, List<Term>>> iter =
-          termScan(scanners, dataset, newTerms.get(0), keepFields, newKeepDocs);
+      Iterator<Term> iter =
+          termStore_.termScan(scanners.index(), dataset, newTerms.get(0), keepFields, keepDocs);
 
       if (!iter.hasNext()) {
         return Constants.ITERATOR_EMPTY;
@@ -939,21 +857,17 @@ final public class DataStore {
       newKeepDocs = new BloomFilters<>();
 
       while (iter.hasNext()) {
-
-        Pair<String, List<Term>> pair = iter.next();
-
-        for (Term term : pair.getSecond()) {
-          newKeepDocs.put(term.docId());
-        }
+        Term term = iter.next();
+        newKeepDocs.put(term.docId());
       }
     }
 
-    Iterator<Pair<String, List<Term>>> iter =
-        termScan(scanners, dataset, newTerms.get(newTerms.size() - 1), keepFields, newKeepDocs);
+    Iterator<Term> iter = termStore_.termScan(scanners.index(), dataset,
+        newTerms.get(newTerms.size() - 1), keepFields, newKeepDocs);
 
     // TODO : backport code in order to avoid this write/read trick (sort doc ids)
-    return readCache(scanners, writeCache(writers, new DedupIterator<>(
-        Iterators.transform(new FlattenIterator<>(iter, Pair::getSecond), Term::docId))));
+    return readCache(scanners,
+        writeCache(writers, new DedupIterator<>(Iterators.transform(iter, Term::docId))));
   }
 
   /**

@@ -33,7 +33,7 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertFalse(iterator.hasNext()); // value length < 3
       }
     }
@@ -53,14 +53,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(20,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -80,14 +80,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
       }
     }
@@ -107,14 +107,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(20,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -134,14 +134,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(20,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -161,14 +161,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -188,14 +188,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(20,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -215,14 +215,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
       }
     }
@@ -242,14 +242,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -270,14 +270,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -293,14 +293,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -322,14 +322,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -345,14 +345,14 @@ public class QueryExecutionTest extends MiniAccumuloClusterTest {
             query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
 
         Assert.assertEquals(0,
-            query.cardinality(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(0, Iterators.size(iterator));
 
         iterator = query.execute(dataStore, scanners, writers, "second_dataset", null,
             Codecs.nopTokenizer);
 
         Assert.assertEquals(10,
-            query.cardinality(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
+            query.count(dataStore, scanners, "second_dataset", Codecs.nopTokenizer));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }

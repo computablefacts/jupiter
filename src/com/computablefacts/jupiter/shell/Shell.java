@@ -1,7 +1,6 @@
 package com.computablefacts.jupiter.shell;
 
 import static com.computablefacts.jupiter.Users.authorizations;
-import static com.computablefacts.nona.helpers.Codecs.defaultTokenizer;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -9,30 +8,21 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
-import com.computablefacts.jupiter.queries.AbstractNode;
-import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
 import com.computablefacts.jupiter.storage.datastore.Writers;
-import com.computablefacts.jupiter.storage.termstore.FieldCount;
-import com.computablefacts.jupiter.storage.termstore.FieldLabels;
-import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.Document;
 import com.computablefacts.nona.helpers.Files;
@@ -127,22 +117,6 @@ public class Shell {
       case "backup":
         Preconditions.checkState(backup(configurations, datastore, getArg(args, "ds"),
             getArg(args, "fi"), getArg(args, "auths")), "BACKUP failed!");
-        break;
-      case "field_count":
-        Preconditions.checkState(fieldCount(configurations, datastore, getArg(args, "ds"),
-            getArg(args, "field"), getArg(args, "auths")));
-        break;
-      case "field_labels":
-        Preconditions.checkState(fieldLabels(configurations, datastore, getArg(args, "ds"),
-            getArg(args, "field"), getArg(args, "auths")));
-        break;
-      case "term_count":
-        Preconditions.checkState(termCount(configurations, datastore, getArg(args, "ds"),
-            getArg(args, "term"), getArg(args, "auths")));
-        break;
-      case "search":
-        Preconditions.checkState(search(configurations, datastore, getArg(args, "ds"),
-            getArg(args, "query"), getArg(args, "auths")));
         break;
       default:
         throw new RuntimeException("Unknown action \"" + action + "\"");
@@ -336,127 +310,6 @@ public class Shell {
         }
       } catch (IOException e) {
         logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
-      }
-    }
-    return true;
-  }
-
-  public static boolean fieldCount(Configurations configurations, String datastore, String dataset,
-      String field, String auths) {
-
-    Preconditions.checkNotNull(configurations, "configurations should not be null");
-    Preconditions.checkNotNull(datastore, "datastore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(field),
-        "field should neither be null nor empty");
-    Preconditions.checkArgument(field.length() >= 3, "Field length must be >= 3 : %s", field);
-
-    DataStore ds = new DataStore(configurations, datastore);
-
-    try (Scanners scanners = ds.scanners(authorizations(auths))) {
-
-      Iterator<FieldCount> iterator = ds.fieldCount(scanners, dataset, field);
-
-      while (iterator.hasNext()) {
-        FieldCount fieldCount = iterator.next();
-        System.out.println(fieldCount.field() + " -> " + fieldCount.count());
-      }
-    }
-    return true;
-  }
-
-  public static boolean fieldLabels(Configurations configurations, String datastore, String dataset,
-      String field, String auths) {
-
-    Preconditions.checkNotNull(configurations, "configurations should not be null");
-    Preconditions.checkNotNull(datastore, "datastore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(field),
-        "field should neither be null nor empty");
-    Preconditions.checkArgument(field.length() >= 3, "Field length must be >= 3 : %s", field);
-
-    DataStore ds = new DataStore(configurations, datastore);
-
-    try (Scanners scanners = ds.scanners(authorizations(auths))) {
-
-      Iterator<FieldLabels> iterator = ds.fieldLabels(scanners, dataset, field);
-
-      while (iterator.hasNext()) {
-        FieldLabels fieldLabels = iterator.next();
-        System.out.println(fieldLabels.field() + " -> " + fieldLabels.termLabels());
-      }
-    }
-    return true;
-  }
-
-  public static boolean termCount(Configurations configurations, String datastore, String dataset,
-      String term, String auths) {
-
-    Preconditions.checkNotNull(configurations, "configurations should not be null");
-    Preconditions.checkNotNull(datastore, "datastore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(term),
-        "term should neither be null nor empty");
-    Preconditions.checkArgument(term.length() >= 3, "Field length must be >= 3 : %s", term);
-
-    DataStore ds = new DataStore(configurations, datastore);
-
-    try (Scanners scanners = ds.scanners(authorizations(auths))) {
-
-      Iterator<Pair<String, List<TermCount>>> iterator = ds.termCount(scanners, dataset, term);
-
-      while (iterator.hasNext()) {
-
-        Pair<String, List<TermCount>> termCounts = iterator.next();
-
-        for (TermCount tc : termCounts.getSecond()) {
-          System.out.println(tc.term() + " -> " + tc.count() + " (" + tc.field() + ")");
-        }
-      }
-    }
-    return true;
-  }
-
-  public static boolean search(Configurations configurations, String datastore, String dataset,
-      String query, String auths) {
-
-    Preconditions.checkNotNull(configurations, "configurations should not be null");
-    Preconditions.checkNotNull(datastore, "datastore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(query),
-        "query should neither be null nor empty");
-
-    DataStore ds = new DataStore(configurations, datastore);
-
-    try (Scanners scanners = ds.scanners(authorizations(auths))) {
-      try (Scanners batchScanners = ds.batchScanners(authorizations(auths))) {
-        try (Writers writers = ds.writers()) {
-
-          AbstractNode tree = QueryBuilder.build(query);
-          System.out.println(
-              "Max. results : " + tree.cardinality(ds, scanners, dataset, defaultTokenizer));
-
-          Iterator<String> iterator =
-              tree.execute(ds, scanners, writers, dataset, null, defaultTokenizer);
-
-          while (iterator.hasNext()) {
-
-            Set<String> docIds = new HashSet<>(1000);
-
-            while (iterator.hasNext() && docIds.size() < 1000) {
-              docIds.add(iterator.next());
-            }
-
-            Iterator<Blob<Value>> iter = ds.jsonScan(batchScanners, dataset, null, docIds);
-
-            while (iter.hasNext()) {
-              Blob<Value> blob = iter.next();
-              String json = blob.value().toString();
-              System.out.println(
-                  blob.key() + " -> " + json.substring(0, Math.min(160, json.length())) + "...");
-            }
-          }
-        }
       }
     }
     return true;

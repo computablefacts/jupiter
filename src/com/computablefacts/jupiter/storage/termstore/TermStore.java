@@ -713,22 +713,6 @@ final public class TermStore extends AbstractStorage {
    * @param minTerm number (optional). Beginning of the range (included).
    * @param maxTerm number (optional). End of the range (excluded).
    * @param keepFields fields patterns to keep (optional).
-   * @return an iterator sorted in lexicographic order by term.
-   */
-  public Iterator<Pair<String, List<TermCount>>> numericalRangeCount(Scanner scanner,
-      String dataset, String minTerm, String maxTerm, Set<String> keepFields) {
-    return new GroupByTermIterator<>(
-        numericalRangeCount((ScannerBase) scanner, dataset, minTerm, maxTerm, keepFields));
-  }
-
-  /**
-   * Get the number of occurrences of all numbers in a given range for each field.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset.
-   * @param minTerm number (optional). Beginning of the range (included).
-   * @param maxTerm number (optional). End of the range (excluded).
-   * @param keepFields fields patterns to keep (optional).
    * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
@@ -786,19 +770,6 @@ final public class TermStore extends AbstractStorage {
             TermCount::isNumber),
         term -> new TermCount(term.field(), term.termType(), BigDecimalCodec.decode(term.term()),
             term.labels(), term.count()));
-  }
-
-  /**
-   * Get the number of occurrences of each term for each field.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset.
-   * @param term term. Might contain wildcard characters.
-   * @return an iterator sorted in lexicographic order by term.
-   */
-  public Iterator<Pair<String, List<TermCount>>> termCount(Scanner scanner, String dataset,
-      String term) {
-    return new GroupByTermIterator<>(termCount((ScannerBase) scanner, dataset, term));
   }
 
   /**
@@ -930,22 +901,6 @@ final public class TermStore extends AbstractStorage {
             Term::isNumber),
         term -> new Term(term.docId(), term.field(), term.termType(),
             BigDecimalCodec.decode(term.term()), term.labels(), term.count(), term.spans()));
-  }
-
-  /**
-   * Get documents, fields and spans aggregated by term.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset (optional).
-   * @param term term. Might contain wildcard characters.
-   * @param keepFields fields patterns to keep (optional).
-   * @param keepDocs document ids to keep (optional).
-   * @return an iterator sorted in lexicographic order by term.
-   */
-  public Iterator<Pair<String, List<Term>>> termScan(Scanner scanner, String dataset, String term,
-      Set<String> keepFields, BloomFilters<String> keepDocs) {
-    return new GroupByTermIterator<>(
-        termScan((ScannerBase) scanner, dataset, term, keepFields, keepDocs));
   }
 
   /**

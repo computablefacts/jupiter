@@ -39,7 +39,7 @@ public abstract class AbstractNode {
   @Deprecated
   public abstract Set<String> terms();
 
-  public abstract long cardinality(DataStore dataStore, Scanners scanners, String dataset,
+  public abstract long count(DataStore dataStore, Scanners scanners, String dataset,
       Function<String, SpanSequence> tokenizer);
 
   public abstract Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,

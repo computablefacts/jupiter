@@ -67,7 +67,7 @@ final public class InternalNode extends AbstractNode {
   }
 
   @Override
-  public long cardinality(DataStore dataStore, Scanners scanners, String dataset,
+  public long count(DataStore dataStore, Scanners scanners, String dataset,
       Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
@@ -88,13 +88,13 @@ final public class InternalNode extends AbstractNode {
     if (child1_ == null) {
       cardChild1 = 0;
     } else {
-      cardChild1 = child1_.cardinality(dataStore, scanners, dataset, tokenizer);
+      cardChild1 = child1_.count(dataStore, scanners, dataset, tokenizer);
     }
 
     if (child2_ == null) {
       cardChild2 = 0;
     } else {
-      cardChild2 = child2_.cardinality(dataStore, scanners, dataset, tokenizer);
+      cardChild2 = child2_.count(dataStore, scanners, dataset, tokenizer);
     }
 
     if (child1_ != null && child2_ != null) {
