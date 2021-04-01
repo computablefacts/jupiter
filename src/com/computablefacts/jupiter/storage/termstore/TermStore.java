@@ -2,6 +2,8 @@ package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -61,6 +63,7 @@ import com.google.errorprone.annotations.Var;
  *  Row                     | Column Family   | Column Qualifier               | Visibility                               | Value
  * =========================+=================+================================+==========================================+=================================
  *  <field>\0<term_type>    | <dataset>_CNT   | (empty)                        | ADM|<dataset>_CNT                        | <#occurrences>
+ *  <field>\0<term_type>    | <dataset>_LU    | (empty)                        | ADM|<dataset>_LU                         | <utc_date>
  *  <field>\0<term_type>    | <dataset>_VIZ   | (empty)                        | ADM|<dataset>_VIZ                        | viz1\0viz2\0
  *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
  *  <mret>                  | <dataset>_BIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
@@ -87,6 +90,10 @@ final public class TermStore extends AbstractStorage {
 
   static String visibility(String dataset) {
     return dataset + "_VIZ";
+  }
+
+  static String lastUpdate(String dataset) {
+    return dataset + "_LU";
   }
 
   private static String forwardCount(String dataset) {
@@ -349,14 +356,15 @@ final public class TermStore extends AbstractStorage {
           .add("dataset", dataset).formatInfo());
     }
 
-    Set<String> cfs = Sets.newHashSet(count(dataset), visibility(dataset), forwardCount(dataset),
-        forwardIndex(dataset), backwardCount(dataset), backwardIndex(dataset));
+    Set<String> cfs = Sets.newHashSet(count(dataset), lastUpdate(dataset), visibility(dataset),
+        forwardCount(dataset), forwardIndex(dataset), backwardCount(dataset),
+        backwardIndex(dataset));
     return remove(deleter, cfs);
   }
 
   /**
-   * Remove documents from a given dataset. This method does not update the *CARD et *CNT datasets.
-   * Hence, cardinalities and counts may become out of sync.
+   * Remove documents from a given dataset. This method does not update the *CNT dataset. Hence,
+   * counts may become out of sync.
    *
    * @param deleter batch deleter.
    * @param dataset dataset.
@@ -542,10 +550,13 @@ final public class TermStore extends AbstractStorage {
                             + Constants.SEPARATOR_NUL + Integer.toString(p.getSecond(), 10))
                         .collect(Collectors.toList())));
     Value newCount = new Value(Integer.toString(spans.size(), 10));
+    Value newTimestamp = new Value(DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
 
     // Column visibility from labels
     ColumnVisibility vizFieldCount = new ColumnVisibility(Constants.STRING_ADM
         + Constants.SEPARATOR_PIPE + AbstractStorage.toVisibilityLabel(count(dataset)));
+    ColumnVisibility vizFieldLastUpdate = new ColumnVisibility(Constants.STRING_ADM
+        + Constants.SEPARATOR_PIPE + AbstractStorage.toVisibilityLabel(lastUpdate(dataset)));
     ColumnVisibility vizFieldLabels = new ColumnVisibility(Constants.STRING_ADM
         + Constants.SEPARATOR_PIPE + AbstractStorage.toVisibilityLabel(visibility(dataset)));
 
@@ -557,6 +568,8 @@ final public class TermStore extends AbstractStorage {
     // Ingest stats
     @Var
     boolean isOk = add(writer, newField, new Text(count(dataset)), null, vizFieldCount, newCount);
+    isOk = isOk && add(writer, newField, new Text(lastUpdate(dataset)), null, vizFieldLastUpdate,
+        newTimestamp);
     isOk = isOk && add(writer, newField, new Text(visibility(dataset)), null, vizFieldLabels,
         new Value(Joiner.on(Constants.SEPARATOR_NUL).join(fieldSpecificLabels)));
 
@@ -702,6 +715,70 @@ final public class TermStore extends AbstractStorage {
           Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
       return new FieldLabels(field, termType, labelsAccumulo, labelsTerm);
+    });
+  }
+
+  /**
+   * Get the date of last update associated to each field.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset.
+   * @param fields fields.
+   * @return last update as an UTC timestamp.
+   */
+  public Iterator<FieldLastUpdate> fieldLastUpdate(ScannerBase scanner, String dataset,
+      Set<String> fields) {
+
+    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("fields", fields).formatInfo());
+    }
+
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+    scanner.fetchColumnFamily(new Text(lastUpdate(dataset)));
+
+    if (fields != null) {
+
+      List<Range> ranges = fields.stream().map(field -> field + Constants.SEPARATOR_NUL)
+          .map(Range::prefix).collect(Collectors.toList());
+
+      if (!setRanges(scanner, ranges)) {
+        return Constants.ITERATOR_EMPTY;
+      }
+    }
+    return Iterators.transform(scanner.iterator(), entry -> {
+
+      Key key = entry.getKey();
+      Value value = entry.getValue();
+
+      // Extract term from ROW
+      String row = key.getRow().toString();
+      int index = row.indexOf(Constants.SEPARATOR_NUL);
+
+      String field;
+      int termType;
+
+      if (index < 0) {
+        field = row;
+        termType = Term.TYPE_UNKNOWN;
+      } else {
+        field = row.substring(0, index);
+        termType = Integer.parseInt(row.substring(index + 1), 10);
+      }
+
+      // Extract term labels from VALUE
+      String lastUpdate = value.toString();
+
+      // Extract visibility labels
+      String cv = key.getColumnVisibility().toString();
+      Set<String> labelsAccumulo = Sets.newHashSet(
+          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
+
+      return new FieldLastUpdate(field, termType, labelsAccumulo, lastUpdate);
     });
   }
 

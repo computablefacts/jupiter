@@ -52,6 +52,7 @@ import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.jupiter.storage.termstore.FieldCount;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
+import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
 import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.nona.Generated;
@@ -613,6 +614,24 @@ final public class DataStore {
   }
 
   /**
+   * Get the date of last update by field.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset.
+   * @param field field.
+   * @return last update as an UTC timestamp.
+   */
+  public Iterator<FieldLastUpdate> fieldLastUpdate(Scanners scanners, String dataset,
+      String field) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return termStore_.fieldLastUpdate(scanners.index(), dataset,
+        field == null ? null : Sets.newHashSet(field));
+  }
+
+  /**
    * Get UUIDs ordered in lexicographic order.
    *
    * @param scanners scanners.
@@ -992,6 +1011,15 @@ final public class DataStore {
           infos.addVisibilityLabels(dataset, fieldLabels.field(), fieldLabels.termType(),
               fieldLabels.termLabels());
         }
+
+        Iterator<FieldLastUpdate> fieldLastUpdateIterator =
+            fieldLastUpdate(scanners, dataset, null);
+
+        while (fieldLastUpdateIterator.hasNext()) {
+          FieldLastUpdate fieldLastUpdate = fieldLastUpdateIterator.next();
+          infos.addLastUpdate(dataset, fieldLastUpdate.field(), fieldLastUpdate.termType(),
+              fieldLastUpdate.lastUpdate());
+        }
       });
     }
     return infos;
@@ -1089,6 +1117,7 @@ final public class DataStore {
     private final Table<String, String, Long> fieldsCounts_ = HashBasedTable.create();
     private final Table<String, String, Set<String>> fieldsVisibilityLabels_ =
         HashBasedTable.create();
+    private final Table<String, String, String> fieldsLastUpdate_ = HashBasedTable.create();
     private final Table<String, String, Set<String>> fieldsTypes_ = HashBasedTable.create();
 
     public Infos(String name) {
@@ -1126,15 +1155,38 @@ final public class DataStore {
       addType(dataset, field, type);
     }
 
+    public void addLastUpdate(String dataset, String field, int type, String lastUpdate) {
+
+      Preconditions.checkNotNull(dataset, "dataset should not be null");
+      Preconditions.checkNotNull(field, "field should not be null");
+
+      if (fieldsLastUpdate_.contains(dataset, field)) {
+        String oldLastUpdate = fieldsLastUpdate_.get(dataset, field);
+        int cmp = oldLastUpdate.compareTo(lastUpdate);
+        if (cmp < 0) {
+          fieldsLastUpdate_.remove(dataset, field);
+          fieldsLastUpdate_.put(dataset, field, lastUpdate);
+        }
+      } else {
+        fieldsLastUpdate_.put(dataset, field, lastUpdate);
+      }
+
+      addType(dataset, field, type);
+    }
+
     public Map<String, Object> json() {
 
       List<Map<String, Object>> fields = Sets.union(
           fieldsCounts_.cellSet().stream()
               .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
               .collect(Collectors.toSet()),
-          fieldsVisibilityLabels_.cellSet().stream()
-              .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
-              .collect(Collectors.toSet()))
+          Sets.union(
+              fieldsVisibilityLabels_.cellSet().stream()
+                  .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+                  .collect(Collectors.toSet()),
+              fieldsLastUpdate_.cellSet().stream()
+                  .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+                  .collect(Collectors.toSet())))
           .stream().map(cell -> {
 
             String dataset = cell.getKey();
@@ -1143,6 +1195,9 @@ final public class DataStore {
             Map<String, Object> map = new HashMap<>();
             map.put("dataset", dataset);
             map.put("field", field.replace(Constants.SEPARATOR_CURRENCY_SIGN, '.'));
+            map.put("last_update",
+                fieldsLastUpdate_.contains(dataset, field) ? fieldsLastUpdate_.get(dataset, field)
+                    : null);
             map.put("nb_index_entries",
                 fieldsCounts_.contains(dataset, field) ? fieldsCounts_.get(dataset, field) : 0);
             map.put("visibility_labels",

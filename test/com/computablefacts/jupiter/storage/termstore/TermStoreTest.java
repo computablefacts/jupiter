@@ -20,6 +20,7 @@ import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
+import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -430,6 +431,37 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
           fl3.accumuloLabels());
       Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), fl3.termLabels());
       Assert.assertTrue(fl3.isString());
+    }
+  }
+
+  @Test
+  public void testFieldLastUpdate() throws Exception {
+
+    Authorizations auths =
+        new Authorizations("FIRST_DATASET_LU", "SECOND_DATASET_LU", "THIRD_DATASET_LU");
+    TermStore termStore = newDataStore(auths);
+
+    for (int i = 0; i < 10; i++) {
+
+      FieldLastUpdate flu1 = fieldLastUpdateInFirstDataset(termStore, i, auths);
+      FieldLastUpdate flu2 = fieldLastUpdateInSecondDataset(termStore, i, auths);
+      FieldLastUpdate flu3 = fieldLastUpdateInThirdDataset(termStore, i, auths);
+
+      Assert.assertEquals("field_" + i, flu1.field());
+      Assert.assertTrue(WildcardMatcher.match(flu1.lastUpdate(), "????-??-??T??:??:??*Z"));
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_LU"), flu1.labels());
+      Assert.assertTrue(flu1.isString());
+
+      Assert.assertEquals("field_" + i, flu2.field());
+      Assert.assertTrue(WildcardMatcher.match(flu2.lastUpdate(), "????-??-??T??:??:??*Z"));
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_LU"),
+          flu2.labels());
+      Assert.assertTrue(flu2.isString());
+
+      Assert.assertEquals("field_" + i, flu3.field());
+      Assert.assertTrue(WildcardMatcher.match(flu3.lastUpdate(), "????-??-??T??:??:??*Z"));
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_LU"), flu3.labels());
+      Assert.assertTrue(flu3.isString());
     }
   }
 
@@ -873,6 +905,35 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     }
   }
 
+  private FieldLastUpdate fieldLastUpdateInFirstDataset(TermStore termStore, int field,
+      Authorizations authorizations) {
+    return fieldLastUpdate(termStore, "first_dataset", "field_" + field, authorizations);
+  }
+
+  private FieldLastUpdate fieldLastUpdateInSecondDataset(TermStore termStore, int field,
+      Authorizations authorizations) {
+    return fieldLastUpdate(termStore, "second_dataset", "field_" + field, authorizations);
+  }
+
+  private FieldLastUpdate fieldLastUpdateInThirdDataset(TermStore termStore, int field,
+      Authorizations authorizations) {
+    return fieldLastUpdate(termStore, "third_dataset", "field_" + field, authorizations);
+  }
+
+  private FieldLastUpdate fieldLastUpdate(TermStore termStore, String dataset, String field,
+      Authorizations authorizations) {
+
+    Preconditions.checkNotNull(termStore, "termStore should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+
+    try (Scanner scanner = termStore.scanner(authorizations)) {
+      Iterator<FieldLastUpdate> iterator =
+          termStore.fieldLastUpdate(scanner, dataset, Sets.newHashSet(field));
+      return iterator.hasNext() ? iterator.next() : null;
+    }
+  }
+
   private FieldLabels fieldLabelsInFirstDataset(TermStore termStore, int field,
       Authorizations authorizations) {
     return fieldLabels(termStore, "first_dataset", "field_" + field, authorizations);
@@ -961,8 +1022,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(authorizations)) { // keep order
 
       List<Term> list = new ArrayList<>();
-      Iterator<Term> iterator =
-          termStore.termScan((ScannerBase) scanner, dataset, term, null, null);
+      Iterator<Term> iterator = termStore.termScan(scanner, dataset, term, null, null);
 
       while (iterator.hasNext()) {
         list.add(iterator.next());

@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Key;
@@ -26,6 +27,7 @@ import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.nona.helpers.Codecs;
+import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -859,7 +861,14 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore.Infos infos = dataStore.infos(Sets.newHashSet("first_dataset"), Constants.AUTH_ADM);
     Map<String, Object> json = infos.json();
 
-    Assert.assertEquals(10, ((List<Map<String, Object>>) json.get("fields")).size());
+    List<Map<String, Object>> jsons =
+        ((List<Map<String, Object>>) json.get("fields")).stream().peek(map -> {
+          Assert.assertTrue(
+              WildcardMatcher.match((String) map.get("last_update"), "????-??-??T??:??:??*Z"));
+          map.remove("last_update");
+        }).collect(Collectors.toList());
+
+    Assert.assertEquals(10, jsons.size());
 
     Map<String, Object> map = new HashMap<>();
     map.put("dataset", "first_dataset");
@@ -869,7 +878,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_AGE"));
     map.put("types", Sets.newHashSet("NUMBER"));
 
-    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
+    Assert.assertTrue(jsons.contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
@@ -879,7 +888,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_CHILDREN"));
     map.put("types", Sets.newHashSet("STRING"));
 
-    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
+    Assert.assertTrue(jsons.contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
@@ -889,7 +898,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_HASCHILDREN"));
     map.put("types", Sets.newHashSet("BOOLEAN"));
 
-    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
+    Assert.assertTrue(jsons.contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
@@ -899,7 +908,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_WEIGHT"));
     map.put("types", Sets.newHashSet("NUMBER"));
 
-    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
+    Assert.assertTrue(jsons.contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
@@ -909,7 +918,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_BIRTHDATE"));
     map.put("types", Sets.newHashSet("STRING"));
 
-    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
+    Assert.assertTrue(jsons.contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
@@ -919,7 +928,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_BORN_AT"));
     map.put("types", Sets.newHashSet("STRING"));
 
-    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
+    Assert.assertTrue(jsons.contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
@@ -929,7 +938,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_NAME"));
     map.put("types", Sets.newHashSet("STRING"));
 
-    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
+    Assert.assertTrue(jsons.contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
@@ -939,7 +948,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_PHOTO"));
     map.put("types", Sets.newHashSet("STRING"));
 
-    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
+    Assert.assertTrue(jsons.contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
@@ -949,7 +958,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_HASGREYHAIR"));
     map.put("types", Sets.newHashSet("BOOLEAN"));
 
-    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
+    Assert.assertTrue(jsons.contains(map));
 
     map.clear();
     map.put("dataset", "first_dataset");
@@ -959,7 +968,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Sets.newHashSet("ADM", "FIRST_DATASET_ACTORS", "FIRST_DATASET_ACTORS_UUID"));
     map.put("types", Sets.newHashSet("NUMBER"));
 
-    Assert.assertTrue(((List<Map<String, Object>>) json.get("fields")).contains(map));
+    Assert.assertTrue(jsons.contains(map));
   }
 
   private void fillDataStore(DataStore dataStore) {

@@ -1,7 +1,9 @@
 package com.computablefacts.jupiter.combiners;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
@@ -36,7 +38,22 @@ public class TermStoreCombiner extends Combiner {
     if (cf.endsWith("VIZ")) {
       return reduceFieldVisibility(iter);
     }
+    if (cf.endsWith("LU")) {
+      return reduceFieldLastUpdate(iter);
+    }
     return new Value();
+  }
+
+  private Value reduceFieldLastUpdate(Iterator<Value> iter) {
+
+    List<String> timestamps = new ArrayList<>();
+
+    while (iter.hasNext()) {
+      timestamps.add(iter.next().toString());
+    }
+
+    timestamps.sort(String::compareTo);
+    return new Value(timestamps.get(timestamps.size() - 1));
   }
 
   private Value reduceFieldVisibility(Iterator<Value> iter) {
