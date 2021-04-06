@@ -64,6 +64,70 @@ public class BlobStoreJsonFieldsAnonymizingIteratorTest {
   }
 
   @Test
+  public void testOnlyAdmAuthorization() throws Exception {
+
+    BlobStoreJsonFieldsAnonymizingIterator iterator =
+        iterator(new Authorizations(Constants.STRING_ADM));
+
+    @Var
+    int countDataset1 = 0;
+    @Var
+    int countDataset2 = 0;
+
+    while (iterator.hasTop()) {
+
+      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String value = iterator.getTopValue().toString();
+
+      if ("DATASET_1".equals(cf)) {
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        countDataset1++;
+      }
+      if ("DATASET_2".equals(cf)) {
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        countDataset2++;
+      }
+
+      iterator.next();
+    }
+
+    Assert.assertEquals(3, countDataset1);
+    Assert.assertEquals(3, countDataset2);
+  }
+
+  @Test
+  public void testOnlyRawDataAuthorization() throws Exception {
+
+    BlobStoreJsonFieldsAnonymizingIterator iterator =
+        iterator(new Authorizations("DATASET_1_RAW_DATA"));
+
+    @Var
+    int countDataset1 = 0;
+    @Var
+    int countDataset2 = 0;
+
+    while (iterator.hasTop()) {
+
+      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String value = iterator.getTopValue().toString();
+
+      if ("DATASET_1".equals(cf)) {
+        Assert.assertEquals(json(), value);
+        countDataset1++;
+      }
+      if ("DATASET_2".equals(cf)) {
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        countDataset2++;
+      }
+
+      iterator.next();
+    }
+
+    Assert.assertEquals(3, countDataset1);
+    Assert.assertEquals(3, countDataset2);
+  }
+
+  @Test
   public void testTwoMatchingAuthorizations1() throws Exception {
 
     BlobStoreJsonFieldsAnonymizingIterator iterator =

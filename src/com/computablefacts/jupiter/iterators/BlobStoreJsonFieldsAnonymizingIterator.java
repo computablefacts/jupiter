@@ -10,6 +10,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.VisibilityEvaluator;
 
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
@@ -31,7 +32,6 @@ public class BlobStoreJsonFieldsAnonymizingIterator extends AnonymizingIterator 
 
   private ObjectMapper mapper_;
   private JacksonJsonCore jsonCore_;
-  private Set<String> auths_;
 
   public BlobStoreJsonFieldsAnonymizingIterator() {}
 
@@ -56,8 +56,6 @@ public class BlobStoreJsonFieldsAnonymizingIterator extends AnonymizingIterator 
     jsonCore_ = new JacksonJsonCore(mapper_);
 
     super.init(source, options, environment);
-
-    auths_ = parsedAuths();
   }
 
   @Override
@@ -76,29 +74,42 @@ public class BlobStoreJsonFieldsAnonymizingIterator extends AnonymizingIterator 
       setTopValue(value);
     } else {
 
+      Set<String> auths = parsedAuths();
       String vizDataset = AbstractStorage.toVisibilityLabel(key.getColumnFamily().toString() + "_");
-      Map<String, Object> json = new JsonFlattener(jsonCore_, value.toString())
-          .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
+      String vizRawData = vizDataset + Constants.STRING_RAW_DATA;
+      VisibilityEvaluator userVizEvaluator = visibilityEvaluator(vizRawData);
 
-      // First, ensure the user has the right to visualize the returned fields
-      json.keySet().removeIf(field -> {
+      if (auths.contains(vizRawData)
+          && matches(userVizEvaluator, key.getColumnVisibilityParsed())) {
 
-        List<String> path = Lists.newArrayList(Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN)
-            .trimResults().omitEmptyStrings().split(field));
-
-        return AbstractStorage.toVisibilityLabels(path).stream().map(label -> vizDataset + label)
-            .noneMatch(auths_::contains);
-      });
-
-      // Then, rebuild a new JSON object
-      String newJson = new JsonUnflattener(jsonCore_, json)
-          .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
-
-      // Next, set the new JSON object as the new Accumulo Value
-      if ("{}".equals(newJson)) {
-        setTopValue(Constants.VALUE_ANONYMIZED);
+        // Here, the user has the <dataset>_RAW_DATA authorization : give him access to the full
+        // JSON object
+        setTopValue(value);
       } else {
-        setTopValue(new Value(newJson.getBytes(StandardCharsets.UTF_8)));
+
+        Map<String, Object> json = new JsonFlattener(jsonCore_, value.toString())
+            .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
+
+        // First, ensure the user has the right to visualize the returned fields
+        json.keySet().removeIf(field -> {
+
+          List<String> path = Lists.newArrayList(Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN)
+              .trimResults().omitEmptyStrings().split(field));
+
+          return AbstractStorage.toVisibilityLabels(path).stream().map(label -> vizDataset + label)
+              .noneMatch(auths::contains);
+        });
+
+        // Then, rebuild a new JSON object
+        String newJson = new JsonUnflattener(jsonCore_, json)
+            .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
+
+        // Next, set the new JSON object as the new Accumulo Value
+        if ("{}".equals(newJson)) {
+          setTopValue(Constants.VALUE_ANONYMIZED);
+        } else {
+          setTopValue(new Value(newJson.getBytes(StandardCharsets.UTF_8)));
+        }
       }
     }
   }
