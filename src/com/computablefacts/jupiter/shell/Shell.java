@@ -26,8 +26,6 @@ import com.computablefacts.jupiter.storage.datastore.Writers;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.Document;
 import com.computablefacts.nona.helpers.Files;
-import com.computablefacts.nona.types.Span;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
@@ -37,13 +35,6 @@ import com.google.errorprone.annotations.Var;
 @CheckReturnValue
 public class Shell {
 
-  // TODO : move to class Codecs
-  public static final Function<Object, Span> defaultLexicoder = (object) -> {
-    if (object instanceof Boolean) {
-      return Codecs.nopLexicoder.apply(object);
-    }
-    return Codecs.defaultLexicoder.apply(object);
-  };
   private static final Logger logger_ = LoggerFactory.getLogger(Shell.class);
 
   public static void main(String[] args) {
@@ -240,7 +231,7 @@ public class Shell {
         } else {
 
           if (!ds.persist(writers, dataset, document.docId(), row, key -> true,
-              Codecs.defaultTokenizer, Shell.defaultLexicoder)) {
+              Codecs.defaultTokenizer, Codecs.defaultLexicoder)) {
             logger_.error(LogFormatterManager.logFormatter()
                 .message("Persistence of " + document.docId() + " failed").formatError());
           }
