@@ -36,6 +36,20 @@ public abstract class AbstractNode {
     this.exclude_ = exclude;
   }
 
+  final public long count(DataStore dataStore, Scanners scanners, String dataset) {
+    return count(dataStore, scanners, dataset, null);
+  }
+
+  final public Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,
+      String dataset) {
+    return execute(dataStore, scanners, writers, dataset, null, null);
+  }
+
+  final public Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,
+      String dataset, BloomFilters<String> keepDocs) {
+    return execute(dataStore, scanners, writers, dataset, keepDocs, null);
+  }
+
   @Deprecated
   public abstract Set<String> terms();
 

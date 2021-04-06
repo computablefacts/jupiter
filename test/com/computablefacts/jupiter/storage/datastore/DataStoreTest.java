@@ -35,11 +35,6 @@ import com.google.errorprone.annotations.Var;
 
 public class DataStoreTest extends MiniAccumuloClusterTest {
 
-  private static String normalize(String str) {
-    String token = Codecs.nopTokenizer.apply(str).span(0).text();
-    return Codecs.nopLexicoder.apply(token).text();
-  }
-
   @Test
   public void testAddLocalityGroup() {
     // TODO
@@ -494,7 +489,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       try (Writers writers = dataStore.writers()) {
 
         List<String> list = new ArrayList<>();
-        dataStore.searchByTerm(scanners, writers, "first_dataset", normalize("Connor"), null)
+        dataStore
+            .searchByTerm(scanners, writers, "first_dataset", DataStore.normalize("Connor"), null)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(10, list.size());
@@ -504,8 +500,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         }
 
         list.clear();
-        dataStore.searchByTerm(scanners, writers, "first_dataset", normalize("Isabella Jane"), null,
-            null).forEachRemaining(list::add);
+        dataStore.searchByTerm(scanners, writers, "first_dataset",
+            DataStore.normalize("Isabella Jane"), null, null).forEachRemaining(list::add);
 
         Assert.assertEquals(10, list.size());
 
@@ -529,8 +525,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
         List<String> list = new ArrayList<>();
         dataStore
-            .searchByTerms(scanners, writers, "first_dataset",
-                Sets.newHashSet(normalize("Connor"), normalize("Isabella Jane")), null)
+            .searchByTerms(scanners, writers, "first_dataset", Sets.newHashSet(
+                DataStore.normalize("Connor"), DataStore.normalize("Isabella Jane")), null)
             .forEachRemaining(list::add);
 
         Assert.assertEquals(10, list.size());
@@ -557,7 +553,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         // Create a new dataset
         for (int i = 0; i < 10; i++) {
           Assert.assertTrue(dataStore.persist(writers, "fourth_dataset", "row_" + i, json2(i), null,
-              Codecs.defaultTokenizer, Codecs.nopLexicoder));
+              Codecs.defaultTokenizer, null));
         }
 
         Assert.assertTrue(writers.flush());
@@ -784,11 +780,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       try (Writers writers = dataStore.writers()) {
 
         @Var
-        Iterator<String> iterator =
-            query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
+        Iterator<String> iterator = query.execute(dataStore, scanners, writers, "first_dataset");
 
-        Assert.assertEquals(10,
-            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+        Assert.assertEquals(10, query.count(dataStore, scanners, "first_dataset"));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -804,11 +798,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       try (Writers writers = dataStore.writers()) {
 
         @Var
-        Iterator<String> iterator =
-            query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
+        Iterator<String> iterator = query.execute(dataStore, scanners, writers, "first_dataset");
 
-        Assert.assertEquals(10,
-            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+        Assert.assertEquals(10, query.count(dataStore, scanners, "first_dataset"));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -824,11 +816,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       try (Writers writers = dataStore.writers()) {
 
         @Var
-        Iterator<String> iterator =
-            query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
+        Iterator<String> iterator = query.execute(dataStore, scanners, writers, "first_dataset");
 
-        Assert.assertEquals(10,
-            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+        Assert.assertEquals(10, query.count(dataStore, scanners, "first_dataset"));
         Assert.assertEquals(10, Iterators.size(iterator));
       }
     }
@@ -844,11 +834,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       try (Writers writers = dataStore.writers()) {
 
         @Var
-        Iterator<String> iterator =
-            query.execute(dataStore, scanners, writers, "first_dataset", null, Codecs.nopTokenizer);
+        Iterator<String> iterator = query.execute(dataStore, scanners, writers, "first_dataset");
 
-        Assert.assertEquals(0,
-            query.count(dataStore, scanners, "first_dataset", Codecs.nopTokenizer));
+        Assert.assertEquals(0, query.count(dataStore, scanners, "first_dataset"));
         Assert.assertEquals(0, Iterators.size(iterator));
       }
     }
@@ -978,17 +966,17 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     try (Writers writers = dataStore.writers()) {
       for (int i = 0; i < 10; i++) {
         Assert.assertTrue(dataStore.persist(writers, "first_dataset", "row_" + i, json1(i),
-            key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
+            key -> true, null, Codecs.defaultLexicoder));
       }
 
       for (int i = 0; i < 10; i++) {
         Assert.assertTrue(dataStore.persist(writers, "second_dataset", "row_" + i, json1(i),
-            key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
+            key -> true, null, Codecs.defaultLexicoder));
       }
 
       for (int i = 0; i < 10; i++) {
         Assert.assertTrue(dataStore.persist(writers, "third_dataset", "row_" + i, json1(i),
-            key -> true, Codecs.nopTokenizer, Codecs.defaultLexicoder));
+            key -> true, null, Codecs.defaultLexicoder));
       }
     }
   }

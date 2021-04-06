@@ -57,6 +57,7 @@ import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.Codecs;
+import com.computablefacts.nona.helpers.StringIterator;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
@@ -98,6 +99,10 @@ final public class DataStore {
     name_ = Preconditions.checkNotNull(name, "name should neither be null nor empty");
     blobStore_ = new BlobStore(configurations, blobStoreName(name));
     termStore_ = new TermStore(configurations, termStoreName(name));
+  }
+
+  static String normalize(String str) {
+    return StringIterator.removeDiacriticalMarks(StringIterator.normalize(str)).toLowerCase();
   }
 
   @Generated
@@ -469,10 +474,23 @@ final public class DataStore {
    * @param dataset dataset.
    * @param uuid unique identifier.
    * @param json JSON object.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean persist(Writers writers, String dataset, String uuid, String json) {
+    return persist(writers, dataset, uuid, json, key -> true, null, null);
+  }
+
+  /**
+   * Persist a single JSON object.
+   *
+   * @param writers writers.
+   * @param dataset dataset.
+   * @param uuid unique identifier.
+   * @param json JSON object.
    * @param keepField filter applied on all JSON attributes before value tokenization (optional).
    *        This predicate should return true iif the field's value must be tokenized.
    * @param tokenizer string tokenizer (optional).
-   * @param lexicoder represents java Objects as sortable strings.
+   * @param lexicoder represents java Objects as sortable strings (optional).
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean persist(Writers writers, String dataset, String uuid, String json,
@@ -483,7 +501,6 @@ final public class DataStore {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(uuid, "uuid should not be null");
     Preconditions.checkNotNull(json, "json should not be null");
-    Preconditions.checkNotNull(lexicoder, "lexicoder should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("uuid", uuid)
@@ -523,19 +540,29 @@ final public class DataStore {
       @Var
       boolean writeInForwardIndexOnly = false;
       @Var
-      int termType = Term.TYPE_UNKNOWN;
+      int termType = Term.TYPE_STRING;
       String newField = field.replaceAll("\\[\\d+\\]", "[*]");
 
-      if (tokenizer == null || !(value instanceof String)) {
-
-        // Objects other than String are lexicoded
+      if (value instanceof String) {
+        if (Codecs.isProbablyBase64((String) value)) {
+          continue; // Base64 strings are NOT indexed
+        }
+        if (tokenizer != null) {
+          spanSequence = Objects.requireNonNull(tokenizer.apply((String) value));
+        } else {
+          String str = normalize(value.toString());
+          spanSequence = new SpanSequence();
+          spanSequence.add(new Span(str, 0, str.length()));
+        }
+      } else { // Objects other than String are lexicoded
         spanSequence = new SpanSequence();
-        spanSequence.add(Objects.requireNonNull(lexicoder.apply(value)));
-        writeInForwardIndexOnly = !(value instanceof String);
-
-        if (value instanceof String) {
-          termType = Term.TYPE_STRING;
-        } else if (value instanceof Number) {
+        if (lexicoder != null) {
+          spanSequence.add(Objects.requireNonNull(lexicoder.apply(value)));
+        } else {
+          String str = value.toString();
+          spanSequence.add(new Span(str, 0, str.length()));
+        }
+        if (value instanceof Number) {
           termType = Term.TYPE_NUMBER;
         } else if (value instanceof Date) {
           termType = Term.TYPE_DATE;
@@ -544,13 +571,7 @@ final public class DataStore {
         } else {
           termType = Term.TYPE_UNKNOWN;
         }
-      } else if (Codecs.isProbablyBase64((String) value)) {
-
-        // Base64 strings are NOT indexed
-        continue;
-      } else {
-        spanSequence = Objects.requireNonNull(tokenizer.apply((String) value));
-        termType = Term.TYPE_STRING;
+        writeInForwardIndexOnly = true;
       }
 
       // Group by spans
