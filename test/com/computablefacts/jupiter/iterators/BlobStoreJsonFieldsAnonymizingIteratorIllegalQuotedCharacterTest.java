@@ -16,7 +16,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.computablefacts.jupiter.storage.Constants;
-import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.google.errorprone.annotations.Var;
 
 public class BlobStoreJsonFieldsAnonymizingIteratorIllegalQuotedCharacterTest {
@@ -103,19 +102,19 @@ public class BlobStoreJsonFieldsAnonymizingIteratorIllegalQuotedCharacterTest {
 
     SortedMap<Key, Value> map = new TreeMap<>();
 
-    map.put(new Key("KEY_1", "DATASET_1", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
-    map.put(new Key("KEY_2", "DATASET_1", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
-    map.put(new Key("KEY_3", "DATASET_1", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("KEY_1", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("KEY_2", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("KEY_3", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+        new Value(json()));
 
-    map.put(new Key("KEY_1", "DATASET_2", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
-    map.put(new Key("KEY_2", "DATASET_2", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
-    map.put(new Key("KEY_3", "DATASET_2", Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL,
-        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("KEY_1", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("KEY_2", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("KEY_3", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+        new Value(json()));
 
     return map;
   }

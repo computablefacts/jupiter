@@ -28,8 +28,6 @@ import com.google.errorprone.annotations.CheckReturnValue;
 @CheckReturnValue
 public class BlobStoreJsonFieldsAnonymizingIterator extends AnonymizingIterator {
 
-  private static final String TYPE_JSON = Blob.TYPE_JSON + "" + Constants.SEPARATOR_NUL;
-
   private ObjectMapper mapper_;
   private JacksonJsonCore jsonCore_;
 
@@ -68,8 +66,7 @@ public class BlobStoreJsonFieldsAnonymizingIterator extends AnonymizingIterator 
 
     setTopKey(key);
 
-    if (key.getColumnQualifier() == null
-        || !key.getColumnQualifier().toString().startsWith(TYPE_JSON)
+    if (key.getColumnQualifier() == null || !Blob.isJson(key)
         || Constants.VALUE_ANONYMIZED.equals(value)) {
       setTopValue(value);
     } else {

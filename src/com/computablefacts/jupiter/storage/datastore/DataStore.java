@@ -714,7 +714,7 @@ final public class DataStore {
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return blobStore_.get(scanners.blob(), dataset, fields, Sets.newHashSet());
+    return blobStore_.get(scanners.blob(), dataset, null, fields);
   }
 
   /**
@@ -736,7 +736,7 @@ final public class DataStore {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(uuids, "uuids should not be null");
 
-    return blobStore_.get(scanners.blob(), dataset, fields, uuids);
+    return blobStore_.get(scanners.blob(), dataset, uuids, fields);
   }
 
   /**

@@ -328,6 +328,7 @@ public abstract class AbstractStorage {
    * @param value value.
    * @return true if the operation succeeded, false otherwise.
    */
+  @Deprecated
   public boolean add(BatchWriter writer, Text row, Text cf, Text cq, ColumnVisibility cv,
       Value value) {
 
@@ -343,6 +344,21 @@ public abstract class AbstractStorage {
     Mutation mutation = new Mutation(row);
     mutation.put(cf == null ? Constants.TEXT_EMPTY : cf, cq == null ? Constants.TEXT_EMPTY : cq,
         cv == null ? Constants.VIZ_EMPTY : cv, value == null ? Constants.VALUE_EMPTY : value);
+
+    return add(writer, mutation);
+  }
+
+  /**
+   * Persist data.
+   *
+   * @param writer batch writer.
+   * @param mutation the mutation to write.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean add(BatchWriter writer, Mutation mutation) {
+
+    Preconditions.checkNotNull(writer, "writer should not be null");
+    Preconditions.checkNotNull(mutation, "mutation should not be null");
 
     try {
       writer.addMutation(mutation);

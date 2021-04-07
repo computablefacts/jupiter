@@ -36,7 +36,6 @@ import com.google.errorprone.annotations.CheckReturnValue;
 public class BlobStoreFilterOutJsonFieldsIterator
     implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
 
-  private static final String TYPE_JSON = Blob.TYPE_JSON + "" + SEPARATOR_NUL;
   private static final String FIELDS_CRITERION = "f";
 
   private SortedKeyValueIterator<Key, Value> source_;
@@ -137,8 +136,7 @@ public class BlobStoreFilterOutJsonFieldsIterator
 
     setTopKey(key);
 
-    if (key.getColumnQualifier() == null
-        || !key.getColumnQualifier().toString().startsWith(TYPE_JSON)
+    if (key.getColumnQualifier() == null || !Blob.isJson(key)
         || Constants.VALUE_ANONYMIZED.equals(value)) {
       setTopValue(value);
     } else {

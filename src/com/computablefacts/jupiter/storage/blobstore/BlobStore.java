@@ -1,7 +1,5 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +12,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,9 +25,7 @@ import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
 import com.google.common.annotations.Beta;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -143,24 +138,7 @@ final public class BlobStore extends AbstractStorage {
    */
   public boolean putFile(BatchWriter writer, String dataset, String key, Set<String> labels,
       java.io.File file) {
-
-    Preconditions.checkNotNull(writer, "writer should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(key, "key should not be null");
-    Preconditions.checkNotNull(file, "file should not be null");
-    Preconditions.checkArgument(file.exists(), "Missing file : %s", file);
-
-    List<String> properties = Lists.newArrayList(file.getName(), Long.toString(file.length(), 10));
-
-    try {
-      byte[] content = java.nio.file.Files.readAllBytes(file.toPath());
-      return put(writer, dataset, key, labels, Blob.TYPE_FILE, properties, content);
-    } catch (IOException e) {
-      logger_.error(
-          LogFormatterManager.logFormatter().add("table_name", tableName()).add("dataset", dataset)
-              .add("key", key).add("file", file).add("labels", labels).message(e).formatError());
-    }
-    return false;
+    return add(writer, Blob.fromFile(dataset, key, labels, file));
   }
 
   /**
@@ -175,14 +153,7 @@ final public class BlobStore extends AbstractStorage {
    */
   public boolean putString(BatchWriter writer, String dataset, String key, Set<String> labels,
       String value) {
-
-    Preconditions.checkNotNull(writer, "writer should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(key, "key should not be null");
-    Preconditions.checkNotNull(value, "value should not be null");
-
-    return put(writer, dataset, key, labels, Blob.TYPE_STRING, null,
-        value.getBytes(StandardCharsets.UTF_8));
+    return add(writer, Blob.fromString(dataset, key, labels, value));
   }
 
   /**
@@ -197,14 +168,7 @@ final public class BlobStore extends AbstractStorage {
    */
   public boolean putJson(BatchWriter writer, String dataset, String key, Set<String> labels,
       String value) {
-
-    Preconditions.checkNotNull(writer, "writer should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(key, "key should not be null");
-    Preconditions.checkNotNull(value, "value should not be null");
-
-    return put(writer, dataset, key, labels, Blob.TYPE_JSON, null,
-        value.getBytes(StandardCharsets.UTF_8));
+    return add(writer, Blob.fromJson(dataset, key, labels, value));
   }
 
   /**
@@ -215,11 +179,7 @@ final public class BlobStore extends AbstractStorage {
    * @return an iterator of (key, value) pairs.
    */
   public Iterator<Blob<Value>> get(ScannerBase scanner, String dataset) {
-
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return get(scanner, dataset, null, Sets.newHashSet());
+    return get(scanner, dataset, null, null);
   }
 
   /**
@@ -231,37 +191,32 @@ final public class BlobStore extends AbstractStorage {
    * @return an iterator of (key, value) pairs.
    */
   public Iterator<Blob<Value>> get(ScannerBase scanner, String dataset, String key) {
-
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(key, "key should not be null");
-
-    return get(scanner, dataset, null, Sets.newHashSet(key));
+    return get(scanner, dataset, Sets.newHashSet(key), null);
   }
 
   /**
    * Get one or more blobs.
    *
-   * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
-   * must also have the <dataset>_<field> auth for each requested field.
+   * The <dataset>_RAW_DATA authorization gives the user access to the full JSON document. If this
+   * authorization is not specified, the user must have the <dataset>_<field> auth for each
+   * requested field.
    *
    * @param scanner scanner.
    * @param dataset dataset/namespace.
+   * @param keys keys (optional).
    * @param keepFields fields to keep if Accumulo Values are JSON objects (optional).
-   * @param keys keys.
    * @return an iterator of (key, value) pairs.
    */
-  public Iterator<Blob<Value>> get(ScannerBase scanner, String dataset, Set<String> keepFields,
-      Set<String> keys) {
+  public Iterator<Blob<Value>> get(ScannerBase scanner, String dataset, Set<String> keys,
+      Set<String> keepFields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(keys, "keys should not be null");
 
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
           .add("dataset", dataset).add("has_keep_fields", keepFields != null)
-          .add("keys.size", keys.size()).formatInfo());
+          .add("has_keys", keys != null).formatInfo());
     }
 
     scanner.clearColumns();
@@ -290,7 +245,7 @@ final public class BlobStore extends AbstractStorage {
 
     List<Range> ranges;
 
-    if (keys.isEmpty()) {
+    if (keys == null || keys.isEmpty()) {
       ranges = Lists.newArrayList(new Range());
     } else {
       ranges = Range.mergeOverlapping(keys.stream()
@@ -300,66 +255,7 @@ final public class BlobStore extends AbstractStorage {
     if (!setRanges(scanner, ranges)) {
       return Constants.ITERATOR_EMPTY;
     }
-    return Iterators.transform(scanner.iterator(), entry -> {
-
-      String cv = entry.getKey().getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(
-          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
-      String cq = entry.getKey().getColumnQualifier().toString();
-
-      int index = cq.indexOf(Constants.SEPARATOR_NUL);
-      if (index < 0) {
-        return new Blob<>(entry.getKey().getRow().toString(), labels, Blob.TYPE_UNKNOWN,
-            Lists.newArrayList(), entry.getValue());
-      }
-
-      List<String> properties =
-          Splitter.on(Constants.SEPARATOR_NUL).trimResults().omitEmptyStrings().splitToList(cq);
-
-      return new Blob<>(entry.getKey().getRow().toString(), labels,
-          Integer.parseInt(properties.get(0), 10), properties.subList(1, properties.size()),
-          entry.getValue());
-    });
-  }
-
-  /**
-   * Persist a blob.
-   *
-   * @param writer batch writer.
-   * @param dataset dataset/namespace.
-   * @param key key.
-   * @param labels visibility labels.
-   * @param type type of blob in {UNKNOWN, STRING, FILE}.
-   * @param properties list of properties.
-   * @param bytes blob.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  private boolean put(BatchWriter writer, String dataset, String key, Set<String> labels, int type,
-      List<String> properties, byte[] bytes) {
-
-    Preconditions.checkNotNull(writer, "writer should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(key, "key should not be null");
-    Preconditions.checkArgument(type >= 0, "unknown blob type : %s", type);
-    Preconditions.checkNotNull(bytes, "bytes should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("key", key).add("labels", labels).add("type", type)
-          .add("properties", properties).formatDebug());
-    }
-
-    StringBuilder cq = new StringBuilder();
-
-    cq.append(type);
-    cq.append(Constants.SEPARATOR_NUL);
-
-    if (properties != null && !properties.isEmpty()) {
-      cq.append(Joiner.on(Constants.SEPARATOR_NUL).join(properties));
-    }
-
-    ColumnVisibility viz = new ColumnVisibility(Joiner.on(Constants.SEPARATOR_PIPE).join(labels));
-    return add(writer, new Text(key), new Text(dataset), new Text(cq.toString()), viz,
-        new Value(bytes));
+    return Iterators.transform(scanner.iterator(),
+        entry -> Blob.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 }

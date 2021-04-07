@@ -10,23 +10,31 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class BlobTest {
 
   @Test(expected = NullPointerException.class)
+  public void testNullDataset() {
+    Blob<String> blob =
+        new Blob<>(null, "key", Sets.newHashSet(), 0, "value", Lists.newArrayList());
+  }
+
+  @Test(expected = NullPointerException.class)
   public void testNullKey() {
-    Blob<String> blob = new Blob<>(null, Sets.newHashSet(), 0, Lists.newArrayList(), "value");
+    Blob<String> blob =
+        new Blob<>("dataset", null, Sets.newHashSet(), 0, "value", Lists.newArrayList());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabels() {
-    Blob<String> blob = new Blob<>("key", null, 0, Lists.newArrayList(), "value");
+    Blob<String> blob = new Blob<>("dataset", "key", null, 0, "value", Lists.newArrayList());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullProperties() {
-    Blob<String> blob = new Blob<>("key", Sets.newHashSet(), 0, null, "value");
+    Blob<String> blob = new Blob<>("dataset", "key", Sets.newHashSet(), 0, "value", null);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullValue() {
-    Blob<String> blob = new Blob<>("key", Sets.newHashSet(), 0, Lists.newArrayList(), null);
+    Blob<String> blob =
+        new Blob<>("dataset", "key", Sets.newHashSet(), 0, null, Lists.newArrayList());
   }
 
   @Test
