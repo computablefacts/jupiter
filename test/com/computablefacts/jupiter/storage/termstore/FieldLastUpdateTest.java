@@ -12,14 +12,20 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class FieldLastUpdateTest {
 
   @Test(expected = NullPointerException.class)
+  public void testNullDataset() {
+    FieldLastUpdate fl = new FieldLastUpdate(null, "key", Term.TYPE_UNKNOWN, Sets.newHashSet(),
+        DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+  }
+
+  @Test(expected = NullPointerException.class)
   public void testNullField() {
-    FieldLastUpdate fl = new FieldLastUpdate(null, Term.TYPE_UNKNOWN, Sets.newHashSet(),
+    FieldLastUpdate fl = new FieldLastUpdate("dataset", null, Term.TYPE_UNKNOWN, Sets.newHashSet(),
         DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabels() {
-    FieldLastUpdate fl = new FieldLastUpdate("key", Term.TYPE_UNKNOWN, null,
+    FieldLastUpdate fl = new FieldLastUpdate("dataset", "key", Term.TYPE_UNKNOWN, null,
         DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
   }
 
