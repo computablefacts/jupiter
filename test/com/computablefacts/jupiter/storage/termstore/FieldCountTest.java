@@ -9,13 +9,18 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class FieldCountTest {
 
   @Test(expected = NullPointerException.class)
+  public void testNullDataset() {
+    FieldCount fc = new FieldCount(null, "key", Term.TYPE_UNKNOWN, Sets.newHashSet(), 0);
+  }
+
+  @Test(expected = NullPointerException.class)
   public void testNullField() {
-    FieldCount fc = new FieldCount(null, Term.TYPE_UNKNOWN, Sets.newHashSet(), 0);
+    FieldCount fc = new FieldCount("dataset", null, Term.TYPE_UNKNOWN, Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabels() {
-    FieldCount fc = new FieldCount("key", Term.TYPE_UNKNOWN, null, 0);
+    FieldCount fc = new FieldCount("dataset", "key", Term.TYPE_UNKNOWN, null, 0);
   }
 
   @Test
