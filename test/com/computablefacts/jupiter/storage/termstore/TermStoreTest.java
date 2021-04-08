@@ -9,8 +9,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.ComparablePair;
-import org.apache.accumulo.core.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -22,7 +20,6 @@ import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class TermStoreTest extends MiniAccumuloClusterTest {
@@ -415,8 +412,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       FieldLabels fl3 = fieldLabelsInThirdDataset(termStore, i, auths);
 
       Assert.assertEquals("field_" + i, fl1.field());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_VIZ"),
-          fl1.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_VIZ"), fl1.labels());
       Assert.assertEquals(Sets.newHashSet("DS_1"), fl1.termLabels());
       Assert.assertTrue(fl1.isString());
 
@@ -427,8 +423,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(fl2.isString());
 
       Assert.assertEquals("field_" + i, fl3.field());
-      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_VIZ"),
-          fl3.labels());
+      Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_VIZ"), fl3.labels());
       Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), fl3.termLabels());
       Assert.assertTrue(fl3.isString());
     }
@@ -586,8 +581,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("term_1", term.term());
       Assert.assertEquals(2, term.count());
       Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), term.labels());
-      Assert.assertEquals(Lists.newArrayList(new ComparablePair<>(0, "term_1".length()),
-          new ComparablePair<>(10, 10 + "term_1".length())), term.spans());
       Assert.assertTrue(term.isString());
     }
   }
@@ -616,8 +609,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
         Assert.assertEquals("term_" + i, term.term());
         Assert.assertEquals(2, term.count());
         Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), term.labels());
-        Assert.assertEquals(Lists.newArrayList(new ComparablePair<>(0, ("term_" + i).length()),
-            new ComparablePair<>(10, 10 + ("term_" + i).length())), term.spans());
         Assert.assertTrue(term.isString());
       }
     }
@@ -644,8 +635,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("term_1", term.term());
       Assert.assertEquals(2, term.count());
       Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), term.labels());
-      Assert.assertEquals(Lists.newArrayList(new ComparablePair<>(0, "term_1".length()),
-          new ComparablePair<>(10, 10 + "term_1".length())), term.spans());
       Assert.assertTrue(term.isString());
     }
   }
@@ -672,8 +661,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("term_1", term.term());
       Assert.assertEquals(2, term.count());
       Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), term.labels());
-      Assert.assertEquals(Lists.newArrayList(new ComparablePair<>(0, "term_1".length()),
-          new ComparablePair<>(10, 10 + "term_1".length())), term.spans());
       Assert.assertTrue(term.isString());
     }
   }
@@ -809,7 +796,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       List<TermCount> list = new ArrayList<>();
       Iterator<TermCount> iterator =
-          termStore.numericalRangeCount((ScannerBase) scanner, "fourth_dataset", "3", "8", null);
+          termStore.numericalRangeCount(scanner, "fourth_dataset", "3", "8", null);
 
       while (iterator.hasNext()) {
         list.add(iterator.next());
@@ -1037,33 +1024,24 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     try (BatchWriter writer = termStore.writer()) {
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(
-            termStore.add(writer, "first_dataset", "row_" + i, "field_" + i, Term.TYPE_STRING,
-                "term_" + i, Lists.newArrayList(new Pair<>(0, ("term_" + i).length())),
-                Sets.newHashSet(), Sets.newHashSet("DS_1")));
+        Assert.assertTrue(termStore.add(writer, "first_dataset", "row_" + i, "field_" + i,
+            Term.TYPE_STRING, "term_" + i, 1, Sets.newHashSet(), Sets.newHashSet("DS_1")));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(
-            termStore.add(writer, "second_dataset", "row_" + i, "field_" + i, Term.TYPE_STRING,
-                "term_" + i, Lists.newArrayList(new Pair<>(0, ("term_" + i).length())),
-                Sets.newHashSet(), Sets.newHashSet("DS_2")));
+        Assert.assertTrue(termStore.add(writer, "second_dataset", "row_" + i, "field_" + i,
+            Term.TYPE_STRING, "term_" + i, 1, Sets.newHashSet(), Sets.newHashSet("DS_2")));
       }
 
       for (int i = 0; i < 10; i++) {
         Assert.assertTrue(termStore.add(writer, "third_dataset", "row_" + i, "field_" + i,
-            Term.TYPE_STRING, "term_" + i,
-            Lists.newArrayList(new Pair<>(0, ("term_" + i).length()),
-                new Pair<>(10, 10 + ("term_" + i).length())),
-            Sets.newHashSet(), Sets.newHashSet("DS_1", "DS_2")));
+            Term.TYPE_STRING, "term_" + i, 2, Sets.newHashSet(), Sets.newHashSet("DS_1", "DS_2")));
       }
 
       for (int i = 0; i < 10; i++) {
         Assert.assertTrue(termStore.add(writer, "fourth_dataset", "row_" + i, "field_" + i,
-            Term.TYPE_NUMBER, BigDecimalCodec.encode(Integer.toString(i)),
-            Lists.newArrayList(new Pair<>(0, ("term_" + i).length()),
-                new Pair<>(10, 10 + ("term_" + i).length())),
-            Sets.newHashSet(), Sets.newHashSet("DS_1", "DS_2"), true));
+            Term.TYPE_NUMBER, BigDecimalCodec.encode(Integer.toString(i, 10)), 2, Sets.newHashSet(),
+            Sets.newHashSet("DS_1", "DS_2"), true));
       }
     }
   }

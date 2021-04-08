@@ -3,7 +3,6 @@ package com.computablefacts.jupiter.storage.datastore;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +66,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -520,8 +520,6 @@ final public class DataStore {
 
     for (String field : newJson.keySet()) {
 
-      spanSequence = null; // free memory
-
       // Attributes starting with an underscore should not be indexed
       if (field.startsWith("_") || field.contains(Constants.SEPARATOR_CURRENCY_SIGN + "_")) {
         continue;
@@ -575,24 +573,14 @@ final public class DataStore {
       }
 
       // Group by spans
-      Map<String, List<Pair<Integer, Integer>>> spans = new HashMap<>();
-
-      for (Span span : spanSequence) {
-
-        String text = span.text();
-
-        if (!spans.containsKey(text)) {
-          spans.put(text, new ArrayList<>());
-        }
-        spans.get(text).add(new Pair<>(span.begin(), span.end()));
-      }
-
+      Multiset<String> spans = HashMultiset.create();
+      spanSequence.forEach(span -> spans.add(span.text()));
       spanSequence = null; // free memory
 
       // Persist spans
-      for (String span : spans.keySet()) {
-        if (!persistTerm(writers, dataset, uuid, newField, termType, span, spans.get(span),
-            writeInForwardIndexOnly)) {
+      for (Multiset.Entry<String> span : spans.entrySet()) {
+        if (!persistTerm(writers, dataset, uuid, newField, termType, span.getElement(),
+            span.getCount(), writeInForwardIndexOnly)) {
           return false;
         }
       }
@@ -1090,23 +1078,22 @@ final public class DataStore {
    * @param dataset dataset.
    * @param uuid unique identifier.
    * @param field field name.
-   * @param termType the type of the term i.e. string, number, etc.
+   * @param type the type of the term i.e. string, number, etc.
    * @param term term.
-   * @param spans positions of the term in the document.
+   * @param count number of occurrences of the term in the document.
    * @param writeInForwardIndexOnly allow the caller to explicitly specify that the term must be
    *        written in the forward index only.
    * @return true if the operation succeeded, false otherwise.
    */
   private boolean persistTerm(Writers writers, String dataset, String uuid, String field,
-      int termType, String term, List<Pair<Integer, Integer>> spans,
-      boolean writeInForwardIndexOnly) {
+      int type, String term, int count, boolean writeInForwardIndexOnly) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(uuid, "uuid should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkNotNull(spans, "spans should not be null");
+    Preconditions.checkArgument(count > 0, "count must be > 0");
 
     List<String> path = Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN).trimResults()
         .omitEmptyStrings().splitToList(field);
@@ -1121,12 +1108,12 @@ final public class DataStore {
     AbstractStorage.toVisibilityLabels(path)
         .forEach(label -> vizFieldSpecific.add(vizDataset + label));
 
-    boolean isOk = termStore_.add(writers.index(), dataset, uuid, field, termType, term, spans,
+    boolean isOk = termStore_.add(writers.index(), dataset, uuid, field, type, term, count,
         vizDocSpecific, vizFieldSpecific, writeInForwardIndexOnly);
 
     if (!isOk) {
       logger_.error(LogFormatterManager.logFormatter().message("write failed")
-          .add("dataset", dataset).add("uuid", uuid).add("field", field).add("term_type", termType)
+          .add("dataset", dataset).add("uuid", uuid).add("field", field).add("type", type)
           .add("term", term).formatError());
     }
     return isOk;

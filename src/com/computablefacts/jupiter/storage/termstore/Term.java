@@ -4,13 +4,11 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
@@ -18,12 +16,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.util.ComparablePair;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
 import com.computablefacts.nona.Generated;
-import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
@@ -51,21 +46,15 @@ final public class Term implements HasTerm, Comparable<Term> {
   private final String term_;
   private final Set<String> labels_;
   private final long count_;
-  private final List<ComparablePair<Integer, Integer>> spans_;
 
   Term(String dataset, String docId, String field, int type, String term, Set<String> labels,
-      long count, List<ComparablePair<Integer, Integer>> spans) {
+      long count) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");
-    Preconditions.checkNotNull(spans, "spans should not be null");
-
-    Preconditions.checkState(count == spans.size(),
-        "inconsistent state for (field, term, count, spans) : (%s, %s, %s, %s)", field, term, count,
-        spans);
 
     dataset_ = dataset;
     docId_ = docId;
@@ -74,17 +63,16 @@ final public class Term implements HasTerm, Comparable<Term> {
     term_ = term;
     labels_ = new HashSet<>(labels);
     count_ = count;
-    spans_ = new ArrayList<>(spans);
   }
 
   public static Mutation newForwardMutation(String dataset, String docId, String field, int type,
-      String term, List<Pair<Integer, Integer>> spans, Set<String> labels) {
-    return newMutation(TermStore.forwardIndex(dataset), docId, field, type, term, spans, labels);
+      String term, int count, Set<String> labels) {
+    return newMutation(TermStore.forwardIndex(dataset), docId, field, type, term, count, labels);
   }
 
   public static Mutation newBackwardMutation(String dataset, String docId, String field, int type,
-      String term, List<Pair<Integer, Integer>> spans, Set<String> labels) {
-    return newMutation(TermStore.backwardIndex(dataset), docId, field, type, reverse(term), spans,
+      String term, int count, Set<String> labels) {
+    return newMutation(TermStore.backwardIndex(dataset), docId, field, type, reverse(term), count,
         labels);
   }
 
@@ -128,43 +116,25 @@ final public class Term implements HasTerm, Comparable<Term> {
     // Extract count and spans from VALUE
     List<String> spans = Splitter.on(SEPARATOR_NUL).splitToList(val);
     long count = Long.parseLong(spans.get(0), 10);
-    List<org.apache.accumulo.core.util.ComparablePair<Integer, Integer>> ranges =
-        new ArrayList<>((spans.size() - 1) / 2);
 
-    for (int i = 2; i < spans.size(); i += 2) { // skip the count at position 0
-
-      int begin = Integer.parseInt(spans.get(i - 1));
-      int end = Integer.parseInt(spans.get(i));
-
-      ranges.add(new org.apache.accumulo.core.util.ComparablePair<>(begin, end));
-    }
-    return new Term(datazet, docId, field, type,
-        type == Term.TYPE_NUMBER ? BigDecimalCodec.decode(term) : term, labels, count, ranges);
+    return new Term(datazet, docId, field, type, term, labels, count);
   }
 
   private static Mutation newMutation(String dataset, String docId, String field, int type,
-      String term, List<Pair<Integer, Integer>> spans, Set<String> labels) {
+      String term, int count, Set<String> labels) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkNotNull(spans, "spans should not be null");
+    Preconditions.checkArgument(count > 0, "count must be > 0");
     Preconditions.checkNotNull(labels, "labels should not be null");
 
     Text cq = new Text(docId + SEPARATOR_NUL + field + SEPARATOR_NUL + type);
 
     ColumnVisibility cv = new ColumnVisibility(Joiner.on(SEPARATOR_PIPE).join(labels));
 
-    Value value =
-        new Value(
-            Integer.toString(spans.size(), 10) + SEPARATOR_NUL
-                + Joiner.on(SEPARATOR_NUL)
-                    .join(
-                        spans.stream()
-                            .map(p -> Integer.toString(p.getFirst(), 10) + SEPARATOR_NUL
-                                + Integer.toString(p.getSecond(), 10))
-                            .collect(Collectors.toList())));
+    Value value = new Value(Integer.toString(count, 10));
 
     Mutation mutation = new Mutation(term);
     mutation.put(new Text(dataset), cq, cv, value);
@@ -177,7 +147,7 @@ final public class Term implements HasTerm, Comparable<Term> {
   public String toString() {
     return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("docId", docId_)
         .add("field", field_).add("term", term_).add("type", type_).add("labels", labels_)
-        .add("count", count_).add("spans", spans_).toString();
+        .add("count", count_).toString();
   }
 
   @Override
@@ -192,12 +162,12 @@ final public class Term implements HasTerm, Comparable<Term> {
     return Objects.equal(dataset_, term.dataset_) && Objects.equal(docId_, term.docId_)
         && Objects.equal(field_, term.field_) && Objects.equal(type_, term.type_)
         && Objects.equal(term_, term.term_) && Objects.equal(labels_, term.labels_)
-        && Objects.equal(count_, term.count_) && Objects.equal(spans_, term.spans_);
+        && Objects.equal(count_, term.count_);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(dataset_, docId_, field_, type_, term_, labels_, count_, spans_);
+    return Objects.hashCode(dataset_, docId_, field_, type_, term_, labels_, count_);
   }
 
   @Override
@@ -211,13 +181,7 @@ final public class Term implements HasTerm, Comparable<Term> {
     if (cmp != 0) {
       return cmp;
     }
-
-    cmp = compare(labels_, term.labels_);
-
-    if (cmp != 0) {
-      return cmp;
-    }
-    return compare(spans_, term.spans_);
+    return compare(labels_, term.labels_);
   }
 
   @Generated
@@ -229,6 +193,11 @@ final public class Term implements HasTerm, Comparable<Term> {
   @Generated
   public String dataset() {
     return dataset_;
+  }
+
+  @Generated
+  public int type() {
+    return type_;
   }
 
   @Generated
@@ -269,11 +238,6 @@ final public class Term implements HasTerm, Comparable<Term> {
   @Generated
   public long count() {
     return count_;
-  }
-
-  @Generated
-  public List<ComparablePair<Integer, Integer>> spans() {
-    return spans_;
   }
 
   private <T extends Comparable<T>> int compare(Collection<T> l1, Collection<T> l2) {

@@ -14,7 +14,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
 import com.computablefacts.nona.Generated;
-import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
@@ -94,9 +93,7 @@ final public class TermCount implements HasTerm {
     Set<String> labels =
         Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
-    return new TermCount(datazet, field, type,
-        type == Term.TYPE_NUMBER ? BigDecimalCodec.decode(term) : term, labels,
-        Long.parseLong(val, 10));
+    return new TermCount(datazet, field, type, term, labels, Long.parseLong(val, 10));
   }
 
   private static Mutation newMutation(String dataset, String docId, String field, int type,
@@ -161,6 +158,11 @@ final public class TermCount implements HasTerm {
   @Generated
   public String field() {
     return field_;
+  }
+
+  @Generated
+  public int type() {
+    return type_;
   }
 
   @Generated

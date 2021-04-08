@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,9 +58,9 @@ import com.google.errorprone.annotations.Var;
  *  <field>\0<term_type>    | <dataset>_LU    | (empty)                        | ADM|<dataset>_LU                         | <utc_date>
  *  <field>\0<term_type>    | <dataset>_VIZ   | (empty)                        | ADM|<dataset>_VIZ                        | viz1\0viz2\0
  *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
- *  <mret>                  | <dataset>_BIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
+ *  <mret>                  | <dataset>_BIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>
  *  <term>                  | <dataset>_FCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
- *  <term>                  | <dataset>_FIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>\0begin1\0end1...
+ *  <term>                  | <dataset>_FIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>
  * </pre>
  *
  * <p>
@@ -141,8 +140,11 @@ final public class TermStore extends AbstractStorage {
     if (!setRange(scanner, range)) {
       return Constants.ITERATOR_EMPTY;
     }
-    return Iterators.transform(scanner.iterator(),
-        entry -> Term.fromKeyValue(entry.getKey(), entry.getValue()));
+    return Iterators.transform(
+        Iterators.transform(scanner.iterator(),
+            entry -> Term.fromKeyValue(entry.getKey(), entry.getValue())),
+        t -> new Term(t.dataset(), t.docId(), t.field(), t.type(),
+            t.isNumber() ? BigDecimalCodec.decode(t.term()) : t.term(), t.labels(), t.count()));
   }
 
   private static Iterator<TermCount> scanCounts(ScannerBase scanner, String dataset,
@@ -171,8 +173,12 @@ final public class TermStore extends AbstractStorage {
     if (!setRange(scanner, range)) {
       return Constants.ITERATOR_EMPTY;
     }
-    return Iterators.transform(scanner.iterator(),
-        entry -> TermCount.fromKeyValue(entry.getKey(), entry.getValue()));
+    return Iterators.transform(
+        Iterators.transform(scanner.iterator(),
+            entry -> TermCount.fromKeyValue(entry.getKey(), entry.getValue())),
+        tc -> new TermCount(tc.dataset(), tc.field(), tc.type(),
+            tc.isNumber() ? BigDecimalCodec.decode(tc.term()) : tc.term(), tc.labels(),
+            tc.count()));
   }
 
   /**
@@ -403,15 +409,14 @@ final public class TermStore extends AbstractStorage {
    * @param field field name.
    * @param termType the type of the term i.e. string, number, etc.
    * @param term term.
-   * @param spans positions of the term in the document.
+   * @param count number of occurrences of the term in the document.
    * @param docSpecificLabels visibility labels specific to a given document.
    * @param fieldSpecificLabels visibility labels specific to a given field.
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean add(BatchWriter writer, String dataset, String docId, String field, int termType,
-      String term, List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
-      Set<String> fieldSpecificLabels) {
-    return add(writer, dataset, docId, field, termType, term, spans, docSpecificLabels,
+      String term, int count, Set<String> docSpecificLabels, Set<String> fieldSpecificLabels) {
+    return add(writer, dataset, docId, field, termType, term, count, docSpecificLabels,
         fieldSpecificLabels, false);
   }
 
@@ -423,56 +428,54 @@ final public class TermStore extends AbstractStorage {
    * @param dataset dataset.
    * @param docId document id.
    * @param field field name.
-   * @param termType the type of the term i.e. string, number, etc.
+   * @param type the type of the term i.e. string, number, etc.
    * @param term term.
-   * @param spans positions of the term in the document.
+   * @param count number of occurrences of the term in the document.
    * @param docSpecificLabels visibility labels specific to a given document.
    * @param fieldSpecificLabels visibility labels specific to a given field.
    * @param writeInForwardIndexOnly allow the caller to explicitly specify that the term must be
    *        written in the forward index only.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean add(BatchWriter writer, String dataset, String docId, String field, int termType,
-      String term, List<Pair<Integer, Integer>> spans, Set<String> docSpecificLabels,
-      Set<String> fieldSpecificLabels, boolean writeInForwardIndexOnly) {
+  public boolean add(BatchWriter writer, String dataset, String docId, String field, int type,
+      String term, int count, Set<String> docSpecificLabels, Set<String> fieldSpecificLabels,
+      boolean writeInForwardIndexOnly) {
 
     Preconditions.checkNotNull(writer, "writer should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkNotNull(spans, "spans should not be null");
+    Preconditions.checkArgument(count > 0, "count must be > 0");
     Preconditions.checkNotNull(docSpecificLabels, "docSpecificLabels should not be null");
     Preconditions.checkNotNull(fieldSpecificLabels, "fieldSpecificLabels should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.info(
-          LogFormatterManager.logFormatter().add("table_name", tableName()).add("dataset", dataset)
-              .add("doc_id", docId).add("field", field).add("term_type", termType).add("term", term)
-              .add("doc_specific_labels", docSpecificLabels)
-              .add("field_specific_labels", fieldSpecificLabels).formatDebug());
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("doc_id", docId).add("field", field).add("type", type)
+          .add("term", term).add("count", count).add("doc_specific_labels", docSpecificLabels)
+          .add("field_specific_labels", fieldSpecificLabels).formatDebug());
     }
 
     // Ingest stats
     @Var
-    boolean isOk = add(writer, FieldCount.newMutation(dataset, field, termType, spans.size()));
-    isOk = isOk && add(writer, FieldLastUpdate.newMutation(dataset, field, termType));
-    isOk =
-        isOk && add(writer, FieldLabels.newMutation(dataset, field, termType, fieldSpecificLabels));
+    boolean isOk = add(writer, FieldCount.newMutation(dataset, field, type, count));
+    isOk = isOk && add(writer, FieldLastUpdate.newMutation(dataset, field, type));
+    isOk = isOk && add(writer, FieldLabels.newMutation(dataset, field, type, fieldSpecificLabels));
 
     // Forward index
-    isOk = isOk && add(writer, TermCount.newForwardMutation(dataset, docId, field, termType, term,
-        spans.size(), fieldSpecificLabels));
-    isOk = isOk && add(writer, Term.newForwardMutation(dataset, docId, field, termType, term, spans,
+    isOk = isOk && add(writer, TermCount.newForwardMutation(dataset, docId, field, type, term,
+        count, fieldSpecificLabels));
+    isOk = isOk && add(writer, Term.newForwardMutation(dataset, docId, field, type, term, count,
         Sets.union(docSpecificLabels, fieldSpecificLabels)));
 
     if (!writeInForwardIndexOnly) {
 
       // Backward index
-      isOk = isOk && add(writer, TermCount.newBackwardMutation(dataset, docId, field, termType,
-          term, spans.size(), fieldSpecificLabels));
-      isOk = isOk && add(writer, Term.newBackwardMutation(dataset, docId, field, termType, term,
-          spans, Sets.union(docSpecificLabels, fieldSpecificLabels)));
+      isOk = isOk && add(writer, TermCount.newBackwardMutation(dataset, docId, field, type, term,
+          count, fieldSpecificLabels));
+      isOk = isOk && add(writer, Term.newBackwardMutation(dataset, docId, field, type, term, count,
+          Sets.union(docSpecificLabels, fieldSpecificLabels)));
     }
     return isOk;
   }
