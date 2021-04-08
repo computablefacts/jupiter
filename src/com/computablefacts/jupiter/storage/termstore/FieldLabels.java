@@ -114,7 +114,7 @@ final public class FieldLabels {
   }
 
   @Generated
-  public int termType() {
+  public int type() {
     return type_;
   }
 

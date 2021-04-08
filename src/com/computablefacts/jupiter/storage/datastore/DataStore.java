@@ -1022,14 +1022,14 @@ final public class DataStore {
 
         while (fieldCountIterator.hasNext()) {
           FieldCount fieldCount = fieldCountIterator.next();
-          infos.addCount(dataset, fieldCount.field(), fieldCount.termType(), fieldCount.count());
+          infos.addCount(dataset, fieldCount.field(), fieldCount.type(), fieldCount.count());
         }
 
         Iterator<FieldLabels> fieldLabelsIterator = fieldLabels(scanners, dataset, null);
 
         while (fieldLabelsIterator.hasNext()) {
           FieldLabels fieldLabels = fieldLabelsIterator.next();
-          infos.addVisibilityLabels(dataset, fieldLabels.field(), fieldLabels.termType(),
+          infos.addVisibilityLabels(dataset, fieldLabels.field(), fieldLabels.type(),
               fieldLabels.termLabels());
         }
 
@@ -1038,7 +1038,7 @@ final public class DataStore {
 
         while (fieldLastUpdateIterator.hasNext()) {
           FieldLastUpdate fieldLastUpdate = fieldLastUpdateIterator.next();
-          infos.addLastUpdate(dataset, fieldLastUpdate.field(), fieldLastUpdate.termType(),
+          infos.addLastUpdate(dataset, fieldLastUpdate.field(), fieldLastUpdate.type(),
               fieldLastUpdate.lastUpdate());
         }
       });

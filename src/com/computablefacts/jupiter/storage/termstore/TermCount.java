@@ -128,11 +128,6 @@ final public class TermCount implements HasTerm {
   }
 
   @Generated
-  public int termType() {
-    return type_;
-  }
-
-  @Generated
   public boolean isUnknown() {
     return type_ == Term.TYPE_UNKNOWN;
   }

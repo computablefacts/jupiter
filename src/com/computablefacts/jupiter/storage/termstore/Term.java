@@ -185,11 +185,6 @@ final public class Term implements HasTerm, Comparable<Term> {
   }
 
   @Generated
-  public int termType() {
-    return type_;
-  }
-
-  @Generated
   public boolean isUnknown() {
     return type_ == TYPE_UNKNOWN;
   }

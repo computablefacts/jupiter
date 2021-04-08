@@ -111,7 +111,7 @@ final public class FieldLastUpdate {
   }
 
   @Generated
-  public int termType() {
+  public int type() {
     return type_;
   }
 
