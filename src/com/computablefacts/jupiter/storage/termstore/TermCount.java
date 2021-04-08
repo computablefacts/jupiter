@@ -20,7 +20,7 @@ import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-final public class TermCount implements HasDataset, HasField, HasTermType, HasTerm {
+final public class TermCount implements HasTerm {
 
   private final String dataset_;
   private final String field_;
@@ -113,48 +113,41 @@ final public class TermCount implements HasDataset, HasField, HasTermType, HasTe
 
   @Generated
   @Override
-  public String dataset() {
-    return dataset_;
-  }
-
-  @Generated
-  @Override
-  public String field() {
-    return field_;
-  }
-
-  @Generated
-  @Override
-  public int termType() {
-    return type_;
-  }
-
-  @Generated
-  @Override
   public String term() {
     return term_;
   }
 
   @Generated
-  @Override
+  public String dataset() {
+    return dataset_;
+  }
+
+  @Generated
+  public String field() {
+    return field_;
+  }
+
+  @Generated
+  public int termType() {
+    return type_;
+  }
+
+  @Generated
   public boolean isUnknown() {
     return type_ == Term.TYPE_UNKNOWN;
   }
 
   @Generated
-  @Override
   public boolean isString() {
     return type_ == Term.TYPE_STRING;
   }
 
   @Generated
-  @Override
   public boolean isNumber() {
     return type_ == Term.TYPE_NUMBER;
   }
 
   @Generated
-  @Override
   public boolean isDate() {
     return type_ == Term.TYPE_DATE;
   }

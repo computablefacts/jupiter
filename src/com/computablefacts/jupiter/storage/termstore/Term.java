@@ -30,7 +30,7 @@ import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
 @CheckReturnValue
-final public class Term implements HasDataset, HasTerm, HasTermType, Comparable<Term> {
+final public class Term implements HasTerm, Comparable<Term> {
 
   public static final int TYPE_UNKNOWN = 0;
   public static final int TYPE_STRING = 1;
@@ -175,42 +175,36 @@ final public class Term implements HasDataset, HasTerm, HasTermType, Comparable<
 
   @Generated
   @Override
-  public String dataset() {
-    return dataset_;
-  }
-
-  @Generated
-  @Override
-  public int termType() {
-    return type_;
-  }
-
-  @Generated
-  @Override
   public String term() {
     return term_;
   }
 
   @Generated
-  @Override
+  public String dataset() {
+    return dataset_;
+  }
+
+  @Generated
+  public int termType() {
+    return type_;
+  }
+
+  @Generated
   public boolean isUnknown() {
     return type_ == TYPE_UNKNOWN;
   }
 
   @Generated
-  @Override
   public boolean isString() {
     return type_ == TYPE_STRING;
   }
 
   @Generated
-  @Override
   public boolean isNumber() {
     return type_ == TYPE_NUMBER;
   }
 
   @Generated
-  @Override
   public boolean isDate() {
     return type_ == TYPE_DATE;
   }

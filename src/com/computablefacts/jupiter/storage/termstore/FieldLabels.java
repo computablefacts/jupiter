@@ -18,7 +18,7 @@ import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-final public class FieldLabels implements HasDataset, HasField, HasTermType {
+final public class FieldLabels {
 
   private final String dataset_;
   private final String field_;
@@ -104,43 +104,36 @@ final public class FieldLabels implements HasDataset, HasField, HasTermType {
   }
 
   @Generated
-  @Override
   public String dataset() {
     return dataset_;
   }
 
   @Generated
-  @Override
   public String field() {
     return field_;
   }
 
   @Generated
-  @Override
   public int termType() {
     return type_;
   }
 
   @Generated
-  @Override
   public boolean isUnknown() {
     return type_ == Term.TYPE_UNKNOWN;
   }
 
   @Generated
-  @Override
   public boolean isString() {
     return type_ == Term.TYPE_STRING;
   }
 
   @Generated
-  @Override
   public boolean isNumber() {
     return type_ == Term.TYPE_NUMBER;
   }
 
   @Generated
-  @Override
   public boolean isDate() {
     return type_ == Term.TYPE_DATE;
   }
