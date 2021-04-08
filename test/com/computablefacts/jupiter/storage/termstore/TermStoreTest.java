@@ -115,17 +115,17 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       FieldLabels fl3 = fieldLabelsInThirdDataset(termStore, i, auths);
 
       Assert.assertEquals("field_" + i, fl1.field());
-      Assert.assertEquals(Sets.newHashSet("FIRST_DATASET_VIZ", "ADM"), fl1.accumuloLabels());
+      Assert.assertEquals(Sets.newHashSet("FIRST_DATASET_VIZ", "ADM"), fl1.labels());
       Assert.assertEquals(Sets.newHashSet("DS_1"), fl1.termLabels());
       Assert.assertTrue(fl1.isString());
 
       Assert.assertEquals("field_" + i, fl2.field());
-      Assert.assertEquals(Sets.newHashSet("SECOND_DATASET_VIZ", "ADM"), fl2.accumuloLabels());
+      Assert.assertEquals(Sets.newHashSet("SECOND_DATASET_VIZ", "ADM"), fl2.labels());
       Assert.assertEquals(Sets.newHashSet("DS_2"), fl2.termLabels());
       Assert.assertTrue(fl2.isString());
 
       Assert.assertEquals("field_" + i, fl3.field());
-      Assert.assertEquals(Sets.newHashSet("THIRD_DATASET_VIZ", "ADM"), fl3.accumuloLabels());
+      Assert.assertEquals(Sets.newHashSet("THIRD_DATASET_VIZ", "ADM"), fl3.labels());
       Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), fl3.termLabels());
       Assert.assertTrue(fl3.isString());
 
@@ -416,19 +416,19 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals("field_" + i, fl1.field());
       Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "FIRST_DATASET_VIZ"),
-          fl1.accumuloLabels());
+          fl1.labels());
       Assert.assertEquals(Sets.newHashSet("DS_1"), fl1.termLabels());
       Assert.assertTrue(fl1.isString());
 
       Assert.assertEquals("field_" + i, fl2.field());
       Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "SECOND_DATASET_VIZ"),
-          fl2.accumuloLabels());
+          fl2.labels());
       Assert.assertEquals(Sets.newHashSet("DS_2"), fl2.termLabels());
       Assert.assertTrue(fl2.isString());
 
       Assert.assertEquals("field_" + i, fl3.field());
       Assert.assertEquals(Sets.newHashSet(Constants.STRING_ADM, "THIRD_DATASET_VIZ"),
-          fl3.accumuloLabels());
+          fl3.labels());
       Assert.assertEquals(Sets.newHashSet("DS_1", "DS_2"), fl3.termLabels());
       Assert.assertTrue(fl3.isString());
     }

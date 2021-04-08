@@ -657,37 +657,8 @@ final public class TermStore extends AbstractStorage {
         return Constants.ITERATOR_EMPTY;
       }
     }
-    return Iterators.transform(scanner.iterator(), entry -> {
-
-      Key key = entry.getKey();
-      Value value = entry.getValue();
-
-      // Extract term from ROW
-      String row = key.getRow().toString();
-      int index = row.indexOf(Constants.SEPARATOR_NUL);
-
-      String field;
-      int termType;
-
-      if (index < 0) {
-        field = row;
-        termType = Term.TYPE_UNKNOWN;
-      } else {
-        field = row.substring(0, index);
-        termType = Integer.parseInt(row.substring(index + 1), 10);
-      }
-
-      // Extract term labels from VALUE
-      Set<String> labelsTerm =
-          Sets.newHashSet(Splitter.on(Constants.SEPARATOR_NUL).split(value.toString()));
-
-      // Extract visibility labels
-      String cv = key.getColumnVisibility().toString();
-      Set<String> labelsAccumulo = Sets.newHashSet(
-          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
-
-      return new FieldLabels(field, termType, labelsAccumulo, labelsTerm);
-    });
+    return Iterators.transform(scanner.iterator(),
+        entry -> FieldLabels.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
