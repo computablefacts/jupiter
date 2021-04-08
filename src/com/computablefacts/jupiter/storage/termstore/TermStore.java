@@ -223,39 +223,8 @@ final public class TermStore extends AbstractStorage {
     if (!setRange(scanner, range)) {
       return Constants.ITERATOR_EMPTY;
     }
-    return Iterators.transform(scanner.iterator(), entry -> {
-
-      Key key = entry.getKey();
-      Value value = entry.getValue();
-
-      // Extract term from ROW
-      String termm = isTermBackward ? reverse(key.getRow().toString()) : key.getRow().toString();
-
-      // Extract field from CQ
-      String cq = key.getColumnQualifier().toString();
-      int index = cq.indexOf(Constants.SEPARATOR_NUL);
-
-      String field;
-      int termType;
-
-      if (index < 0) {
-        field = cq;
-        termType = Term.TYPE_UNKNOWN;
-      } else {
-        field = cq.substring(0, index);
-        termType = Integer.parseInt(cq.substring(index + 1), 10);
-      }
-
-      // Extract count from VALUE
-      long count = Long.parseLong(value.toString(), 10);
-
-      // Extract visibility labels
-      String cv = key.getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(
-          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
-
-      return new TermCount(field, termType, termm, labels, count);
-    });
+    return Iterators.transform(scanner.iterator(),
+        entry -> TermCount.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
@@ -757,11 +726,8 @@ final public class TermStore extends AbstractStorage {
 
     String newDataset = dataset == null ? null : forwardCount(dataset);
 
-    return Iterators.transform(
-        Iterators.filter(scanCounts(scanner, newDataset, keepFields, false, range),
-            TermCount::isNumber),
-        term -> new TermCount(term.field(), term.termType(), BigDecimalCodec.decode(term.term()),
-            term.labels(), term.count()));
+    return Iterators.filter(scanCounts(scanner, newDataset, keepFields, false, range),
+        TermCount::isNumber);
   }
 
   /**
