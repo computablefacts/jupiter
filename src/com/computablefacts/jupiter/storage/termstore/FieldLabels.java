@@ -54,14 +54,14 @@ final public class FieldLabels implements HasDataset, HasField, HasTermType {
     int index = row.indexOf(SEPARATOR_NUL);
 
     String field;
-    int termType;
+    int type;
 
     if (index < 0) {
       field = row;
-      termType = Term.TYPE_UNKNOWN;
+      type = Term.TYPE_UNKNOWN;
     } else {
       field = row.substring(0, index);
-      termType = Integer.parseInt(row.substring(index + 1), 10);
+      type = Integer.parseInt(row.substring(index + 1), 10);
     }
 
     // Extract dataset from CF
@@ -74,7 +74,7 @@ final public class FieldLabels implements HasDataset, HasField, HasTermType {
     // Extract term labels from VALUE
     Set<String> labelsTerm = Sets.newHashSet(Splitter.on(SEPARATOR_NUL).split(val));
 
-    return new FieldLabels(datazet, field, termType, labels, labelsTerm);
+    return new FieldLabels(datazet, field, type, labels, labelsTerm);
   }
 
   @Generated
