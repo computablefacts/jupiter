@@ -4,7 +4,6 @@ import static com.computablefacts.nona.functions.patternoperators.PatternsBackwa
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -47,7 +46,6 @@ import com.computablefacts.nona.helpers.Strings;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -148,53 +146,8 @@ final public class TermStore extends AbstractStorage {
     if (!setRange(scanner, range)) {
       return Constants.ITERATOR_EMPTY;
     }
-    return Iterators.transform(scanner.iterator(), entry -> {
-
-      Key key = entry.getKey();
-      Value value = entry.getValue();
-
-      // Extract term from ROW
-      String termm = isTermBackward ? reverse(key.getRow().toString()) : key.getRow().toString();
-
-      // Extract document id and field from CQ
-      String cq = key.getColumnQualifier().toString();
-      int index = cq.indexOf(Constants.SEPARATOR_NUL);
-      String docId = cq.substring(0, index);
-      int index2 = cq.lastIndexOf(Constants.SEPARATOR_NUL);
-
-      String field;
-      int termType;
-
-      if (index == index2) {
-        field = cq.substring(index + 1);
-        termType = Term.TYPE_UNKNOWN;
-      } else {
-        field = cq.substring(index + 1, index2);
-        termType = Integer.parseInt(cq.substring(index2 + 1), 10);
-      }
-
-      // Extract count and spans from VALUE
-      String val = value.toString();
-      List<String> spans = Splitter.on(Constants.SEPARATOR_NUL).splitToList(val);
-      long count = Long.parseLong(spans.get(0), 10);
-      List<org.apache.accumulo.core.util.ComparablePair<Integer, Integer>> ranges =
-          new ArrayList<>((spans.size() - 1) / 2);
-
-      for (int i = 2; i < spans.size(); i += 2) { // skip the count at position 0
-
-        int begin = Integer.parseInt(spans.get(i - 1));
-        int end = Integer.parseInt(spans.get(i));
-
-        ranges.add(new org.apache.accumulo.core.util.ComparablePair<>(begin, end));
-      }
-
-      // Extract visibility labels
-      String cv = key.getColumnVisibility().toString();
-      Set<String> labels = Sets.newHashSet(
-          Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
-
-      return new Term(docId, field, termType, termm, labels, count, ranges);
-    });
+    return Iterators.transform(scanner.iterator(),
+        entry -> Term.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   private static Iterator<TermCount> scanCounts(ScannerBase scanner, String dataset,
@@ -854,11 +807,8 @@ final public class TermStore extends AbstractStorage {
 
     String newDataset = dataset == null ? null : forwardIndex(dataset);
 
-    return Iterators.transform(
-        Iterators.filter(scanTerms(scanner, newDataset, keepFields, keepDocs, false, range),
-            Term::isNumber),
-        term -> new Term(term.docId(), term.field(), term.termType(),
-            BigDecimalCodec.decode(term.term()), term.labels(), term.count(), term.spans()));
+    return Iterators.filter(scanTerms(scanner, newDataset, keepFields, keepDocs, false, range),
+        Term::isNumber);
   }
 
   /**
