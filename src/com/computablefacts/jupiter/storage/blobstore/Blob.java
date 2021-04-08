@@ -108,22 +108,29 @@ final public class Blob<T> {
     Preconditions.checkNotNull(key, "key should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    String dataset = key.getColumnFamily().toString();
-    String blobKey = key.getRow().toString();
-    Set<String> labels = Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults()
-        .omitEmptyStrings().split(key.getColumnVisibility().toString()));
-
+    String row = key.getRow().toString(); // blob identifier
+    String cf = key.getColumnFamily().toString(); // dataset
     String cq = key.getColumnQualifier().toString();
+    String cv = key.getColumnVisibility().toString();
+
+    // Extract visibility labels from CV
+    Set<String> labels =
+        Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
+
+    // Extract blob's type from CQ (legacy)
     int index = cq.indexOf(SEPARATOR_NUL);
     if (index < 0) {
-      return new Blob<>(dataset, blobKey, labels, TYPE_UNKNOWN, value, Lists.newArrayList());
+      return new Blob<>(cf, row, labels, TYPE_UNKNOWN, value, Lists.newArrayList());
     }
 
+    // Extract misc. blob's properties from CQ
     List<String> properties =
         Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings().splitToList(cq);
 
-    return new Blob<>(dataset, blobKey, labels, Integer.parseInt(properties.get(0), 10), value,
-        properties.subList(1, properties.size()));
+    // Extract blob's type from CQ
+    int type = Integer.parseInt(properties.get(0), 10);
+
+    return new Blob<>(cf, row, labels, type, value, properties.subList(1, properties.size()));
   }
 
   private static Mutation newMutation(String dataset, String key, Set<String> labels, int type,
