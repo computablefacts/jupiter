@@ -2,8 +2,6 @@ package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -24,8 +22,6 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -44,7 +40,6 @@ import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.computablefacts.nona.helpers.Strings;
 import com.computablefacts.nona.helpers.WildcardMatcher;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -94,19 +89,19 @@ final public class TermStore extends AbstractStorage {
     return dataset + "_LU";
   }
 
-  private static String forwardCount(String dataset) {
+  static String forwardCount(String dataset) {
     return dataset + "_FCNT";
   }
 
-  private static String forwardIndex(String dataset) {
+  static String forwardIndex(String dataset) {
     return dataset + "_FIDX";
   }
 
-  private static String backwardCount(String dataset) {
+  static String backwardCount(String dataset) {
     return dataset + "_BCNT";
   }
 
-  private static String backwardIndex(String dataset) {
+  static String backwardIndex(String dataset) {
     return dataset + "_BIDX";
   }
 
@@ -458,56 +453,26 @@ final public class TermStore extends AbstractStorage {
               .add("field_specific_labels", fieldSpecificLabels).formatDebug());
     }
 
-    Text newTerm = new Text(term);
-    Text newTermReversed = new Text(reverse(term));
-    Text newField = new Text(field + Constants.SEPARATOR_NUL + termType);
-    Text newDocField =
-        new Text(docId + Constants.SEPARATOR_NUL + field + Constants.SEPARATOR_NUL + termType);
-    Value newSpans =
-        new Value(
-            Integer.toString(spans.size(), 10) + Constants.SEPARATOR_NUL
-                + Joiner.on(Constants.SEPARATOR_NUL)
-                    .join(spans
-                        .stream().map(p -> Integer.toString(p.getFirst(), 10)
-                            + Constants.SEPARATOR_NUL + Integer.toString(p.getSecond(), 10))
-                        .collect(Collectors.toList())));
-    Value newCount = new Value(Integer.toString(spans.size(), 10));
-    Value newTimestamp = new Value(DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
-
-    // Column visibility from labels
-    ColumnVisibility vizFieldCount = new ColumnVisibility(Constants.STRING_ADM
-        + Constants.SEPARATOR_PIPE + AbstractStorage.toVisibilityLabel(count(dataset)));
-    ColumnVisibility vizFieldLastUpdate = new ColumnVisibility(Constants.STRING_ADM
-        + Constants.SEPARATOR_PIPE + AbstractStorage.toVisibilityLabel(lastUpdate(dataset)));
-    ColumnVisibility vizFieldLabels = new ColumnVisibility(Constants.STRING_ADM
-        + Constants.SEPARATOR_PIPE + AbstractStorage.toVisibilityLabel(visibility(dataset)));
-
-    ColumnVisibility vizFieldSpecific =
-        new ColumnVisibility(Joiner.on(Constants.SEPARATOR_PIPE).join(fieldSpecificLabels));
-    ColumnVisibility viz = new ColumnVisibility(Joiner.on(Constants.SEPARATOR_PIPE)
-        .join(Sets.union(docSpecificLabels, fieldSpecificLabels)));
-
     // Ingest stats
     @Var
-    boolean isOk = add(writer, newField, new Text(count(dataset)), null, vizFieldCount, newCount);
-    isOk = isOk && add(writer, newField, new Text(lastUpdate(dataset)), null, vizFieldLastUpdate,
-        newTimestamp);
-    isOk = isOk && add(writer, newField, new Text(visibility(dataset)), null, vizFieldLabels,
-        new Value(Joiner.on(Constants.SEPARATOR_NUL).join(fieldSpecificLabels)));
+    boolean isOk = add(writer, FieldCount.newMutation(dataset, field, termType, spans.size()));
+    isOk = isOk && add(writer, FieldLastUpdate.newMutation(dataset, field, termType));
+    isOk =
+        isOk && add(writer, FieldLabels.newMutation(dataset, field, termType, fieldSpecificLabels));
 
     // Forward index
-    isOk = isOk && add(writer, newTerm, new Text(forwardCount(dataset)), newField, vizFieldSpecific,
-        newCount);
-    isOk =
-        isOk && add(writer, newTerm, new Text(forwardIndex(dataset)), newDocField, viz, newSpans);
+    isOk = isOk && add(writer, TermCount.newForwardMutation(dataset, docId, field, termType, term,
+        spans.size(), fieldSpecificLabels));
+    isOk = isOk && add(writer, Term.newForwardMutation(dataset, docId, field, termType, term, spans,
+        Sets.union(docSpecificLabels, fieldSpecificLabels)));
 
     if (!writeInForwardIndexOnly) {
 
       // Backward index
-      isOk = isOk && add(writer, newTermReversed, new Text(backwardCount(dataset)), newField,
-          vizFieldSpecific, newCount);
-      isOk = isOk && add(writer, newTermReversed, new Text(backwardIndex(dataset)), newDocField,
-          viz, newSpans);
+      isOk = isOk && add(writer, TermCount.newBackwardMutation(dataset, docId, field, termType,
+          term, spans.size(), fieldSpecificLabels));
+      isOk = isOk && add(writer, Term.newBackwardMutation(dataset, docId, field, termType, term,
+          spans, Sets.union(docSpecificLabels, fieldSpecificLabels)));
     }
     return isOk;
   }

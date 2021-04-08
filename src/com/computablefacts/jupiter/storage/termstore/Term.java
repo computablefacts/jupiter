@@ -10,15 +10,21 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ComparablePair;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.hadoop.io.Text;
 
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -69,6 +75,17 @@ final public class Term implements HasTerm, Comparable<Term> {
     labels_ = new HashSet<>(labels);
     count_ = count;
     spans_ = new ArrayList<>(spans);
+  }
+
+  public static Mutation newForwardMutation(String dataset, String docId, String field, int type,
+      String term, List<Pair<Integer, Integer>> spans, Set<String> labels) {
+    return newMutation(TermStore.forwardIndex(dataset), docId, field, type, term, spans, labels);
+  }
+
+  public static Mutation newBackwardMutation(String dataset, String docId, String field, int type,
+      String term, List<Pair<Integer, Integer>> spans, Set<String> labels) {
+    return newMutation(TermStore.backwardIndex(dataset), docId, field, type, reverse(term), spans,
+        labels);
   }
 
   public static Term fromKeyValue(Key key, Value value) {
@@ -123,6 +140,36 @@ final public class Term implements HasTerm, Comparable<Term> {
     }
     return new Term(datazet, docId, field, type,
         type == Term.TYPE_NUMBER ? BigDecimalCodec.decode(term) : term, labels, count, ranges);
+  }
+
+  private static Mutation newMutation(String dataset, String docId, String field, int type,
+      String term, List<Pair<Integer, Integer>> spans, Set<String> labels) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(docId, "docId should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+    Preconditions.checkNotNull(spans, "spans should not be null");
+    Preconditions.checkNotNull(labels, "labels should not be null");
+
+    Text cq = new Text(docId + SEPARATOR_NUL + field + SEPARATOR_NUL + type);
+
+    ColumnVisibility cv = new ColumnVisibility(Joiner.on(SEPARATOR_PIPE).join(labels));
+
+    Value value =
+        new Value(
+            Integer.toString(spans.size(), 10) + SEPARATOR_NUL
+                + Joiner.on(SEPARATOR_NUL)
+                    .join(
+                        spans.stream()
+                            .map(p -> Integer.toString(p.getFirst(), 10) + SEPARATOR_NUL
+                                + Integer.toString(p.getSecond(), 10))
+                            .collect(Collectors.toList())));
+
+    Mutation mutation = new Mutation(term);
+    mutation.put(new Text(dataset), cq, cv, value);
+
+    return mutation;
   }
 
   @Generated

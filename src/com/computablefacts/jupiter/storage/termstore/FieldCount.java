@@ -1,12 +1,20 @@
 package com.computablefacts.jupiter.storage.termstore;
 
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
+import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
 
-import com.computablefacts.jupiter.storage.Constants;
+import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.nona.Generated;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
@@ -37,6 +45,26 @@ final public class FieldCount {
     count_ = count;
   }
 
+  public static Mutation newMutation(String dataset, String field, int type, int count) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+
+    Text row = new Text(field + SEPARATOR_NUL + type);
+
+    Text cf = new Text(TermStore.count(dataset));
+
+    ColumnVisibility cv = new ColumnVisibility(
+        STRING_ADM + SEPARATOR_PIPE + AbstractStorage.toVisibilityLabel(TermStore.count(dataset)));
+
+    Value value = new Value(Integer.toString(count, 10));
+
+    Mutation mutation = new Mutation(row);
+    mutation.put(cf, TEXT_EMPTY, cv, value);
+
+    return mutation;
+  }
+
   public static FieldCount fromKeyValue(Key key, Value value) {
 
     Preconditions.checkNotNull(key, "key should not be null");
@@ -48,7 +76,7 @@ final public class FieldCount {
     String val = value.toString();
 
     // Extract term and term's type from ROW
-    int index = row.indexOf(Constants.SEPARATOR_NUL);
+    int index = row.indexOf(SEPARATOR_NUL);
 
     String field;
     int type;
@@ -65,8 +93,8 @@ final public class FieldCount {
     String datazet = cf.substring(0, cf.lastIndexOf('_'));
 
     // Extract visibility labels from CV
-    Set<String> labels = Sets.newHashSet(
-        Splitter.on(Constants.SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
+    Set<String> labels =
+        Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
     // Extract term count from VALUE
     long count = Long.parseLong(val, 10);

@@ -17,9 +17,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -315,37 +313,6 @@ public abstract class AbstractStorage {
       return false;
     }
     return true;
-  }
-
-  /**
-   * Persist data.
-   *
-   * @param writer batch writer.
-   * @param row row id.
-   * @param cf column family.
-   * @param cq column qualifier.
-   * @param cv visibility labels.
-   * @param value value.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  @Deprecated
-  public boolean add(BatchWriter writer, Text row, Text cf, Text cq, ColumnVisibility cv,
-      Value value) {
-
-    Preconditions.checkNotNull(writer, "writer should not be null");
-    Preconditions.checkNotNull(row, "row should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("row", row).add("cf", cf).add("cq", cq).add("cv", cv)
-          .add("value", value == null ? null : value.toString()).formatDebug());
-    }
-
-    Mutation mutation = new Mutation(row);
-    mutation.put(cf == null ? Constants.TEXT_EMPTY : cf, cq == null ? Constants.TEXT_EMPTY : cq,
-        cv == null ? Constants.VIZ_EMPTY : cv, value == null ? Constants.VALUE_EMPTY : value);
-
-    return add(writer, mutation);
   }
 
   /**

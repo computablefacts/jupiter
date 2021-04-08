@@ -2,14 +2,22 @@ package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
+import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
 
+import com.computablefacts.jupiter.storage.AbstractStorage;
+import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.nona.Generated;
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -38,6 +46,27 @@ final public class FieldLabels {
     type_ = type;
     labels_ = new HashSet<>(labels);
     labelsTerm_ = new HashSet<>(labelsTerm);
+  }
+
+  public static Mutation newMutation(String dataset, String field, int type, Set<String> labels) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(labels, "labels should not be null");
+
+    Text row = new Text(field + SEPARATOR_NUL + type);
+
+    Text cf = new Text(TermStore.visibility(dataset));
+
+    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
+        + AbstractStorage.toVisibilityLabel(TermStore.visibility(dataset)));
+
+    Value value = new Value(Joiner.on(Constants.SEPARATOR_NUL).join(labels));
+
+    Mutation mutation = new Mutation(row);
+    mutation.put(cf, TEXT_EMPTY, cv, value);
+
+    return mutation;
   }
 
   public static FieldLabels fromKeyValue(Key key, Value value) {

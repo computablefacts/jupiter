@@ -2,13 +2,21 @@ package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
+import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
 
+import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.nona.Generated;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
@@ -38,6 +46,26 @@ final public class FieldLastUpdate {
     type_ = termType;
     labels_ = new HashSet<>(labels);
     lastUpdate_ = lastUpdate;
+  }
+
+  public static Mutation newMutation(String dataset, String field, int type) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+
+    Text row = new Text(field + SEPARATOR_NUL + type);
+
+    Text cf = new Text(TermStore.lastUpdate(dataset));
+
+    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
+        + AbstractStorage.toVisibilityLabel(TermStore.lastUpdate(dataset)));
+
+    Value value = new Value(DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+
+    Mutation mutation = new Mutation(row);
+    mutation.put(cf, TEXT_EMPTY, cv, value);
+
+    return mutation;
   }
 
   public static FieldLastUpdate fromKeyValue(Key key, Value value) {

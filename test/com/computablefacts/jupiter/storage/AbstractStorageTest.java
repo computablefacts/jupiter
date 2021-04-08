@@ -8,6 +8,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -336,23 +337,39 @@ public class AbstractStorageTest extends MiniAccumuloClusterTest {
     try (BatchWriter writer = store.writer()) {
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(store.add(writer, new Text("row_" + i), new Text("first_dataset"), null,
-            new ColumnVisibility("DS_1"), new Value()));
+
+        Mutation mutation = new Mutation("row_" + i);
+        mutation.put(new Text("first_dataset"), Constants.TEXT_EMPTY, new ColumnVisibility("DS_1"),
+            new Value());
+
+        Assert.assertTrue(store.add(writer, mutation));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(store.add(writer, new Text("row_" + i), new Text("second_dataset"), null,
-            new ColumnVisibility("DS_2"), new Value()));
+
+        Mutation mutation = new Mutation("row_" + i);
+        mutation.put(new Text("second_dataset"), Constants.TEXT_EMPTY, new ColumnVisibility("DS_2"),
+            new Value());
+
+        Assert.assertTrue(store.add(writer, mutation));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(store.add(writer, new Text("row_" + i), new Text("third_dataset"), null,
-            new ColumnVisibility("DS_1|DS_2"), new Value()));
+
+        Mutation mutation = new Mutation("row_" + i);
+        mutation.put(new Text("third_dataset"), Constants.TEXT_EMPTY,
+            new ColumnVisibility("DS_1|DS_2"), new Value());
+
+        Assert.assertTrue(store.add(writer, mutation));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(store.add(writer, new Text("row_" + i), new Text("fourth_dataset"), null,
-            new ColumnVisibility("DS_1&DS_2"), new Value()));
+
+        Mutation mutation = new Mutation("row_" + i);
+        mutation.put(new Text("fourth_dataset"), Constants.TEXT_EMPTY,
+            new ColumnVisibility("DS_1&DS_2"), new Value());
+
+        Assert.assertTrue(store.add(writer, mutation));
       }
     }
   }

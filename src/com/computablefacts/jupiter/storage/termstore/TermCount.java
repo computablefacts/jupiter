@@ -8,10 +8,14 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
 
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -42,6 +46,17 @@ final public class TermCount implements HasTerm {
     term_ = term;
     labels_ = new HashSet<>(labels);
     count_ = count;
+  }
+
+  public static Mutation newForwardMutation(String dataset, String docId, String field, int type,
+      String term, int count, Set<String> labels) {
+    return newMutation(TermStore.forwardCount(dataset), docId, field, type, term, count, labels);
+  }
+
+  public static Mutation newBackwardMutation(String dataset, String docId, String field, int type,
+      String term, int count, Set<String> labels) {
+    return newMutation(TermStore.backwardCount(dataset), docId, field, type, reverse(term), count,
+        labels);
   }
 
   public static TermCount fromKeyValue(Key key, Value value) {
@@ -82,6 +97,27 @@ final public class TermCount implements HasTerm {
     return new TermCount(datazet, field, type,
         type == Term.TYPE_NUMBER ? BigDecimalCodec.decode(term) : term, labels,
         Long.parseLong(val, 10));
+  }
+
+  private static Mutation newMutation(String dataset, String docId, String field, int type,
+      String term, int count, Set<String> labels) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(docId, "docId should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+    Preconditions.checkNotNull(labels, "labels should not be null");
+
+    Text cq = new Text(field + SEPARATOR_NUL + type);
+
+    ColumnVisibility cv = new ColumnVisibility(Joiner.on(SEPARATOR_PIPE).join(labels));
+
+    Value value = new Value(Integer.toString(count, 10));
+
+    Mutation mutation = new Mutation(term);
+    mutation.put(new Text(dataset), cq, cv, value);
+
+    return mutation;
   }
 
   @Generated
