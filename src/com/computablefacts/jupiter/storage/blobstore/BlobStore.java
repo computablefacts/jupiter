@@ -24,6 +24,7 @@ import com.computablefacts.jupiter.iterators.BlobStoreJsonFieldsAnonymizingItera
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
+import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
@@ -154,6 +155,21 @@ final public class BlobStore extends AbstractStorage {
   public boolean putString(BatchWriter writer, String dataset, String key, Set<String> labels,
       String value) {
     return add(writer, Blob.fromString(dataset, key, labels, value));
+  }
+
+  /**
+   * Persist a JSON object.
+   *
+   * @param writer batch writer.
+   * @param dataset dataset/namespace.
+   * @param key key.
+   * @param labels visibility labels.
+   * @param value JSON object.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean putJson(BatchWriter writer, String dataset, String key, Set<String> labels,
+      Map<String, Object> value) {
+    return putJson(writer, dataset, key, labels, Codecs.asString(value));
   }
 
   /**
