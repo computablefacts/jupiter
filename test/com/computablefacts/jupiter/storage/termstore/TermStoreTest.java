@@ -17,7 +17,6 @@ import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.storage.Constants;
-import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
@@ -1024,24 +1023,23 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     try (BatchWriter writer = termStore.writer()) {
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(termStore.add(writer, "first_dataset", "row_" + i, "field_" + i,
-            Term.TYPE_STRING, "term_" + i, 1, Sets.newHashSet(), Sets.newHashSet("DS_1")));
+        Assert.assertTrue(termStore.put(writer, "first_dataset", "row_" + i, "field_" + i,
+            "term_" + i, 1, Sets.newHashSet(), Sets.newHashSet("DS_1")));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(termStore.add(writer, "second_dataset", "row_" + i, "field_" + i,
-            Term.TYPE_STRING, "term_" + i, 1, Sets.newHashSet(), Sets.newHashSet("DS_2")));
+        Assert.assertTrue(termStore.put(writer, "second_dataset", "row_" + i, "field_" + i,
+            "term_" + i, 1, Sets.newHashSet(), Sets.newHashSet("DS_2")));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(termStore.add(writer, "third_dataset", "row_" + i, "field_" + i,
-            Term.TYPE_STRING, "term_" + i, 2, Sets.newHashSet(), Sets.newHashSet("DS_1", "DS_2")));
+        Assert.assertTrue(termStore.put(writer, "third_dataset", "row_" + i, "field_" + i,
+            "term_" + i, 2, Sets.newHashSet(), Sets.newHashSet("DS_1", "DS_2")));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(termStore.add(writer, "fourth_dataset", "row_" + i, "field_" + i,
-            Term.TYPE_NUMBER, BigDecimalCodec.encode(Integer.toString(i, 10)), 2, Sets.newHashSet(),
-            Sets.newHashSet("DS_1", "DS_2"), true));
+        Assert.assertTrue(termStore.put(writer, "fourth_dataset", "row_" + i, "field_" + i, i, 2,
+            Sets.newHashSet(), Sets.newHashSet("DS_1", "DS_2")));
       }
     }
   }

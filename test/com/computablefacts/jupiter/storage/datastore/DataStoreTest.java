@@ -553,7 +553,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         // Create a new dataset
         for (int i = 0; i < 10; i++) {
           Assert.assertTrue(dataStore.persist(writers, "fourth_dataset", "row_" + i, json2(i), null,
-              Codecs.defaultTokenizer, null));
+              Codecs.defaultTokenizer));
         }
 
         Assert.assertTrue(writers.flush());
@@ -965,18 +965,18 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     try (Writers writers = dataStore.writers()) {
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(dataStore.persist(writers, "first_dataset", "row_" + i, json1(i),
-            key -> true, null, Codecs.defaultLexicoder));
+        Assert.assertTrue(
+            dataStore.persist(writers, "first_dataset", "row_" + i, json1(i), key -> true, null));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(dataStore.persist(writers, "second_dataset", "row_" + i, json1(i),
-            key -> true, null, Codecs.defaultLexicoder));
+        Assert.assertTrue(
+            dataStore.persist(writers, "second_dataset", "row_" + i, json1(i), key -> true, null));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(dataStore.persist(writers, "third_dataset", "row_" + i, json1(i),
-            key -> true, null, Codecs.defaultLexicoder));
+        Assert.assertTrue(
+            dataStore.persist(writers, "third_dataset", "row_" + i, json1(i), key -> true, null));
       }
     }
   }

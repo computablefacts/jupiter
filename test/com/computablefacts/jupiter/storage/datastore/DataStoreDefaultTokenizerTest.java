@@ -120,13 +120,11 @@ public class DataStoreDefaultTokenizerTest extends MiniAccumuloClusterTest {
     try (Writers writers = dataStore.writers()) {
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(dataStore.persist(writers, "first_dataset", "row_" + i, json1(i), null,
-            Codecs.defaultTokenizer, null));
+        Assert.assertTrue(dataStore.persist(writers, "first_dataset", "row_" + i, json1(i)));
       }
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertTrue(dataStore.persist(writers, "second_dataset", "row_" + i, json2(i), null,
-            Codecs.defaultTokenizer, null));
+        Assert.assertTrue(dataStore.persist(writers, "second_dataset", "row_" + i, json2(i)));
       }
     }
   }

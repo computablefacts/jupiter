@@ -3,6 +3,7 @@ package com.computablefacts.jupiter.storage.termstore;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
+import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.Strings;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Preconditions;
@@ -401,81 +403,93 @@ final public class TermStore extends AbstractStorage {
 
   /**
    * Persist data. Term extraction for a given field from a given document should be performed by
-   * the caller. This method should be called only once for each (dataset, docId, field, term).
+   * the caller. This method should be called only once for each quad (dataset, docId, field, term).
    *
    * @param writer batch writer.
-   * @param dataset dataset.
-   * @param docId document id.
-   * @param field field name.
-   * @param termType the type of the term i.e. string, number, etc.
-   * @param term term.
-   * @param count number of occurrences of the term in the document.
-   * @param docSpecificLabels visibility labels specific to a given document.
-   * @param fieldSpecificLabels visibility labels specific to a given field.
-   * @return true if the operation succeeded, false otherwise.
+   * @param dataset the dataset.
+   * @param docId the document id.
+   * @param field the field name.
+   * @param term the term to index.
+   * @param nbOccurrencesInDoc the number of occurrences of the term in the document.
+   * @param docSpecificLabels the visibility labels specific to a given document.
+   * @param fieldSpecificLabels the visibility labels specific to a given field.
+   * @return true if the write operation succeeded, false otherwise.
    */
-  public boolean add(BatchWriter writer, String dataset, String docId, String field, int termType,
-      String term, int count, Set<String> docSpecificLabels, Set<String> fieldSpecificLabels) {
-    return add(writer, dataset, docId, field, termType, term, count, docSpecificLabels,
-        fieldSpecificLabels, false);
-  }
-
-  /**
-   * Persist data. Term extraction for a given field from a given document should be performed by
-   * the caller. This method should be called only once for each (dataset, docId, field, term).
-   *
-   * @param writer batch writer.
-   * @param dataset dataset.
-   * @param docId document id.
-   * @param field field name.
-   * @param type the type of the term i.e. string, number, etc.
-   * @param term term.
-   * @param count number of occurrences of the term in the document.
-   * @param docSpecificLabels visibility labels specific to a given document.
-   * @param fieldSpecificLabels visibility labels specific to a given field.
-   * @param writeInForwardIndexOnly allow the caller to explicitly specify that the term must be
-   *        written in the forward index only.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean add(BatchWriter writer, String dataset, String docId, String field, int type,
-      String term, int count, Set<String> docSpecificLabels, Set<String> fieldSpecificLabels,
-      boolean writeInForwardIndexOnly) {
+  public boolean put(BatchWriter writer, String dataset, String docId, String field, Object term,
+      int nbOccurrencesInDoc, Set<String> docSpecificLabels, Set<String> fieldSpecificLabels) {
 
     Preconditions.checkNotNull(writer, "writer should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkArgument(count > 0, "count must be > 0");
+    Preconditions.checkArgument(nbOccurrencesInDoc > 0, "nbOccurrencesInDoc must be > 0");
     Preconditions.checkNotNull(docSpecificLabels, "docSpecificLabels should not be null");
     Preconditions.checkNotNull(fieldSpecificLabels, "fieldSpecificLabels should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("doc_id", docId).add("field", field).add("type", type)
-          .add("term", term).add("count", count).add("doc_specific_labels", docSpecificLabels)
+      logger_.debug(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("doc_id", docId).add("field", field).add("term", term)
+          .add("nb_occurrences_in_doc", nbOccurrencesInDoc)
+          .add("doc_specific_labels", docSpecificLabels)
           .add("field_specific_labels", fieldSpecificLabels).formatDebug());
+    }
+
+    @Var
+    String newTerm;
+    @Var
+    int newType;
+    @Var
+    boolean writeInForwardIndexOnly;
+
+    if (term instanceof String) {
+      newTerm = (String) term;
+      newType = Term.TYPE_STRING;
+      writeInForwardIndexOnly = false;
+    } else { // Objects other than String are lexicoded
+      newTerm = Codecs.defaultLexicoder.apply(term).text();
+      if (term instanceof Number) {
+        newType = Term.TYPE_NUMBER;
+      } else if (term instanceof Boolean) {
+        newType = Term.TYPE_BOOLEAN;
+      } else if (term instanceof Date) {
+        newType = Term.TYPE_DATE;
+      } else {
+        newType = Term.TYPE_UNKNOWN;
+      }
+      writeInForwardIndexOnly = true;
+    }
+
+    if (com.google.common.base.Strings.isNullOrEmpty(newTerm)) {
+      logger_
+          .warn(LogFormatterManager.logFormatter()
+              .message(String.format(
+                  "%s has been lexicoded to null/an empty string. Term has been ignored.",
+                  term.toString()))
+              .formatWarn());
+      return false;
     }
 
     // Ingest stats
     @Var
-    boolean isOk = add(writer, FieldCount.newMutation(dataset, field, type, count));
-    isOk = isOk && add(writer, FieldLastUpdate.newMutation(dataset, field, type));
-    isOk = isOk && add(writer, FieldLabels.newMutation(dataset, field, type, fieldSpecificLabels));
+    boolean isOk = add(writer, FieldCount.newMutation(dataset, field, newType, nbOccurrencesInDoc));
+    isOk = isOk && add(writer, FieldLastUpdate.newMutation(dataset, field, newType));
+    isOk =
+        isOk && add(writer, FieldLabels.newMutation(dataset, field, newType, fieldSpecificLabels));
 
     // Forward index
-    isOk = isOk && add(writer, TermCount.newForwardMutation(dataset, docId, field, type, term,
-        count, fieldSpecificLabels));
-    isOk = isOk && add(writer, Term.newForwardMutation(dataset, docId, field, type, term, count,
-        Sets.union(docSpecificLabels, fieldSpecificLabels)));
+    isOk = isOk && add(writer, TermCount.newForwardMutation(dataset, docId, field, newType, newTerm,
+        nbOccurrencesInDoc, fieldSpecificLabels));
+    isOk = isOk && add(writer, Term.newForwardMutation(dataset, docId, field, newType, newTerm,
+        nbOccurrencesInDoc, Sets.union(docSpecificLabels, fieldSpecificLabels)));
 
     if (!writeInForwardIndexOnly) {
 
       // Backward index
-      isOk = isOk && add(writer, TermCount.newBackwardMutation(dataset, docId, field, type, term,
-          count, fieldSpecificLabels));
-      isOk = isOk && add(writer, Term.newBackwardMutation(dataset, docId, field, type, term, count,
-          Sets.union(docSpecificLabels, fieldSpecificLabels)));
+      isOk = isOk && add(writer, TermCount.newBackwardMutation(dataset, docId, field, newType,
+          newTerm, nbOccurrencesInDoc, fieldSpecificLabels));
+      isOk = isOk && add(writer, Term.newBackwardMutation(dataset, docId, field, newType, newTerm,
+          nbOccurrencesInDoc, Sets.union(docSpecificLabels, fieldSpecificLabels)));
     }
     return isOk;
   }

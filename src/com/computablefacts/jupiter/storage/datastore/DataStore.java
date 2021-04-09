@@ -5,7 +5,6 @@ import static com.computablefacts.nona.functions.patternoperators.PatternsBackwa
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -472,49 +471,45 @@ final public class DataStore {
    *
    * @param writers writers.
    * @param dataset dataset.
-   * @param uuid unique identifier.
+   * @param docId unique identifier.
    * @param json JSON object.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean persist(Writers writers, String dataset, String uuid, String json) {
-    return persist(writers, dataset, uuid, json, key -> true, null, null);
+  public boolean persist(Writers writers, String dataset, String docId, String json) {
+    return persist(writers, dataset, docId, json, key -> true, Codecs.defaultTokenizer);
   }
 
   /**
    * Persist a single JSON object.
    *
    * @param writers writers.
-   * @param dataset dataset.
-   * @param uuid unique identifier.
-   * @param json JSON object.
+   * @param dataset the dataset.
+   * @param docId the document identifier
+   * @param json the JSON object as a String.
    * @param keepField filter applied on all JSON attributes before value tokenization (optional).
-   *        This predicate should return true iif the field's value must be tokenized.
+   *        This predicate should return true iif the field's value must be indexed.
    * @param tokenizer string tokenizer (optional).
-   * @param lexicoder represents java Objects as sortable strings (optional).
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean persist(Writers writers, String dataset, String uuid, String json,
-      Predicate<String> keepField, Function<String, SpanSequence> tokenizer,
-      Function<Object, Span> lexicoder) {
+  public boolean persist(Writers writers, String dataset, String docId, String json,
+      Predicate<String> keepField, Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(uuid, "uuid should not be null");
+    Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(json, "json should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("uuid", uuid)
+      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("docId", docId)
           .add("json", json).add("has_keep_field", keepField != null)
-          .add("has_tokenizer", tokenizer != null).add("has_lexicoder", lexicoder != null)
-          .formatDebug());
+          .add("has_tokenizer", tokenizer != null).formatDebug());
     }
 
-    if (!persistBlob(writers, dataset, uuid, json)) {
+    if (!persistBlob(writers, dataset, docId, json)) {
       return false;
     }
 
-    @Var
-    SpanSequence spanSequence = null;
+    Map<String, Multiset<Object>> fields = new HashMap<>();
     Map<String, Object> newJson =
         new JsonFlattener(json).withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
 
@@ -535,16 +530,21 @@ final public class DataStore {
         continue;
       }
 
-      @Var
-      boolean writeInForwardIndexOnly = false;
-      @Var
-      int termType = Term.TYPE_STRING;
       String newField = field.replaceAll("\\[\\d+\\]", "[*]");
 
-      if (value instanceof String) {
-        if (Codecs.isProbablyBase64((String) value)) {
-          continue; // Base64 strings are NOT indexed
-        }
+      if (!fields.containsKey(newField)) {
+        fields.put(newField, HashMultiset.create());
+      }
+
+      if (!(value instanceof String)) {
+        fields.get(newField).add(value); // Objects other than String will be lexicoded by the
+                                         // TermStore
+      } else if (Codecs.isProbablyBase64((String) value)) {
+        continue; // Base64 strings are NOT indexed
+      } else {
+
+        SpanSequence spanSequence;
+
         if (tokenizer != null) {
           spanSequence = Objects.requireNonNull(tokenizer.apply((String) value));
         } else {
@@ -552,40 +552,25 @@ final public class DataStore {
           spanSequence = new SpanSequence();
           spanSequence.add(new Span(str, 0, str.length()));
         }
-      } else { // Objects other than String are lexicoded
-        spanSequence = new SpanSequence();
-        if (lexicoder != null) {
-          spanSequence.add(Objects.requireNonNull(lexicoder.apply(value)));
-        } else {
-          String str = value.toString();
-          spanSequence.add(new Span(str, 0, str.length()));
-        }
-        if (value instanceof Number) {
-          termType = Term.TYPE_NUMBER;
-        } else if (value instanceof Date) {
-          termType = Term.TYPE_DATE;
-        } else if (value instanceof Boolean) {
-          termType = Term.TYPE_BOOLEAN;
-        } else {
-          termType = Term.TYPE_UNKNOWN;
-        }
-        writeInForwardIndexOnly = true;
-      }
 
-      // Group by spans
-      Multiset<String> spans = HashMultiset.create();
-      spanSequence.forEach(span -> spans.add(span.text()));
-      spanSequence = null; // free memory
-
-      // Persist spans
-      for (Multiset.Entry<String> span : spans.entrySet()) {
-        if (!persistTerm(writers, dataset, uuid, newField, termType, span.getElement(),
-            span.getCount(), writeInForwardIndexOnly)) {
-          return false;
-        }
+        spanSequence.forEach(span -> fields.get(newField).add(span.text()));
       }
     }
-    return true;
+
+    newJson.clear(); // free up memory
+
+    // Persist terms
+    @Var
+    boolean isOk = true;
+
+    for (Map.Entry<String, Multiset<Object>> field : fields.entrySet()) {
+      for (Multiset.Entry<Object> term : field.getValue().entrySet()) {
+        isOk =
+            persistTerm(writers, dataset, docId, field.getKey(), term.getElement(), term.getCount())
+                && isOk;
+      }
+    }
+    return isOk;
   }
 
   /**
@@ -1038,33 +1023,33 @@ final public class DataStore {
    * Persist a single JSON object.
    *
    * @param writers writers.
-   * @param dataset dataset.
-   * @param uuid unique identifier.
-   * @param blob JSON string.
-   * @return true if the operation succeeded, false otherwise.
+   * @param dataset the dataset.
+   * @param docId the document identifier.
+   * @param blob the JSON string.
+   * @return true if the write operation succeeded, false otherwise.
    */
-  private boolean persistBlob(Writers writers, String dataset, String uuid, String blob) {
+  private boolean persistBlob(Writers writers, String dataset, String docId, String blob) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(uuid, "uuid should not be null");
+    Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(blob, "blob should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("uuid", uuid)
+      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("docId", docId)
           .add("blob", blob).formatDebug());
     }
 
     String vizAdm = Constants.STRING_ADM; // for backward compatibility
     String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
-    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
+    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(docId);
     String vizRawData = vizDataset + Constants.STRING_RAW_DATA;
 
-    if (!blobStore_.putJson(writers.blob(), dataset, uuid,
+    if (!blobStore_.putJson(writers.blob(), dataset, docId,
         Sets.newHashSet(vizAdm, vizUuid, vizRawData), blob)) {
 
       logger_.error(LogFormatterManager.logFormatter().message("write failed")
-          .add("dataset", dataset).add("uuid", uuid).add("blob", blob).formatError());
+          .add("dataset", dataset).add("docId", docId).add("blob", blob).formatError());
 
       return false;
     }
@@ -1075,32 +1060,35 @@ final public class DataStore {
    * Persist a single term.
    *
    * @param writers writers.
-   * @param dataset dataset.
-   * @param uuid unique identifier.
-   * @param field field name.
-   * @param type the type of the term i.e. string, number, etc.
-   * @param term term.
-   * @param count number of occurrences of the term in the document.
-   * @param writeInForwardIndexOnly allow the caller to explicitly specify that the term must be
-   *        written in the forward index only.
-   * @return true if the operation succeeded, false otherwise.
+   * @param dataset the dataset.
+   * @param docId the document identifier.
+   * @param field the field name.
+   * @param term the term to index.
+   * @param nbOccurrencesInDoc the number of occurrences of the term in the document.
+   * @return true if the write operation succeeded, false otherwise.
    */
-  private boolean persistTerm(Writers writers, String dataset, String uuid, String field,
-      int type, String term, int count, boolean writeInForwardIndexOnly) {
+  private boolean persistTerm(Writers writers, String dataset, String docId, String field,
+      Object term, int nbOccurrencesInDoc) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(uuid, "uuid should not be null");
+    Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkArgument(count > 0, "count must be > 0");
+    Preconditions.checkArgument(nbOccurrencesInDoc > 0, "nbOccurrencesInDoc must be > 0");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("docId", docId)
+          .add("field", field).add("term", term).add("nb_occurrences_in_doc", nbOccurrencesInDoc)
+          .formatDebug());
+    }
 
     List<String> path = Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN).trimResults()
         .omitEmptyStrings().splitToList(field);
 
     String vizAdm = Constants.STRING_ADM; // for backward compatibility
     String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
-    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(uuid);
+    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(docId);
 
     Set<String> vizDocSpecific = Sets.newHashSet(vizUuid);
     Set<String> vizFieldSpecific = Sets.newHashSet(vizAdm);
@@ -1108,13 +1096,13 @@ final public class DataStore {
     AbstractStorage.toVisibilityLabels(path)
         .forEach(label -> vizFieldSpecific.add(vizDataset + label));
 
-    boolean isOk = termStore_.add(writers.index(), dataset, uuid, field, type, term, count,
-        vizDocSpecific, vizFieldSpecific, writeInForwardIndexOnly);
+    boolean isOk = termStore_.put(writers.index(), dataset, docId, field, term, nbOccurrencesInDoc,
+        vizDocSpecific, vizFieldSpecific);
 
     if (!isOk) {
-      logger_.error(LogFormatterManager.logFormatter().message("write failed")
-          .add("dataset", dataset).add("uuid", uuid).add("field", field).add("type", type)
-          .add("term", term).formatError());
+      logger_
+          .error(LogFormatterManager.logFormatter().message("write failed").add("dataset", dataset)
+              .add("docId", docId).add("field", field).add("term", term).formatError());
     }
     return isOk;
   }
