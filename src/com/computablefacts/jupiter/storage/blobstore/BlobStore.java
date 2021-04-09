@@ -70,7 +70,7 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("add_locality_group", tableName())
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
           .add("dataset", dataset).formatInfo());
     }
 
