@@ -46,20 +46,25 @@ import com.google.errorprone.annotations.Var;
 
 /**
  * <p>
+ * The TermStore API allows your application to persist buckets of key-value pairs. Numbers and
+ * dates are automatically lexicoded to maintain their native Java sort order.
+ * </p>
+ * 
+ * <p>
  * This storage layer utilizes the <a href="https://accumulo.apache.org">Accumulo</a> table schemas
  * described below as the basis for its ingest and query components.
  * </p>
  *
  * <pre>
- *  Row                     | Column Family   | Column Qualifier               | Visibility                               | Value
- * =========================+=================+================================+==========================================+=================================
- *  <field>\0<term_type>    | <dataset>_CNT   | (empty)                        | ADM|<dataset>_CNT                        | <#occurrences>
- *  <field>\0<term_type>    | <dataset>_LU    | (empty)                        | ADM|<dataset>_LU                         | <utc_date>
- *  <field>\0<term_type>    | <dataset>_VIZ   | (empty)                        | ADM|<dataset>_VIZ                        | viz1\0viz2\0
- *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
- *  <mret>                  | <dataset>_BIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>
- *  <term>                  | <dataset>_FCNT  | <field>\0<term_type>           | ADM|<dataset>_<field>                    | <#occurrences>
- *  <term>                  | <dataset>_FIDX  | <doc_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<doc_id> | <#occurrences>
+ *  Row                     | Column Family   | Column Qualifier                  | Visibility                                  | Value
+ * =========================+=================+===================================+=============================================+=================================
+ *  <field>\0<term_type>    | <dataset>_CNT   | (empty)                           | ADM|<dataset>_CNT                           | <#occurrences>
+ *  <field>\0<term_type>    | <dataset>_LU    | (empty)                           | ADM|<dataset>_LU                            | <utc_date>
+ *  <field>\0<term_type>    | <dataset>_VIZ   | (empty)                           | ADM|<dataset>_VIZ                           | viz1\0viz2\0
+ *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | <#occurrences>
+ *  <mret>                  | <dataset>_BIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | <#occurrences>
+ *  <term>                  | <dataset>_FCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | <#occurrences>
+ *  <term>                  | <dataset>_FIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | <#occurrences>
  * </pre>
  *
  * <p>
@@ -138,7 +143,7 @@ final public class TermStore extends AbstractStorage {
   }
 
   private static Iterator<Term> scanIndex(ScannerBase scanner, String dataset, Set<String> fields,
-      Range range, boolean hitsBackwardIndex, BloomFilters<String> docIds) {
+      Range range, boolean hitsBackwardIndex, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(range, "range should not be null");
@@ -152,9 +157,9 @@ final public class TermStore extends AbstractStorage {
       add = true;
       TermStoreDocFieldFilter.setFieldsToKeep(setting, fields);
     }
-    if (docIds != null) {
+    if (bucketsIds != null) {
       add = true;
-      TermStoreDocFieldFilter.setDocsToKeep(setting, docIds);
+      TermStoreDocFieldFilter.setDocsToKeep(setting, bucketsIds);
     }
     if (add) {
       scanner.addScanIterator(setting);
@@ -176,7 +181,7 @@ final public class TermStore extends AbstractStorage {
     return Iterators.transform(
         Iterators.transform(scanner.iterator(),
             entry -> Term.fromKeyValue(entry.getKey(), entry.getValue())),
-        t -> new Term(t.dataset(), t.docId(), t.field(), t.type(),
+        t -> new Term(t.dataset(), t.bucketId(), t.field(), t.type(),
             t.isNumber() ? BigDecimalCodec.decode(t.term()) : t.term(), t.labels(), t.count()));
   }
 
@@ -331,36 +336,37 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * Persist data. Term extraction for a given field from a given document should be performed by
-   * the caller. This method should be called only once for each quad (dataset, docId, field, term).
+   * Persist data. Term extraction for a given field from a given bucket should be performed by the
+   * caller. This method should be called only once for each quad (dataset, bucketId, field, term).
    *
    * @param writer batch writer.
    * @param dataset the dataset.
-   * @param docId the document id.
+   * @param bucketId the bucket id.
    * @param field the field name.
    * @param term the term to index.
-   * @param nbOccurrencesInDoc the number of occurrences of the term in the document.
-   * @param docSpecificLabels the visibility labels specific to a given document.
+   * @param nbOccurrencesInBucket the number of occurrences of the term in the bucket.
+   * @param bucketSpecificLabels the visibility labels specific to a given bucket.
    * @param fieldSpecificLabels the visibility labels specific to a given field.
    * @return true if the write operation succeeded, false otherwise.
    */
-  public boolean put(BatchWriter writer, String dataset, String docId, String field, Object term,
-      int nbOccurrencesInDoc, Set<String> docSpecificLabels, Set<String> fieldSpecificLabels) {
+  public boolean put(BatchWriter writer, String dataset, String bucketId, String field, Object term,
+      int nbOccurrencesInBucket, Set<String> bucketSpecificLabels,
+      Set<String> fieldSpecificLabels) {
 
     Preconditions.checkNotNull(writer, "writer should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(docId, "docId should not be null");
+    Preconditions.checkNotNull(bucketId, "bucketId should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkArgument(nbOccurrencesInDoc > 0, "nbOccurrencesInDoc must be > 0");
-    Preconditions.checkNotNull(docSpecificLabels, "docSpecificLabels should not be null");
+    Preconditions.checkArgument(nbOccurrencesInBucket > 0, "nbOccurrencesInBucket must be > 0");
+    Preconditions.checkNotNull(bucketSpecificLabels, "bucketSpecificLabels should not be null");
     Preconditions.checkNotNull(fieldSpecificLabels, "fieldSpecificLabels should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("doc_id", docId).add("field", field).add("term", term)
-          .add("nb_occurrences_in_doc", nbOccurrencesInDoc)
-          .add("doc_specific_labels", docSpecificLabels)
+          .add("dataset", dataset).add("bucket_id", bucketId).add("field", field).add("term", term)
+          .add("nb_occurrences_in_bucket", nbOccurrencesInBucket)
+          .add("bucket_specific_labels", bucketSpecificLabels)
           .add("field_specific_labels", fieldSpecificLabels).formatDebug());
     }
 
@@ -401,24 +407,25 @@ final public class TermStore extends AbstractStorage {
 
     // Ingest stats
     @Var
-    boolean isOk = add(writer, FieldCount.newMutation(dataset, field, newType, nbOccurrencesInDoc));
+    boolean isOk =
+        add(writer, FieldCount.newMutation(dataset, field, newType, nbOccurrencesInBucket));
     isOk = isOk && add(writer, FieldLastUpdate.newMutation(dataset, field, newType));
     isOk =
         isOk && add(writer, FieldLabels.newMutation(dataset, field, newType, fieldSpecificLabels));
 
     // Forward index
-    isOk = isOk && add(writer, TermCount.newForwardMutation(dataset, docId, field, newType, newTerm,
-        nbOccurrencesInDoc, fieldSpecificLabels));
-    isOk = isOk && add(writer, Term.newForwardMutation(dataset, docId, field, newType, newTerm,
-        nbOccurrencesInDoc, Sets.union(docSpecificLabels, fieldSpecificLabels)));
+    isOk = isOk && add(writer, TermCount.newForwardMutation(dataset, bucketId, field, newType,
+        newTerm, nbOccurrencesInBucket, fieldSpecificLabels));
+    isOk = isOk && add(writer, Term.newForwardMutation(dataset, bucketId, field, newType, newTerm,
+        nbOccurrencesInBucket, Sets.union(bucketSpecificLabels, fieldSpecificLabels)));
 
     if (!writeInForwardIndexOnly) {
 
       // Backward index
-      isOk = isOk && add(writer, TermCount.newBackwardMutation(dataset, docId, field, newType,
-          newTerm, nbOccurrencesInDoc, fieldSpecificLabels));
-      isOk = isOk && add(writer, Term.newBackwardMutation(dataset, docId, field, newType, newTerm,
-          nbOccurrencesInDoc, Sets.union(docSpecificLabels, fieldSpecificLabels)));
+      isOk = isOk && add(writer, TermCount.newBackwardMutation(dataset, bucketId, field, newType,
+          newTerm, nbOccurrencesInBucket, fieldSpecificLabels));
+      isOk = isOk && add(writer, Term.newBackwardMutation(dataset, bucketId, field, newType,
+          newTerm, nbOccurrencesInBucket, Sets.union(bucketSpecificLabels, fieldSpecificLabels)));
     }
     return isOk;
   }
@@ -531,7 +538,7 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * For each field of each document in a given dataset, get the number of occurrences of a given
+   * For each field of each bucket in a given dataset, get the number of occurrences of a given
    * term.
    *
    * @param scanner scanner.
@@ -594,20 +601,20 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * For each field of a given list of documents in a given dataset, get the ones matching a given
+   * For each field of a given list of buckets in a given dataset, get the ones matching a given
    * term.
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
    * @param fields where the specified term must be searched for (optional).
    * @param term searched term. Might contain wildcard characters.
-   * @param docIds which documents must be considered (optional).
+   * @param bucketsIds which buckets must be considered (optional).
    * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> getDocIds(ScannerBase scanner, String dataset, String term,
-      Set<String> fields, BloomFilters<String> docIds) {
+  public Iterator<Term> getBucketsIds(ScannerBase scanner, String dataset, String term,
+      Set<String> fields, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
@@ -618,7 +625,7 @@ final public class TermStore extends AbstractStorage {
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
           .add("dataset", dataset).add("fields", fields).add("term", term)
-          .add("has_keep_docs", docIds != null).formatInfo());
+          .add("has_buckets_ids", bucketsIds != null).formatInfo());
     }
 
     scanner.clearColumns();
@@ -655,12 +662,12 @@ final public class TermStore extends AbstractStorage {
 
       scanner.addScanIterator(setting);
     }
-    return scanIndex(scanner, newDataset, fields, range, isTermBackward, docIds);
+    return scanIndex(scanner, newDataset, fields, range, isTermBackward, bucketsIds);
   }
 
   /**
-   * For each field of each document in a given dataset, get the number of occurrences of all terms
-   * in [minTerm, maxTerm]. Note that this method only hits the forward index.
+   * For each field of each bucket in a given dataset, get the number of occurrences of all terms in
+   * [minTerm, maxTerm]. Note that this method only hits the forward index.
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
@@ -729,7 +736,7 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * For each field of a given list of documents in a given dataset, get documents having a term in
+   * For each field of a given list of buckets in a given dataset, get buckets having a term in
    * [minTerm, maxTerm]. Note that this method only hits the forward index.
    *
    * @param scanner scanner.
@@ -737,13 +744,13 @@ final public class TermStore extends AbstractStorage {
    * @param fields where the specified term must be searched for (optional).
    * @param minTerm first searched term. Wildcard characters are not allowed.
    * @param maxTerm last searched term. Wildcard characters are not allowed.
-   * @param docIds which documents must be considered (optional).
+   * @param bucketsIds which buckets must be considered (optional).
    * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> getDocIds(ScannerBase scanner, String dataset, Object minTerm,
-      Object maxTerm, Set<String> fields, BloomFilters<String> docIds) {
+  public Iterator<Term> getBucketsIds(ScannerBase scanner, String dataset, Object minTerm,
+      Object maxTerm, Set<String> fields, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
@@ -796,6 +803,6 @@ final public class TermStore extends AbstractStorage {
 
     String newDataset = dataset == null ? null : forwardIndex(dataset);
 
-    return scanIndex(scanner, newDataset, fields, range, false, docIds);
+    return scanIndex(scanner, newDataset, fields, range, false, bucketsIds);
   }
 }

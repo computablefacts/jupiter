@@ -40,24 +40,24 @@ final public class Term implements HasTerm, Comparable<Term> {
   public static final int TYPE_BOOLEAN = 4;
 
   private final String dataset_;
-  private final String docId_;
+  private final String bucketId_;
   private final String field_;
   private final int type_;
   private final String term_;
   private final Set<String> labels_;
   private final long count_;
 
-  Term(String dataset, String docId, String field, int type, String term, Set<String> labels,
+  Term(String dataset, String bucketId, String field, int type, String term, Set<String> labels,
       long count) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(docId, "docId should not be null");
+    Preconditions.checkNotNull(bucketId, "bucketId should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");
 
     dataset_ = dataset;
-    docId_ = docId;
+    bucketId_ = bucketId;
     field_ = field;
     type_ = type;
     term_ = term;
@@ -145,7 +145,7 @@ final public class Term implements HasTerm, Comparable<Term> {
   @Generated
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("docId", docId_)
+    return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("docId", bucketId_)
         .add("field", field_).add("term", term_).add("type", type_).add("labels", labels_)
         .add("count", count_).toString();
   }
@@ -159,7 +159,7 @@ final public class Term implements HasTerm, Comparable<Term> {
       return false;
     }
     Term term = (Term) obj;
-    return Objects.equal(dataset_, term.dataset_) && Objects.equal(docId_, term.docId_)
+    return Objects.equal(dataset_, term.dataset_) && Objects.equal(bucketId_, term.bucketId_)
         && Objects.equal(field_, term.field_) && Objects.equal(type_, term.type_)
         && Objects.equal(term_, term.term_) && Objects.equal(labels_, term.labels_)
         && Objects.equal(count_, term.count_);
@@ -167,14 +167,15 @@ final public class Term implements HasTerm, Comparable<Term> {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(dataset_, docId_, field_, type_, term_, labels_, count_);
+    return Objects.hashCode(dataset_, bucketId_, field_, type_, term_, labels_, count_);
   }
 
   @Override
   public int compareTo(@NotNull Term term) {
 
     @Var
-    int cmp = ComparisonChain.start().compare(dataset_, term.dataset_).compare(docId_, term.docId_)
+    int cmp = ComparisonChain.start().compare(dataset_, term.dataset_)
+        .compare(bucketId_, term.bucketId_)
         .compare(field_, term.field_).compare(type_, term.type_).compare(term_, term.term_)
         .compare(count_, term.count_).result();
 
@@ -221,8 +222,8 @@ final public class Term implements HasTerm, Comparable<Term> {
   }
 
   @Generated
-  public String docId() {
-    return docId_;
+  public String bucketId() {
+    return bucketId_;
   }
 
   @Generated

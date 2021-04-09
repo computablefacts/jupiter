@@ -661,12 +661,12 @@ final public class DataStore {
    * @param dataset dataset (optional).
    * @param minTerm number (optional). Beginning of the range (included).
    * @param maxTerm number (optional). End of the range (excluded).
-   * @param keepFields fields patterns to keep (optional).
-   * @param keepDocs document ids to keep (optional).
+   * @param fields fields patterns to keep (optional).
+   * @param docsIds document ids to keep (optional).
    * @return iterator.
    */
   public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, Number minTerm,
-      Number maxTerm, Set<String> keepFields, BloomFilters<String> keepDocs) {
+      Number maxTerm, Set<String> fields, BloomFilters<String> docsIds) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
@@ -674,7 +674,7 @@ final public class DataStore {
     Preconditions.checkArgument(scanners.index() instanceof Scanner,
         "index scanner must guarantee the result order");
 
-    return termStore_.getDocIds(scanners.index(), dataset, minTerm, maxTerm, keepFields, keepDocs);
+    return termStore_.getBucketsIds(scanners.index(), dataset, minTerm, maxTerm, fields, docsIds);
   }
 
   /**
@@ -706,17 +706,17 @@ final public class DataStore {
    * @param scanners scanners.
    * @param dataset dataset.
    * @param fields JSON fields to keep (optional).
-   * @param uuids documents unique identifiers.
+   * @param docsIds documents unique identifiers.
    * @return list of documents.
    */
   public Iterator<Blob<Value>> jsonScan(Scanners scanners, String dataset, Set<String> fields,
-      Set<String> uuids) {
+      Set<String> docsIds) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(uuids, "uuids should not be null");
+    Preconditions.checkNotNull(docsIds, "docsIds should not be null");
 
-    return blobStore_.get(scanners.blob(), dataset, uuids, fields);
+    return blobStore_.get(scanners.blob(), dataset, docsIds, fields);
   }
 
   /**
@@ -727,15 +727,15 @@ final public class DataStore {
    * @param dataset dataset.
    * @param minTerm number (optional). Beginning of the range (included).
    * @param maxTerm number (optional). End of the range (included).
-   * @param keepFields fields to keep (optional).
-   * @param keepDocs document ids to keep (optional).
+   * @param fields fields to keep (optional).
+   * @param docsIds document ids to keep (optional).
    * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
   @Beta
   public Iterator<String> searchByNumericalRange(Scanners scanners, Writers writers, String dataset,
-      Number minTerm, Number maxTerm, Set<String> keepFields, BloomFilters<String> keepDocs) {
+      Number minTerm, Number maxTerm, Set<String> fields, BloomFilters<String> docsIds) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(writers, "writers should not be null");
@@ -745,7 +745,7 @@ final public class DataStore {
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
           .add("dataset", dataset).add("min_term", minTerm).add("max_term", maxTerm)
-          .add("has_keep_fields", keepFields != null).add("has_keep_docs", keepDocs != null)
+          .add("has_keep_fields", fields != null).add("has_keep_docs", docsIds != null)
           .formatInfo());
     }
 
@@ -753,8 +753,8 @@ final public class DataStore {
     return readCache(scanners,
         writeCache(writers,
             new DedupIterator<>(Iterators.transform(
-                numericalRangeScan(scanners, dataset, minTerm, maxTerm, keepFields, keepDocs),
-                Term::docId))));
+                numericalRangeScan(scanners, dataset, minTerm, maxTerm, fields, docsIds),
+                Term::bucketId))));
   }
 
   /**
@@ -764,14 +764,14 @@ final public class DataStore {
    * @param writers writers.
    * @param dataset dataset.
    * @param term a single term to match.
-   * @param keepFields fields to keep (optional).
+   * @param fields fields to keep (optional).
    * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
   public Iterator<String> searchByTerm(Scanners scanners, Writers writers, String dataset,
-      String term, Set<String> keepFields) {
-    return searchByTerms(scanners, writers, dataset, Sets.newHashSet(term), keepFields, null);
+      String term, Set<String> fields) {
+    return searchByTerms(scanners, writers, dataset, Sets.newHashSet(term), fields, null);
   }
 
   /**
@@ -781,15 +781,15 @@ final public class DataStore {
    * @param writers writers.
    * @param dataset dataset.
    * @param term a single term to match.
-   * @param keepFields fields to keep (optional).
-   * @param keepDocs document ids to keep (optional).
+   * @param fields fields to keep (optional).
+   * @param docsIds document ids to keep (optional).
    * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
   public Iterator<String> searchByTerm(Scanners scanners, Writers writers, String dataset,
-      String term, Set<String> keepFields, BloomFilters<String> keepDocs) {
-    return searchByTerms(scanners, writers, dataset, Sets.newHashSet(term), keepFields, keepDocs);
+      String term, Set<String> fields, BloomFilters<String> docsIds) {
+    return searchByTerms(scanners, writers, dataset, Sets.newHashSet(term), fields, docsIds);
   }
 
   /**
@@ -799,14 +799,14 @@ final public class DataStore {
    * @param writers writers.
    * @param dataset dataset.
    * @param terms one or more terms to match.
-   * @param keepFields fields to keep (optional).
+   * @param fields fields to keep (optional).
    * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
   public Iterator<String> searchByTerms(Scanners scanners, Writers writers, String dataset,
-      Collection<String> terms, Set<String> keepFields) {
-    return searchByTerms(scanners, writers, dataset, terms, keepFields, null);
+      Collection<String> terms, Set<String> fields) {
+    return searchByTerms(scanners, writers, dataset, terms, fields, null);
   }
 
   /**
@@ -816,14 +816,14 @@ final public class DataStore {
    * @param writers writers.
    * @param dataset dataset.
    * @param terms one or more terms to match.
-   * @param keepFields fields to keep (optional).
-   * @param keepDocs document ids to keep (optional).
+   * @param fields fields to keep (optional).
+   * @param docsIds document ids to keep (optional).
    * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
   public Iterator<String> searchByTerms(Scanners scanners, Writers writers, String dataset,
-      Collection<String> terms, Set<String> keepFields, BloomFilters<String> keepDocs) {
+      Collection<String> terms, Set<String> fields, BloomFilters<String> docsIds) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(writers, "writers should not be null");
@@ -832,8 +832,8 @@ final public class DataStore {
 
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
-          .add("dataset", dataset).add("terms", terms).add("has_keep_fields", keepFields != null)
-          .add("has_keep_docs", keepDocs != null).formatInfo());
+          .add("dataset", dataset).add("terms", terms).add("has_keep_fields", fields != null)
+          .add("has_keep_docs", docsIds != null).formatInfo());
     }
 
     // Sort terms by decreasing length
@@ -852,8 +852,8 @@ final public class DataStore {
     if (newTerms.isEmpty()) {
       if (logger_.isWarnEnabled()) {
         logger_.warn(LogFormatterManager.logFormatter().message("all terms have been pruned")
-            .add("dataset", dataset).add("terms", terms).add("has_keep_fields", keepFields != null)
-            .add("has_keep_docs", keepDocs != null).formatWarn());
+            .add("dataset", dataset).add("terms", terms).add("has_keep_fields", fields != null)
+            .add("has_keep_docs", docsIds != null).formatWarn());
       }
       return ITERATOR_EMPTY;
     }
@@ -861,14 +861,14 @@ final public class DataStore {
     // First, fill a Bloom filter with the UUIDs of the documents. Then, filter subsequent
     // terms using the Bloom filter created with the previous term.
     @Var
-    BloomFilters<String> newKeepDocs = keepDocs == null ? null : new BloomFilters<>(keepDocs);
+    BloomFilters<String> newKeepDocs = docsIds == null ? null : new BloomFilters<>(docsIds);
 
     for (int i = 0; i < newTerms.size() - 1; i++) {
 
       // TODO : if terms is a sorted Collection, ensure that the order of appearance is respected.
 
       Iterator<Term> iter =
-          termStore_.getDocIds(scanners.index(), dataset, newTerms.get(0), keepFields, keepDocs);
+          termStore_.getBucketsIds(scanners.index(), dataset, newTerms.get(0), fields, docsIds);
 
       if (!iter.hasNext()) {
         return ITERATOR_EMPTY;
@@ -878,16 +878,16 @@ final public class DataStore {
 
       while (iter.hasNext()) {
         Term term = iter.next();
-        newKeepDocs.put(term.docId());
+        newKeepDocs.put(term.bucketId());
       }
     }
 
-    Iterator<Term> iter = termStore_.getDocIds(scanners.index(), dataset,
-        newTerms.get(newTerms.size() - 1), keepFields, newKeepDocs);
+    Iterator<Term> iter = termStore_.getBucketsIds(scanners.index(), dataset,
+        newTerms.get(newTerms.size() - 1), fields, newKeepDocs);
 
     // TODO : backport code in order to avoid this write/read trick (sort doc ids)
     return readCache(scanners,
-        writeCache(writers, new DedupIterator<>(Iterators.transform(iter, Term::docId))));
+        writeCache(writers, new DedupIterator<>(Iterators.transform(iter, Term::bucketId))));
   }
 
   /**

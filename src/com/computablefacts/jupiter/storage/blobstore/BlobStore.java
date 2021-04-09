@@ -35,6 +35,11 @@ import com.google.errorprone.annotations.Var;
 
 /**
  * <p>
+ * The BlobStore API allows your application to persist data objects. Methods are available to write
+ * and read opaque Strings, JSON and Files.
+ * </p>
+ *
+ * <p>
  * This storage layer acts as a blob store. The storage layer utilizes the
  * <a href="https://accumulo.apache.org">Accumulo</a> table schemas described below as the basis for
  * its ingest and query components.

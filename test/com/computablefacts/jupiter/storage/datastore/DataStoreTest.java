@@ -616,7 +616,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(10, list.size());
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertEquals("row_" + i, list.get(i).docId());
+        Assert.assertEquals("row_" + i, list.get(i).bucketId());
       }
     }
   }
@@ -638,7 +638,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(10, list.size());
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertEquals("row_" + i, list.get(i).docId());
+        Assert.assertEquals("row_" + i, list.get(i).bucketId());
       }
     }
   }
@@ -660,7 +660,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(10, list.size());
 
       for (int i = 0; i < 10; i++) {
-        Assert.assertEquals("row_" + i, list.get(i).docId());
+        Assert.assertEquals("row_" + i, list.get(i).bucketId());
       }
     }
   }
