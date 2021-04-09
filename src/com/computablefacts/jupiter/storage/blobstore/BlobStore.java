@@ -69,8 +69,8 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("add_locality_group", tableName())
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("add_locality_group", tableName())
           .add("dataset", dataset).formatInfo());
     }
 
@@ -111,9 +111,9 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(deleter, "deleter should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("keys", keys).formatDebug());
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("keys", keys).formatInfo());
     }
 
     @Var
