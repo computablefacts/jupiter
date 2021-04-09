@@ -1,5 +1,7 @@
 package com.computablefacts.jupiter.storage.datastore;
 
+import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.AbstractMap;
@@ -128,8 +130,7 @@ final public class DataStore {
           String value = iterator.next();
 
           Mutation mutation = new Mutation(uuid);
-          mutation.put(Constants.TEXT_CACHE, new Text(Strings.nullToEmpty(value)),
-              Constants.VALUE_EMPTY);
+          mutation.put(TEXT_CACHE, new Text(Strings.nullToEmpty(value)), Constants.VALUE_EMPTY);
 
           writers.blob().addMutation(mutation);
         }
@@ -139,8 +140,7 @@ final public class DataStore {
           String value = iterator.next();
 
           Mutation mutation = new Mutation(uuid);
-          mutation.put(Constants.TEXT_CACHE, new Text(Strings.nullToEmpty(value)),
-              Constants.VALUE_EMPTY);
+          mutation.put(TEXT_CACHE, new Text(Strings.nullToEmpty(value)), Constants.VALUE_EMPTY);
 
           writers.blob().addMutation(mutation);
 
@@ -237,6 +237,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return Users.grantPermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.WRITE);
   }
@@ -246,6 +249,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return Users.grantPermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.READ);
   }
@@ -255,6 +261,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return Users.grantPermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.WRITE);
   }
@@ -264,6 +273,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return Users.grantPermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.READ);
   }
@@ -273,6 +285,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return Users.revokePermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.WRITE);
   }
@@ -282,6 +297,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return Users.revokePermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.READ);
   }
@@ -291,6 +309,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return Users.revokePermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.WRITE);
   }
@@ -300,6 +321,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return Users.revokePermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.READ);
   }
@@ -314,6 +338,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return grantReadPermissionOnBlobStore(username) && grantReadPermissionOnTermStore(username);
   }
 
@@ -327,6 +354,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return revokeReadPermissionOnBlobStore(username) && revokeReadPermissionOnTermStore(username);
   }
 
@@ -336,6 +366,9 @@ final public class DataStore {
    * @return true if the storage layer is ready to be used, false otherwise.
    */
   public boolean isReady() {
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
     return blobStore_.isReady() && termStore_.isReady();
   }
 
@@ -347,6 +380,10 @@ final public class DataStore {
    */
   public boolean create() {
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+    }
+
     boolean isReady = blobStore_.isReady() && termStore_.isReady();
 
     if (!isReady && blobStore_.create() && termStore_.create()) {
@@ -354,7 +391,7 @@ final public class DataStore {
 
         // Set a 3 hours TTL on all cached data
         IteratorSetting settings = new IteratorSetting(7, AgeOffPeriodFilter.class);
-        AgeOffPeriodFilter.setColumnFamily(settings, Constants.TEXT_CACHE.toString());
+        AgeOffPeriodFilter.setColumnFamily(settings, TEXT_CACHE.toString());
         AgeOffPeriodFilter.setTtl(settings, 3);
         AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");
 
@@ -398,7 +435,8 @@ final public class DataStore {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset).formatInfo());
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
+          .add("dataset", dataset).formatInfo());
     }
 
     @Var
@@ -415,38 +453,6 @@ final public class DataStore {
   }
 
   /**
-   * Remove documents from a given dataset. This method does not update the *CNT datasets. Hence,
-   * counts may become out of sync.
-   *
-   * @param dataset dataset.
-   * @param docIds a set of documents ids to remove.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean remove(String dataset, Set<String> docIds) {
-
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(docIds, "docIds should not be null");
-    Preconditions.checkArgument(!docIds.isEmpty(), "docIds should contain at least one id");
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset).add("doc_ids", docIds)
-          .formatInfo());
-    }
-
-    @Var
-    boolean isOk = true;
-    Authorizations auths = new Authorizations(Constants.STRING_ADM);
-
-    try (BatchDeleter deleter = termStore_.deleter(auths)) {
-      isOk = isOk && termStore_.removeDocuments(deleter, dataset, docIds);
-    }
-    try (BatchDeleter deleter = blobStore_.deleter(auths)) {
-      isOk = isOk && blobStore_.removeKeys(deleter, dataset, docIds);
-    }
-    return isOk;
-  }
-
-  /**
    * Group data belonging to a same dataset together.
    *
    * @param dataset dataset.
@@ -457,7 +463,8 @@ final public class DataStore {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset).formatInfo());
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
+          .add("dataset", dataset).formatInfo());
     }
 
     boolean isOk1 = blobStore_.addLocalityGroup(dataset);
@@ -500,9 +507,10 @@ final public class DataStore {
     Preconditions.checkNotNull(json, "json should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("docId", docId)
-          .add("json", json).add("has_keep_field", keepField != null)
-          .add("has_tokenizer", tokenizer != null).formatDebug());
+      logger_
+          .debug(LogFormatterManager.logFormatter().add("namespace", name()).add("dataset", dataset)
+              .add("docId", docId).add("json", json).add("has_keep_field", keepField != null)
+              .add("has_tokenizer", tokenizer != null).formatDebug());
     }
 
     if (!persistBlob(writers, dataset, docId, json)) {
@@ -634,8 +642,8 @@ final public class DataStore {
    * @param maxTerm number (optional). End of the range (included).
    * @return iterator.
    */
-  public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, String minTerm,
-      String maxTerm) {
+  public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, Number minTerm,
+      Number maxTerm) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
@@ -657,8 +665,8 @@ final public class DataStore {
    * @param keepDocs document ids to keep (optional).
    * @return iterator.
    */
-  public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, String minTerm,
-      String maxTerm, Set<String> keepFields, BloomFilters<String> keepDocs) {
+  public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, Number minTerm,
+      Number maxTerm, Set<String> keepFields, BloomFilters<String> keepDocs) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
@@ -666,8 +674,7 @@ final public class DataStore {
     Preconditions.checkArgument(scanners.index() instanceof Scanner,
         "index scanner must guarantee the result order");
 
-    return termStore_.numericalRangeScan((Scanner) scanners.index(), dataset, minTerm, maxTerm,
-        keepFields, keepDocs);
+    return termStore_.getDocIds(scanners.index(), dataset, minTerm, maxTerm, keepFields, keepDocs);
   }
 
   /**
@@ -728,7 +735,7 @@ final public class DataStore {
    */
   @Beta
   public Iterator<String> searchByNumericalRange(Scanners scanners, Writers writers, String dataset,
-      String minTerm, String maxTerm, Set<String> keepFields, BloomFilters<String> keepDocs) {
+      Number minTerm, Number maxTerm, Set<String> keepFields, BloomFilters<String> keepDocs) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(writers, "writers should not be null");
@@ -736,10 +743,10 @@ final public class DataStore {
         "minTerm and maxTerm cannot be null at the same time");
 
     if (logger_.isInfoEnabled()) {
-      logger_
-          .info(LogFormatterManager.logFormatter().add("dataset", dataset).add("min_term", minTerm)
-              .add("max_term", maxTerm).add("has_keep_fields", keepFields != null)
-              .add("has_keep_docs", keepDocs != null).formatInfo());
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
+          .add("dataset", dataset).add("min_term", minTerm).add("max_term", maxTerm)
+          .add("has_keep_fields", keepFields != null).add("has_keep_docs", keepDocs != null)
+          .formatInfo());
     }
 
     // TODO : backport code in order to avoid this write/read trick (sort doc ids)
@@ -824,9 +831,9 @@ final public class DataStore {
     Preconditions.checkNotNull(terms, "terms should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset).add("terms", terms)
-          .add("has_keep_fields", keepFields != null).add("has_keep_docs", keepDocs != null)
-          .formatInfo());
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
+          .add("dataset", dataset).add("terms", terms).add("has_keep_fields", keepFields != null)
+          .add("has_keep_docs", keepDocs != null).formatInfo());
     }
 
     // Sort terms by decreasing length
@@ -848,7 +855,7 @@ final public class DataStore {
             .add("dataset", dataset).add("terms", terms).add("has_keep_fields", keepFields != null)
             .add("has_keep_docs", keepDocs != null).formatWarn());
       }
-      return Constants.ITERATOR_EMPTY;
+      return ITERATOR_EMPTY;
     }
 
     // First, fill a Bloom filter with the UUIDs of the documents. Then, filter subsequent
@@ -861,10 +868,10 @@ final public class DataStore {
       // TODO : if terms is a sorted Collection, ensure that the order of appearance is respected.
 
       Iterator<Term> iter =
-          termStore_.termScan(scanners.index(), dataset, newTerms.get(0), keepFields, keepDocs);
+          termStore_.getDocIds(scanners.index(), dataset, newTerms.get(0), keepFields, keepDocs);
 
       if (!iter.hasNext()) {
-        return Constants.ITERATOR_EMPTY;
+        return ITERATOR_EMPTY;
       }
 
       newKeepDocs = new BloomFilters<>();
@@ -875,7 +882,7 @@ final public class DataStore {
       }
     }
 
-    Iterator<Term> iter = termStore_.termScan(scanners.index(), dataset,
+    Iterator<Term> iter = termStore_.getDocIds(scanners.index(), dataset,
         newTerms.get(newTerms.size() - 1), keepFields, newKeepDocs);
 
     // TODO : backport code in order to avoid this write/read trick (sort doc ids)
@@ -908,25 +915,26 @@ final public class DataStore {
     Preconditions.checkNotNull(cacheId, "cacheId should neither be null nor empty");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("cache_id", cacheId).formatInfo());
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
+          .add("cache_id", cacheId).formatInfo());
     }
 
     scanners.blob().clearColumns();
     scanners.blob().clearScanIterators();
-    scanners.blob().fetchColumnFamily(Constants.TEXT_CACHE);
+    scanners.blob().fetchColumnFamily(TEXT_CACHE);
 
     Range range;
 
     if (nextValue == null) {
       range = Range.exact(cacheId);
     } else {
-      Key begin = new Key(new Text(cacheId), Constants.TEXT_CACHE, new Text(nextValue));
+      Key begin = new Key(new Text(cacheId), TEXT_CACHE, new Text(nextValue));
       Key end = begin.followingKey(PartialKey.ROW);
       range = new Range(begin, true, end, false);
     }
 
     if (!AbstractStorage.setRange(scanners.blob(), range)) {
-      return Constants.ITERATOR_EMPTY;
+      return ITERATOR_EMPTY;
     }
     return Iterators.transform(scanners.blob().iterator(),
         entry -> entry.getKey().getColumnQualifier().toString());
@@ -963,7 +971,8 @@ final public class DataStore {
     Text uuid = new Text(UUID.randomUUID().toString());
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("cache_id", uuid).formatInfo());
+      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).add("cache_id", uuid)
+          .formatInfo());
     }
 
     if (delegateToBackgroundThreadAfter <= 0) {
@@ -1036,8 +1045,8 @@ final public class DataStore {
     Preconditions.checkNotNull(blob, "blob should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("docId", docId)
-          .add("blob", blob).formatDebug());
+      logger_.debug(LogFormatterManager.logFormatter().add("namespace", name())
+          .add("dataset", dataset).add("doc_id", docId).add("blob", blob).formatDebug());
     }
 
     String vizAdm = Constants.STRING_ADM; // for backward compatibility
@@ -1078,9 +1087,9 @@ final public class DataStore {
     Preconditions.checkArgument(nbOccurrencesInDoc > 0, "nbOccurrencesInDoc must be > 0");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("dataset", dataset).add("docId", docId)
-          .add("field", field).add("term", term).add("nb_occurrences_in_doc", nbOccurrencesInDoc)
-          .formatDebug());
+      logger_.debug(LogFormatterManager.logFormatter().add("namespace", name())
+          .add("dataset", dataset).add("doc_id", docId).add("field", field).add("term", term)
+          .add("nb_occurrences_in_doc", nbOccurrencesInDoc).formatDebug());
     }
 
     List<String> path = Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN).trimResults()

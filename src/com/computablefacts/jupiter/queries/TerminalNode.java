@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Litera
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Range;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Thesaurus;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -154,8 +155,8 @@ final public class TerminalNode extends AbstractNode {
           @Var
           long count = 0;
 
-          Iterator<TermCount> iter = dataStore.termStore().numericalRangeCount(scanners.index(),
-              dataset, minTerm, maxTerm, keepFields);
+          Iterator<TermCount> iter = dataStore.termStore().getCounts(scanners.index(), dataset,
+              keepFields, minTerm, maxTerm);
 
           while (iter.hasNext()) {
             TermCount termCount = iter.next();
@@ -196,7 +197,7 @@ final public class TerminalNode extends AbstractNode {
 
       for (String term : terms) {
 
-        Iterator<TermCount> iter = dataStore.termStore().termCount(scanners.index(), dataset,
+        Iterator<TermCount> iter = dataStore.termStore().getCounts(scanners.index(), dataset, null,
             WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"));
 
         while (iter.hasNext()) {
@@ -214,7 +215,8 @@ final public class TerminalNode extends AbstractNode {
 
       for (String term : terms) {
 
-        Iterator<TermCount> iter = dataStore.termStore().termCount(scanners.index(), dataset, term);
+        Iterator<TermCount> iter =
+            dataStore.termStore().getCounts(scanners.index(), dataset, null, term);
 
         @Var
         long sum = 0;
@@ -276,8 +278,9 @@ final public class TerminalNode extends AbstractNode {
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.searchByNumericalRange(scanners, writers, dataset, minTerm, maxTerm,
-              keepFields, null);
+          return dataStore.searchByNumericalRange(scanners, writers, dataset,
+              minTerm == null ? null : new BigDecimal(minTerm),
+              maxTerm == null ? null : new BigDecimal(maxTerm), keepFields, null);
         }
       }
       return Constants.ITERATOR_EMPTY; // Invalid range

@@ -199,77 +199,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     }
   }
 
-  @Test
-  public void testRemoveTerms() throws Exception {
-
-    Authorizations auths =
-        new Authorizations("DS_1", "DS_2", "FIRST_DATASET_CNT", "FIRST_DATASET_VIZ",
-            "SECOND_DATASET_CNT", "SECOND_DATASET_VIZ", "THIRD_DATASET_CNT", "THIRD_DATASET_VIZ");
-    TermStore termStore = newDataStore(auths);
-
-    for (int i = 0; i < 10; i++) {
-
-      // Test metadata
-      Assert.assertNotNull(fieldCountInFirstDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCountInSecondDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldCountInThirdDataset(termStore, i, auths));
-
-      Assert.assertNotNull(fieldLabelsInFirstDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldLabelsInSecondDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldLabelsInThirdDataset(termStore, i, auths));
-
-      // Test terms
-      Assert.assertEquals(1, countEntitiesInFirstDataset(termStore, i, auths));
-      Assert.assertEquals(1, countEntitiesInSecondDataset(termStore, i, auths));
-      Assert.assertEquals(1, countEntitiesInThirdDataset(termStore, i, auths));
-    }
-
-    try (BatchDeleter deleter = termStore.deleter(auths)) {
-      for (int i = 0; i < 100; i++) {
-        if (i % 2 == 0) { // remove even rows from dataset 1
-          Assert.assertTrue(termStore.removeTerm(deleter, "first_dataset", "term_" + i));
-        } else { // remove odd rows from dataset 2
-          Assert.assertTrue(termStore.removeTerm(deleter, "second_dataset", "term_" + i));
-        }
-      }
-    }
-
-    for (int i = 0; i < 10; i++) {
-      if (i % 2 == 0) {
-
-        // Test metadata
-        Assert.assertNotNull(fieldCountInSecondDataset(termStore, i, auths));
-        Assert.assertNotNull(fieldLabelsInSecondDataset(termStore, i, auths));
-
-        // TODO : Assert.assertNull(fieldCountFirst(termStore, i, auths));
-        // TODO : Assert.assertNull(fieldLabelsFirst(termStore, i, auths));
-
-        // Test terms
-        Assert.assertEquals(1, countEntitiesInSecondDataset(termStore, i, auths));
-        Assert.assertEquals(0, countEntitiesInFirstDataset(termStore, i, auths));
-      } else {
-
-        // Test metadata
-        Assert.assertNotNull(fieldCountInFirstDataset(termStore, i, auths));
-        Assert.assertNotNull(fieldLabelsInFirstDataset(termStore, i, auths));
-
-        // TODO : Assert.assertNull(fieldCountSecond(termStore, i, auths));
-        // TODO : Assert.assertNull(fieldLabelsSecond(termStore, i, auths));
-
-        // Test terms
-        Assert.assertEquals(1, countEntitiesInFirstDataset(termStore, i, auths));
-        Assert.assertEquals(0, countEntitiesInSecondDataset(termStore, i, auths));
-      }
-
-      // Test metadata
-      Assert.assertNotNull(fieldCountInThirdDataset(termStore, i, auths));
-      Assert.assertNotNull(fieldLabelsInThirdDataset(termStore, i, auths));
-
-      // Test terms
-      Assert.assertEquals(1, countEntitiesInThirdDataset(termStore, i, auths));
-    }
-  }
-
   @Test(expected = RuntimeException.class) // Should be AccumuloSecurityException?
   public void testVisibilityLabelsUserHasMissingAuths() throws Exception {
 
@@ -468,7 +397,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<TermCount> list = new ArrayList<>();
-      termStore.termCount(scanner, "third_dataset", "term_1").forEachRemaining(list::add);
+      termStore.getCounts(scanner, "third_dataset", null, "term_1").forEachRemaining(list::add);
 
       Assert.assertEquals(1, list.size());
 
@@ -492,7 +421,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<TermCount> list = new ArrayList<>();
-      termStore.termCount(scanner, "third_dataset", "term_*").forEachRemaining(list::add);
+      termStore.getCounts(scanner, "third_dataset", null, "term_*").forEachRemaining(list::add);
 
       Assert.assertEquals(10, list.size());
 
@@ -519,7 +448,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<TermCount> list = new ArrayList<>();
-      termStore.termCount(scanner, "third_dataset", "*_1").forEachRemaining(list::add);
+      termStore.getCounts(scanner, "third_dataset", null, "*_1").forEachRemaining(list::add);
 
       Assert.assertEquals(1, list.size());
 
@@ -543,7 +472,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<TermCount> list = new ArrayList<>();
-      termStore.termCount(scanner, "third_dataset", "term?1").forEachRemaining(list::add);
+      termStore.getCounts(scanner, "third_dataset", null, "term?1").forEachRemaining(list::add);
 
       Assert.assertEquals(1, list.size());
 
@@ -567,7 +496,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<Term> list = new ArrayList<>();
-      termStore.termScan(scanner, "third_dataset", "term_1", null, null)
+      termStore.getDocIds(scanner, "third_dataset", "term_1", null, null)
           .forEachRemaining(list::add);
 
       Assert.assertEquals(1, list.size());
@@ -593,7 +522,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<Term> list = new ArrayList<>();
-      termStore.termScan(scanner, "third_dataset", "term_*", null, null)
+      termStore.getDocIds(scanner, "third_dataset", "term_*", null, null)
           .forEachRemaining(list::add);
 
       Assert.assertEquals(10, list.size());
@@ -622,7 +551,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<Term> list = new ArrayList<>();
-      termStore.termScan(scanner, "third_dataset", "*_1", null, null).forEachRemaining(list::add);
+      termStore.getDocIds(scanner, "third_dataset", "*_1", null, null).forEachRemaining(list::add);
 
       Assert.assertEquals(1, list.size());
 
@@ -647,7 +576,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<Term> list = new ArrayList<>();
-      termStore.termScan(scanner, "third_dataset", "term?1", null, null)
+      termStore.getDocIds(scanner, "third_dataset", "term?1", null, null)
           .forEachRemaining(list::add);
 
       Assert.assertEquals(1, list.size());
@@ -675,7 +604,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       // throws an exception
       List<Term> list = new ArrayList<>();
       Iterator<Term> iterator =
-          termStore.numericalRangeScan(scanner, "fourth_dataset", null, null, null, null);
+          termStore.getDocIds(scanner, "fourth_dataset", null, null, null, null);
     }
   }
 
@@ -688,8 +617,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<Term> list = new ArrayList<>();
-      Iterator<Term> iterator =
-          termStore.numericalRangeScan(scanner, "fourth_dataset", "3", "8", null, null);
+      Iterator<Term> iterator = termStore.getDocIds(scanner, "fourth_dataset", 3, 8, null, null);
 
       while (iterator.hasNext()) {
         list.add(iterator.next());
@@ -720,8 +648,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<Term> list = new ArrayList<>();
-      Iterator<Term> iterator =
-          termStore.numericalRangeScan(scanner, "fourth_dataset", "3", null, null, null);
+      Iterator<Term> iterator = termStore.getDocIds(scanner, "fourth_dataset", 3, null, null, null);
 
       while (iterator.hasNext()) {
         list.add(iterator.next());
@@ -756,8 +683,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<Term> list = new ArrayList<>();
-      Iterator<Term> iterator =
-          termStore.numericalRangeScan(scanner, "fourth_dataset", null, "8", null, null);
+      Iterator<Term> iterator = termStore.getDocIds(scanner, "fourth_dataset", null, 8, null, null);
 
       while (iterator.hasNext()) {
         list.add(iterator.next());
@@ -794,8 +720,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<TermCount> list = new ArrayList<>();
-      Iterator<TermCount> iterator =
-          termStore.numericalRangeCount(scanner, "fourth_dataset", "3", "8", null);
+      Iterator<TermCount> iterator = termStore.getCounts(scanner, "fourth_dataset", null, 3, 8);
 
       while (iterator.hasNext()) {
         list.add(iterator.next());
@@ -827,7 +752,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       List<TermCount> list = new ArrayList<>();
       Iterator<TermCount> iterator =
-          termStore.numericalRangeCount((ScannerBase) scanner, "fourth_dataset", "3", null, null);
+          termStore.getCounts((ScannerBase) scanner, "fourth_dataset", null, 3, null);
 
       while (iterator.hasNext()) {
         list.add(iterator.next());
@@ -863,7 +788,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       List<TermCount> list = new ArrayList<>();
       Iterator<TermCount> iterator =
-          termStore.numericalRangeCount((ScannerBase) scanner, "fourth_dataset", null, "8", null);
+          termStore.getCounts((ScannerBase) scanner, "fourth_dataset", null, null, 8);
 
       while (iterator.hasNext()) {
         list.add(iterator.next());
@@ -1008,7 +933,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(authorizations)) { // keep order
 
       List<Term> list = new ArrayList<>();
-      Iterator<Term> iterator = termStore.termScan(scanner, dataset, term, null, null);
+      Iterator<Term> iterator = termStore.getDocIds(scanner, dataset, term, null, null);
 
       while (iterator.hasNext()) {
         list.add(iterator.next());

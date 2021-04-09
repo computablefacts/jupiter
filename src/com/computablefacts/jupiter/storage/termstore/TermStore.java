@@ -1,8 +1,9 @@
 package com.computablefacts.jupiter.storage.termstore;
 
+import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -17,8 +18,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -36,10 +35,8 @@ import com.computablefacts.jupiter.filters.TermStoreFieldFilter;
 import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
-import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.computablefacts.nona.helpers.Codecs;
-import com.computablefacts.nona.helpers.Strings;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
@@ -106,8 +103,42 @@ final public class TermStore extends AbstractStorage {
     return dataset + "_BIDX";
   }
 
-  private static Iterator<Term> scanTerms(ScannerBase scanner, String dataset,
-      Set<String> keepFields, BloomFilters<String> keepDocs, boolean isTermBackward, Range range) {
+  private static Iterator<TermCount> scanCounts(ScannerBase scanner, String dataset,
+      Set<String> fields, Range range, boolean hitsBackwardIndex) {
+
+    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(range, "range should not be null");
+
+    if (fields != null && !fields.isEmpty()) {
+      IteratorSetting setting =
+          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreFieldFilter.class);
+      TermStoreFieldFilter.setFieldsToKeep(setting, fields);
+      scanner.addScanIterator(setting);
+    }
+
+    if (dataset != null) {
+      scanner.fetchColumnFamily(new Text(dataset));
+    } else {
+
+      IteratorSetting setting = new IteratorSetting(23, "WildcardFilter", WildcardFilter.class);
+      WildcardFilter.applyOnColumnFamily(setting);
+      WildcardFilter.addWildcard(setting, hitsBackwardIndex ? "*_BCNT" : "*_FCNT");
+
+      scanner.addScanIterator(setting);
+    }
+    if (!setRange(scanner, range)) {
+      return ITERATOR_EMPTY;
+    }
+    return Iterators.transform(
+        Iterators.transform(scanner.iterator(),
+            entry -> TermCount.fromKeyValue(entry.getKey(), entry.getValue())),
+        tc -> new TermCount(tc.dataset(), tc.field(), tc.type(),
+            tc.isNumber() ? BigDecimalCodec.decode(tc.term()) : tc.term(), tc.labels(),
+            tc.count()));
+  }
+
+  private static Iterator<Term> scanIndex(ScannerBase scanner, String dataset, Set<String> fields,
+      Range range, boolean hitsBackwardIndex, BloomFilters<String> docIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(range, "range should not be null");
@@ -117,13 +148,13 @@ final public class TermStore extends AbstractStorage {
     IteratorSetting setting =
         new IteratorSetting(22, "TermStoreDocFieldFilter", TermStoreDocFieldFilter.class);
 
-    if (keepFields != null && !keepFields.isEmpty()) {
+    if (fields != null && !fields.isEmpty()) {
       add = true;
-      TermStoreDocFieldFilter.setFieldsToKeep(setting, keepFields);
+      TermStoreDocFieldFilter.setFieldsToKeep(setting, fields);
     }
-    if (keepDocs != null) {
+    if (docIds != null) {
       add = true;
-      TermStoreDocFieldFilter.setDocsToKeep(setting, keepDocs);
+      TermStoreDocFieldFilter.setDocsToKeep(setting, docIds);
     }
     if (add) {
       scanner.addScanIterator(setting);
@@ -135,52 +166,18 @@ final public class TermStore extends AbstractStorage {
 
       IteratorSetting settings = new IteratorSetting(23, "WildcardFilter", WildcardFilter.class);
       WildcardFilter.applyOnColumnFamily(settings);
-      WildcardFilter.addWildcard(settings, isTermBackward ? "*_BIDX" : "*_FIDX");
+      WildcardFilter.addWildcard(settings, hitsBackwardIndex ? "*_BIDX" : "*_FIDX");
 
       scanner.addScanIterator(settings);
     }
     if (!setRange(scanner, range)) {
-      return Constants.ITERATOR_EMPTY;
+      return ITERATOR_EMPTY;
     }
     return Iterators.transform(
         Iterators.transform(scanner.iterator(),
             entry -> Term.fromKeyValue(entry.getKey(), entry.getValue())),
         t -> new Term(t.dataset(), t.docId(), t.field(), t.type(),
             t.isNumber() ? BigDecimalCodec.decode(t.term()) : t.term(), t.labels(), t.count()));
-  }
-
-  private static Iterator<TermCount> scanCounts(ScannerBase scanner, String dataset,
-      Set<String> keepFields, boolean isTermBackward, Range range) {
-
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(range, "range should not be null");
-
-    if (keepFields != null && !keepFields.isEmpty()) {
-      IteratorSetting setting =
-          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreFieldFilter.class);
-      TermStoreFieldFilter.setFieldsToKeep(setting, keepFields);
-      scanner.addScanIterator(setting);
-    }
-
-    if (dataset != null) {
-      scanner.fetchColumnFamily(new Text(dataset));
-    } else {
-
-      IteratorSetting setting = new IteratorSetting(23, "WildcardFilter", WildcardFilter.class);
-      WildcardFilter.applyOnColumnFamily(setting);
-      WildcardFilter.addWildcard(setting, isTermBackward ? "*_BCNT" : "*_FCNT");
-
-      scanner.addScanIterator(setting);
-    }
-    if (!setRange(scanner, range)) {
-      return Constants.ITERATOR_EMPTY;
-    }
-    return Iterators.transform(
-        Iterators.transform(scanner.iterator(),
-            entry -> TermCount.fromKeyValue(entry.getKey(), entry.getValue())),
-        tc -> new TermCount(tc.dataset(), tc.field(), tc.type(),
-            tc.isNumber() ? BigDecimalCodec.decode(tc.term()) : tc.term(), tc.labels(),
-            tc.count()));
   }
 
   /**
@@ -245,7 +242,7 @@ final public class TermStore extends AbstractStorage {
     }
     try {
 
-      // Set default splits on [a-z0-9]
+      // Set default splits on [a-zA-Z0-9]
       SortedSet<Text> splits = new TreeSet<>();
 
       for (char i = '0'; i < '9' + 1; i++) {
@@ -253,6 +250,10 @@ final public class TermStore extends AbstractStorage {
       }
 
       for (char i = 'a'; i < 'z' + 1; i++) {
+        splits.add(new Text(Character.toString(i)));
+      }
+
+      for (char i = 'A'; i < 'Z' + 1; i++) {
         splits.add(new Text(Character.toString(i)));
       }
 
@@ -284,80 +285,8 @@ final public class TermStore extends AbstractStorage {
     Set<String> cfs = Sets.newHashSet(count(dataset), lastUpdate(dataset), visibility(dataset),
         forwardCount(dataset), forwardIndex(dataset), backwardCount(dataset),
         backwardIndex(dataset));
+
     return remove(deleter, cfs);
-  }
-
-  /**
-   * Remove documents from a given dataset. This method does not update the *CNT dataset. Hence,
-   * counts may become out of sync.
-   *
-   * @param deleter batch deleter.
-   * @param dataset dataset.
-   * @param docIds a set of documents ids to remove.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean removeDocuments(BatchDeleter deleter, String dataset, Set<String> docIds) {
-
-    Preconditions.checkNotNull(deleter, "deleter should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(docIds, "docIds should not be null");
-    Preconditions.checkArgument(!docIds.isEmpty(), "docIds should contain at least one id");
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("doc_ids", docIds).formatInfo());
-    }
-
-    IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
-    WildcardFilter.applyOnColumnQualifier(setting);
-    WildcardFilter.setOr(setting);
-
-    for (String docId : docIds) {
-      WildcardFilter.addWildcard(setting, docId + Constants.SEPARATOR_NUL + "*");
-    }
-
-    try {
-      deleter.addScanIterator(setting);
-      deleter.setRanges(Collections.singleton(new Range()));
-      deleter.fetchColumnFamily(new Text(forwardIndex(dataset)));
-      deleter.fetchColumnFamily(new Text(backwardIndex(dataset)));
-      deleter.delete();
-    } catch (TableNotFoundException | MutationsRejectedException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Remove term from a given dataset.
-   *
-   * @param deleter batch deleter.
-   * @param dataset dataset.
-   * @param term term.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean removeTerm(BatchDeleter deleter, String dataset, String term) {
-
-    Preconditions.checkNotNull(deleter, "deleter should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("term", term).formatInfo());
-    }
-
-    @Var
-    boolean isOk = true;
-
-    isOk = isOk && super.remove(deleter, term, forwardIndex(dataset), null);
-    isOk = isOk && super.remove(deleter, term, forwardCount(dataset), null);
-
-    isOk = isOk && super.remove(deleter, reverse(term), backwardIndex(dataset), null);
-    isOk = isOk && super.remove(deleter, reverse(term), backwardCount(dataset), null);
-
-    return isOk;
   }
 
   /**
@@ -371,7 +300,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("add_locality_group", tableName())
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
           .add("dataset", dataset).formatInfo());
     }
 
@@ -499,7 +428,7 @@ final public class TermStore extends AbstractStorage {
    *
    * @param scanner scanner.
    * @param dataset dataset.
-   * @param fields fields.
+   * @param fields fields (optional).
    * @return count.
    */
   public Iterator<FieldCount> fieldCount(ScannerBase scanner, String dataset, Set<String> fields) {
@@ -516,13 +445,13 @@ final public class TermStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(count(dataset)));
 
-    if (fields != null) {
+    if (fields != null && !fields.isEmpty()) {
 
-      List<Range> ranges = fields.stream().map(field -> field + Constants.SEPARATOR_NUL)
-          .map(Range::prefix).collect(Collectors.toList());
+      List<Range> ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+          .collect(Collectors.toList());
 
       if (!setRanges(scanner, ranges)) {
-        return Constants.ITERATOR_EMPTY;
+        return ITERATOR_EMPTY;
       }
     }
     return Iterators.transform(scanner.iterator(),
@@ -534,7 +463,7 @@ final public class TermStore extends AbstractStorage {
    *
    * @param scanner scanner.
    * @param dataset dataset.
-   * @param fields fields.
+   * @param fields fields (optional).
    * @return visibility labels.
    */
   public Iterator<FieldLabels> fieldLabels(ScannerBase scanner, String dataset,
@@ -552,13 +481,13 @@ final public class TermStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(visibility(dataset)));
 
-    if (fields != null) {
+    if (fields != null && !fields.isEmpty()) {
 
-      List<Range> ranges = fields.stream().map(field -> field + Constants.SEPARATOR_NUL)
-          .map(Range::prefix).collect(Collectors.toList());
+      List<Range> ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+          .collect(Collectors.toList());
 
       if (!setRanges(scanner, ranges)) {
-        return Constants.ITERATOR_EMPTY;
+        return ITERATOR_EMPTY;
       }
     }
     return Iterators.transform(scanner.iterator(),
@@ -570,7 +499,7 @@ final public class TermStore extends AbstractStorage {
    *
    * @param scanner scanner.
    * @param dataset dataset.
-   * @param fields fields.
+   * @param fields fields (optional).
    * @return last update as an UTC timestamp.
    */
   public Iterator<FieldLastUpdate> fieldLastUpdate(ScannerBase scanner, String dataset,
@@ -588,13 +517,13 @@ final public class TermStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(lastUpdate(dataset)));
 
-    if (fields != null) {
+    if (fields != null && !fields.isEmpty()) {
 
-      List<Range> ranges = fields.stream().map(field -> field + Constants.SEPARATOR_NUL)
-          .map(Range::prefix).collect(Collectors.toList());
+      List<Range> ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+          .collect(Collectors.toList());
 
       if (!setRanges(scanner, ranges)) {
-        return Constants.ITERATOR_EMPTY;
+        return ITERATOR_EMPTY;
       }
     }
     return Iterators.transform(scanner.iterator(),
@@ -602,80 +531,19 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * Get the number of occurrences of all numbers in a given range for each field.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset.
-   * @param minTerm number (optional). Beginning of the range (included).
-   * @param maxTerm number (optional). End of the range (excluded).
-   * @param keepFields fields patterns to keep (optional).
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
-   */
-  public Iterator<TermCount> numericalRangeCount(ScannerBase scanner, String dataset,
-      String minTerm, String maxTerm, Set<String> keepFields) {
-
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkArgument(minTerm != null || maxTerm != null,
-        "minTerm and maxTerm cannot be null at the same time");
-
-    if (minTerm != null && !Strings.isNumber(minTerm)) {
-      logger_.error(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
-          .add("has_keep_fields", keepFields != null).message("minTerm must be a number!")
-          .formatError());
-      return Constants.ITERATOR_EMPTY;
-    }
-    if (maxTerm != null && !Strings.isNumber(maxTerm)) {
-      logger_.error(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
-          .add("has_keep_fields", keepFields != null).message("maxTerm must be a number!")
-          .formatError());
-      return Constants.ITERATOR_EMPTY;
-    }
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
-          .add("has_keep_fields", keepFields != null).formatInfo());
-    }
-
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-
-    Range range;
-
-    if (minTerm == null) {
-      Key startKey = new Key();
-      Key endKey = new Key(BigDecimalCodec.encode(maxTerm));
-      range = new Range(startKey, endKey);
-    } else if (maxTerm == null) {
-      Key startKey = new Key(BigDecimalCodec.encode(minTerm));
-      range = new Range(startKey, null);
-    } else {
-      Key startKey = new Key(BigDecimalCodec.encode(minTerm));
-      Key endKey = new Key(BigDecimalCodec.encode(maxTerm));
-      range = new Range(startKey, endKey);
-    }
-
-    String newDataset = dataset == null ? null : forwardCount(dataset);
-
-    return Iterators.filter(scanCounts(scanner, newDataset, keepFields, false, range),
-        TermCount::isNumber);
-  }
-
-  /**
-   * Get the number of occurrences of each term for each field.
+   * For each field of each document in a given dataset, get the number of occurrences of a given
+   * term.
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
-   * @param term term. Might contain wildcard characters.
+   * @param fields where the specified term must be searched for (optional).
+   * @param term searched term. Might contain wildcard characters.
    * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<TermCount> termCount(ScannerBase scanner, String dataset, String term) {
+  public Iterator<TermCount> getCounts(ScannerBase scanner, String dataset, Set<String> fields,
+      String term) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
@@ -685,10 +553,8 @@ final public class TermStore extends AbstractStorage {
 
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("term", term).formatInfo());
+          .add("dataset", dataset).add("fields", fields).add("term", term).formatInfo());
     }
-
-    // TODO: add "filter by field"
 
     scanner.clearColumns();
     scanner.clearScanIterators();
@@ -724,89 +590,24 @@ final public class TermStore extends AbstractStorage {
 
       scanner.addScanIterator(setting);
     }
-    return scanCounts(scanner, newDataset, Sets.newHashSet(), isTermBackward, range);
+    return scanCounts(scanner, newDataset, fields, range, isTermBackward);
   }
 
   /**
-   * Get documents, fields and spans. This method only works for scanning numerical ranges.
+   * For each field of a given list of documents in a given dataset, get the ones matching a given
+   * term.
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
-   * @param minTerm number (optional). Beginning of the range (included).
-   * @param maxTerm number (optional). End of the range (excluded).
-   * @param keepFields fields patterns to keep (optional).
-   * @param keepDocs document ids to keep (optional).
+   * @param fields where the specified term must be searched for (optional).
+   * @param term searched term. Might contain wildcard characters.
+   * @param docIds which documents must be considered (optional).
    * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> numericalRangeScan(Scanner scanner, String dataset, String minTerm,
-      String maxTerm, Set<String> keepFields, BloomFilters<String> keepDocs) {
-
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkArgument(minTerm != null || maxTerm != null,
-        "minTerm and maxTerm cannot be null at the same time");
-
-    if (minTerm != null && !Strings.isNumber(minTerm)) {
-      logger_.error(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
-          .add("has_keep_fields", keepFields != null).add("has_keep_docs", keepDocs != null)
-          .message("minTerm must be a number!").formatError());
-      return Constants.ITERATOR_EMPTY;
-    }
-    if (maxTerm != null && !Strings.isNumber(maxTerm)) {
-      logger_.error(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
-          .add("has_keep_fields", keepFields != null).add("has_keep_docs", keepDocs != null)
-          .message("maxTerm must be a number!").formatError());
-      return Constants.ITERATOR_EMPTY;
-    }
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("minTerm", minTerm).add("maxTerm", maxTerm)
-          .add("has_keep_fields", keepFields != null).add("has_keep_docs", keepDocs != null)
-          .formatInfo());
-    }
-
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-
-    Range range;
-
-    if (minTerm == null) {
-      Key startKey = new Key();
-      Key endKey = new Key(BigDecimalCodec.encode(maxTerm));
-      range = new Range(startKey, endKey);
-    } else if (maxTerm == null) {
-      Key startKey = new Key(BigDecimalCodec.encode(minTerm));
-      range = new Range(startKey, null);
-    } else {
-      Key startKey = new Key(BigDecimalCodec.encode(minTerm));
-      Key endKey = new Key(BigDecimalCodec.encode(maxTerm));
-      range = new Range(startKey, endKey);
-    }
-
-    String newDataset = dataset == null ? null : forwardIndex(dataset);
-
-    return Iterators.filter(scanTerms(scanner, newDataset, keepFields, keepDocs, false, range),
-        Term::isNumber);
-  }
-
-  /**
-   * Get documents, fields and spans.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset (optional).
-   * @param term term. Might contain wildcard characters.
-   * @param keepFields fields patterns to keep (optional).
-   * @param keepDocs document ids to keep (optional).
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
-   */
-  public Iterator<Term> termScan(ScannerBase scanner, String dataset, String term,
-      Set<String> keepFields, BloomFilters<String> keepDocs) {
+  public Iterator<Term> getDocIds(ScannerBase scanner, String dataset, String term,
+      Set<String> fields, BloomFilters<String> docIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
@@ -816,8 +617,8 @@ final public class TermStore extends AbstractStorage {
 
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("term", term).add("has_keep_fields", keepFields != null)
-          .add("has_keep_docs", keepDocs != null).formatInfo());
+          .add("dataset", dataset).add("fields", fields).add("term", term)
+          .add("has_keep_docs", docIds != null).formatInfo());
     }
 
     scanner.clearColumns();
@@ -854,6 +655,147 @@ final public class TermStore extends AbstractStorage {
 
       scanner.addScanIterator(setting);
     }
-    return scanTerms(scanner, newDataset, keepFields, keepDocs, isTermBackward, range);
+    return scanIndex(scanner, newDataset, fields, range, isTermBackward, docIds);
+  }
+
+  /**
+   * For each field of each document in a given dataset, get the number of occurrences of all terms
+   * in [minTerm, maxTerm]. Note that this method only hits the forward index.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset (optional).
+   * @param fields where the specified terms must be searched for (optional).
+   * @param minTerm first searched term. Wildcard characters are not allowed.
+   * @param maxTerm last searched term. Wildcard characters are not allowed.
+   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
+   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
+   *         {@link org.apache.accumulo.core.client.BatchScanner}.
+   */
+  public Iterator<TermCount> getCounts(ScannerBase scanner, String dataset, Set<String> fields,
+      Object minTerm, Object maxTerm) {
+
+    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+    Preconditions.checkArgument(
+        minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
+        "minTerm and maxTerm must be of the same type");
+
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("fields", fields).add("min_term", minTerm)
+          .add("max_term", maxTerm).formatInfo());
+    }
+
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+
+    String newMinTerm;
+    String newMaxTerm;
+
+    if ((minTerm == null || minTerm instanceof String)
+        && (maxTerm == null || maxTerm instanceof String)) {
+
+      newMinTerm = (String) minTerm;
+      newMaxTerm = (String) maxTerm;
+
+      Preconditions.checkState(newMinTerm == null || !WildcardMatcher.hasWildcards(newMinTerm),
+          "wildcards are forbidden in minTerm");
+      Preconditions.checkArgument(newMaxTerm == null || !WildcardMatcher.hasWildcards(newMaxTerm),
+          "wildcards are forbidden in maxTerm");
+
+    } else { // Objects other than String are lexicoded
+      newMinTerm = minTerm == null ? null : Codecs.defaultLexicoder.apply(minTerm).text();
+      newMaxTerm = maxTerm == null ? null : Codecs.defaultLexicoder.apply(maxTerm).text();
+    }
+
+    Range range;
+
+    if (newMinTerm == null) { // scan ]-inf, maxTerm]
+      Key endKey = new Key(newMaxTerm);
+      range = new Range(null, endKey);
+    } else if (newMaxTerm == null) { // scan [minTerm, +inf[
+      Key startKey = new Key(newMinTerm);
+      range = new Range(startKey, null);
+    } else { // scan [minTerm, maxTerm]
+      Key startKey = new Key(newMinTerm);
+      Key endKey = new Key(newMaxTerm);
+      range = new Range(startKey, endKey);
+    }
+
+    String newDataset = dataset == null ? null : forwardCount(dataset);
+
+    return scanCounts(scanner, newDataset, fields, range, false);
+  }
+
+  /**
+   * For each field of a given list of documents in a given dataset, get documents having a term in
+   * [minTerm, maxTerm]. Note that this method only hits the forward index.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset (optional).
+   * @param fields where the specified term must be searched for (optional).
+   * @param minTerm first searched term. Wildcard characters are not allowed.
+   * @param maxTerm last searched term. Wildcard characters are not allowed.
+   * @param docIds which documents must be considered (optional).
+   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
+   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
+   *         {@link org.apache.accumulo.core.client.BatchScanner}.
+   */
+  public Iterator<Term> getDocIds(ScannerBase scanner, String dataset, Object minTerm,
+      Object maxTerm, Set<String> fields, BloomFilters<String> docIds) {
+
+    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+    Preconditions.checkArgument(
+        minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
+        "minTerm and maxTerm must be of the same type");
+
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("fields", fields).add("min_term", minTerm)
+          .add("max_term", maxTerm).formatInfo());
+    }
+
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+
+    String newMinTerm;
+    String newMaxTerm;
+
+    if ((minTerm == null || minTerm instanceof String)
+        && (maxTerm == null || maxTerm instanceof String)) {
+
+      newMinTerm = (String) minTerm;
+      newMaxTerm = (String) maxTerm;
+
+      Preconditions.checkState(newMinTerm == null || !WildcardMatcher.hasWildcards(newMinTerm),
+          "wildcards are forbidden in minTerm");
+      Preconditions.checkArgument(newMaxTerm == null || !WildcardMatcher.hasWildcards(newMaxTerm),
+          "wildcards are forbidden in maxTerm");
+
+    } else { // Objects other than String are lexicoded
+      newMinTerm = minTerm == null ? null : Codecs.defaultLexicoder.apply(minTerm).text();
+      newMaxTerm = maxTerm == null ? null : Codecs.defaultLexicoder.apply(maxTerm).text();
+    }
+
+    Range range;
+
+    if (newMinTerm == null) { // scan ]-inf, maxTerm]
+      Key endKey = new Key(newMaxTerm);
+      range = new Range(null, endKey);
+    } else if (newMaxTerm == null) { // scan [minTerm, +inf[
+      Key startKey = new Key(newMinTerm);
+      range = new Range(startKey, null);
+    } else { // scan [minTerm, maxTerm]
+      Key startKey = new Key(newMinTerm);
+      Key endKey = new Key(newMaxTerm);
+      range = new Range(startKey, endKey);
+    }
+
+    String newDataset = dataset == null ? null : forwardIndex(dataset);
+
+    return scanIndex(scanner, newDataset, fields, range, false, docIds);
   }
 }
