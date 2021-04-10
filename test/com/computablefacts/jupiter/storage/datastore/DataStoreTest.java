@@ -534,16 +534,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
           set.add(Integer.toString(i, 10));
         }
 
-        String cacheId = dataStore.writeCache(writers, set.iterator());
+        String cacheId = DataStoreCache.write(writers, set.iterator());
 
         Set<String> setNew = new HashSet<>();
-        dataStore.readCache(scanners, cacheId).forEachRemaining(setNew::add);
+        DataStoreCache.read(scanners, cacheId).forEachRemaining(setNew::add);
 
         Assert.assertEquals(Sets.newHashSet("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"),
             setNew);
 
         setNew.clear();
-        dataStore.readCache(scanners, cacheId, "5").forEachRemaining(setNew::add);
+        DataStoreCache.read(scanners, cacheId, "5").forEachRemaining(setNew::add);
 
         Assert.assertEquals(Sets.newHashSet("5", "6", "7", "8", "9"), setNew);
       }
@@ -564,18 +564,18 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
           set.add(Integer.toString(i, 10));
         }
 
-        String cacheId = dataStore.writeCache(writers, set.iterator(), 5);
+        String cacheId = DataStoreCache.write(writers, set.iterator(), 5);
 
         Thread.sleep(1000);
 
         Set<String> setNew = new HashSet<>();
-        dataStore.readCache(scanners, cacheId).forEachRemaining(setNew::add);
+        DataStoreCache.read(scanners, cacheId).forEachRemaining(setNew::add);
 
         Assert.assertEquals(Sets.newHashSet("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"),
             setNew);
 
         setNew.clear();
-        dataStore.readCache(scanners, cacheId, "5").forEachRemaining(setNew::add);
+        DataStoreCache.read(scanners, cacheId, "5").forEachRemaining(setNew::add);
 
         Assert.assertEquals(Sets.newHashSet("5", "6", "7", "8", "9"), setNew);
       }
