@@ -47,15 +47,14 @@ final public class TermCount implements HasTerm {
     count_ = count;
   }
 
-  public static Mutation newForwardMutation(String dataset, String docId, String field, int type,
-      String term, int count, Set<String> labels) {
-    return newMutation(TermStore.forwardCount(dataset), docId, field, type, term, count, labels);
+  public static Mutation newForwardMutation(String dataset, String field, int type, String term,
+      int count, Set<String> labels) {
+    return newMutation(TermStore.forwardCount(dataset), field, type, term, count, labels);
   }
 
-  public static Mutation newBackwardMutation(String dataset, String docId, String field, int type,
-      String term, int count, Set<String> labels) {
-    return newMutation(TermStore.backwardCount(dataset), docId, field, type, reverse(term), count,
-        labels);
+  public static Mutation newBackwardMutation(String dataset, String field, int type, String term,
+      int count, Set<String> labels) {
+    return newMutation(TermStore.backwardCount(dataset), field, type, reverse(term), count, labels);
   }
 
   public static TermCount fromKeyValue(Key key, Value value) {
@@ -96,11 +95,10 @@ final public class TermCount implements HasTerm {
     return new TermCount(datazet, field, type, term, labels, Long.parseLong(val, 10));
   }
 
-  private static Mutation newMutation(String dataset, String docId, String field, int type,
-      String term, int count, Set<String> labels) {
+  private static Mutation newMutation(String dataset, String field, int type, String term,
+      int count, Set<String> labels) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");

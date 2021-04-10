@@ -414,16 +414,16 @@ final public class TermStore extends AbstractStorage {
         isOk && add(writer, FieldLabels.newMutation(dataset, field, newType, fieldSpecificLabels));
 
     // Forward index
-    isOk = isOk && add(writer, TermCount.newForwardMutation(dataset, bucketId, field, newType,
-        newTerm, nbOccurrencesInBucket, fieldSpecificLabels));
+    isOk = isOk && add(writer, TermCount.newForwardMutation(dataset, field, newType, newTerm,
+        nbOccurrencesInBucket, fieldSpecificLabels));
     isOk = isOk && add(writer, Term.newForwardMutation(dataset, bucketId, field, newType, newTerm,
         nbOccurrencesInBucket, Sets.union(bucketSpecificLabels, fieldSpecificLabels)));
 
     if (!writeInForwardIndexOnly) {
 
       // Backward index
-      isOk = isOk && add(writer, TermCount.newBackwardMutation(dataset, bucketId, field, newType,
-          newTerm, nbOccurrencesInBucket, fieldSpecificLabels));
+      isOk = isOk && add(writer, TermCount.newBackwardMutation(dataset, field, newType, newTerm,
+          nbOccurrencesInBucket, fieldSpecificLabels));
       isOk = isOk && add(writer, Term.newBackwardMutation(dataset, bucketId, field, newType,
           newTerm, nbOccurrencesInBucket, Sets.union(bucketSpecificLabels, fieldSpecificLabels)));
     }

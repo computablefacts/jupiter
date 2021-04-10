@@ -133,7 +133,7 @@ final public class InternalNode extends AbstractNode {
 
   @Override
   public Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,
-      String dataset, BloomFilters<String> keepDocs, Function<String, SpanSequence> tokenizer) {
+      String dataset, BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(scanners, "scanners should not be null");
@@ -160,7 +160,7 @@ final public class InternalNode extends AbstractNode {
         return Constants.ITERATOR_EMPTY;
       }
       return eConjunctionTypes.Or.equals(conjunction_)
-          ? child2_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer)
+          ? child2_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer)
           : Constants.ITERATOR_EMPTY;
     }
     if (child2_ == null) {
@@ -173,7 +173,7 @@ final public class InternalNode extends AbstractNode {
         return Constants.ITERATOR_EMPTY;
       }
       return eConjunctionTypes.Or.equals(conjunction_)
-          ? child1_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer)
+          ? child1_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer)
           : Constants.ITERATOR_EMPTY;
     }
 
@@ -196,17 +196,17 @@ final public class InternalNode extends AbstractNode {
                 .message("ill-formed query : (A OR NOT B) or (NOT A OR B)").formatError());
       }
       if (child1_.exclude()) {
-        return child2_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer); // NOT A
-                                                                                            // OR B
+        return child2_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer); // NOT A
+                                                                                           // OR B
       }
-      return child1_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer); // A OR
-                                                                                          // NOT B
+      return child1_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer); // A OR
+                                                                                         // NOT B
     }
 
     Iterator<String> ids1 =
-        child1_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer);
+        child1_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer);
     Iterator<String> ids2 =
-        child2_.execute(dataStore, scanners, writers, dataset, keepDocs, tokenizer);
+        child2_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer);
 
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B}
     if (eConjunctionTypes.And.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {

@@ -49,9 +49,14 @@ final public class FieldLastUpdate {
   }
 
   public static Mutation newMutation(String dataset, String field, int type) {
+    return newMutation(dataset, field, type, Instant.now());
+  }
+
+  public static Mutation newMutation(String dataset, String field, int type, Instant instant) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(instant, "instant should not be null");
 
     Text row = new Text(field + SEPARATOR_NUL + type);
 
@@ -60,7 +65,7 @@ final public class FieldLastUpdate {
     ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
         + AbstractStorage.toVisibilityLabel(TermStore.lastUpdate(dataset)));
 
-    Value value = new Value(DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+    Value value = new Value(DateTimeFormatter.ISO_INSTANT.format(instant));
 
     Mutation mutation = new Mutation(row);
     mutation.put(cf, TEXT_EMPTY, cv, value);

@@ -4,12 +4,16 @@ import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Inflec
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Literal;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Range;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Thesaurus;
+import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
+import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -17,12 +21,10 @@ import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
-import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.DedupIterator;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
 import com.computablefacts.jupiter.storage.datastore.Writers;
-import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
@@ -146,40 +148,19 @@ final public class TerminalNode extends AbstractNode {
         if (isValid) {
 
           // Set fields
-          Set<String> keepFields = Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
+          Set<String> fields = Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
 
           // Set range
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          @Var
-          long count = 0;
-
-          Iterator<TermCount> iter = dataStore.termStore().getCounts(scanners.index(), dataset,
-              keepFields, minTerm, maxTerm);
-
-          while (iter.hasNext()) {
-            TermCount termCount = iter.next();
-            count += termCount.count();
-          }
-          return count;
+          return dataStore.estimateCount(scanners, dataset, fields, minTerm, maxTerm);
         }
       }
       return 0; // Invalid range
     }
 
-    // Tokenize object
-    @Var
-    List<String> terms;
-
-    if (tokenizer == null || WildcardMatcher.hasWildcards(value_)) {
-      terms = Lists.newArrayList(value_);
-    } else {
-      terms = tokenizer.apply(value_).stream().map(Span::text).collect(Collectors.toList());
-    }
-
-    // Discard small terms
-    terms = terms.stream().filter(term -> term.length() >= 3).collect(Collectors.toList());
+    List<String> terms = terms(tokenizer);
 
     if (terms.isEmpty()) {
       if (logger_.isWarnEnabled()) {
@@ -188,49 +169,15 @@ final public class TerminalNode extends AbstractNode {
       }
       return 0;
     }
-
-    // Execute query according to the query form
     if (Inflectional.equals(form_)) {
-
-      @Var
-      long count = 0;
-
-      for (String term : terms) {
-
-        Iterator<TermCount> iter = dataStore.termStore().getCounts(scanners.index(), dataset, null,
-            WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"));
-
-        while (iter.hasNext()) {
-          TermCount termCount = iter.next();
-          count += termCount.count();
-        }
-      }
-      return count;
+      return terms.stream()
+          .mapToLong(term -> dataStore.estimateCount(scanners, dataset, fields(), term)).sum();
     }
-
     if (Literal.equals(form_)) {
-
-      @Var
-      long count = 0;
-
-      for (String term : terms) {
-
-        Iterator<TermCount> iter =
-            dataStore.termStore().getCounts(scanners.index(), dataset, null, term);
-
-        @Var
-        long sum = 0;
-
-        while (iter.hasNext()) {
-          TermCount termCount = iter.next();
-          sum += termCount.count();
-        }
-
-        count = Math.max(count, sum);
-      }
-      return count;
+      return terms.stream()
+          .mapToLong(term -> dataStore.estimateCount(scanners, dataset, fields(), term)).max()
+          .orElse(0);
     }
-
     if (Thesaurus.equals(form_)) {
       // TODO : backport code
     }
@@ -239,7 +186,7 @@ final public class TerminalNode extends AbstractNode {
 
   @Override
   public Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,
-      String dataset, BloomFilters<String> keepDocs, Function<String, SpanSequence> tokenizer) {
+      String dataset, BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(scanners, "scanners should not be null");
@@ -249,7 +196,7 @@ final public class TerminalNode extends AbstractNode {
 
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset).add("key", key_)
-          .add("value", value_).add("hasKeepDocs", keepDocs != null).add("form", form_.toString())
+          .add("value", value_).add("has_docs_ids", docsIds != null).add("form", form_.toString())
           .formatInfo());
     }
 
@@ -272,22 +219,88 @@ final public class TerminalNode extends AbstractNode {
         if (isValid) {
 
           // Set fields
-          Set<String> keepFields = Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
+          Set<String> fields = Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
 
           // Set range
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.searchByNumericalRange(scanners, writers, dataset,
+          return dataStore.getDocsIds(scanners, writers, dataset,
               minTerm == null ? null : new BigDecimal(minTerm),
-              maxTerm == null ? null : new BigDecimal(maxTerm), keepFields, null);
+              maxTerm == null ? null : new BigDecimal(maxTerm), fields, null);
         }
       }
-      return Constants.ITERATOR_EMPTY; // Invalid range
+      return ITERATOR_EMPTY; // Invalid range
     }
 
-    // Tokenize object
-    @Var
+    List<String> terms = terms(tokenizer);
+
+    if (terms.isEmpty()) {
+      if (logger_.isWarnEnabled()) {
+        logger_.warn(LogFormatterManager.logFormatter().add("dataset", dataset).add("key", key_)
+            .add("value", value_).message("all terms have been discarded").formatWarn());
+      }
+      return ITERATOR_EMPTY;
+    }
+    if (Inflectional.equals(form_)) {
+
+      List<Iterator<String>> ids = new ArrayList<>();
+
+      for (String term : terms) {
+        ids.add(dataStore.getDocsIds(scanners, writers, dataset,
+            WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"),
+            fields(), docsIds));
+      }
+      return new DedupIterator<>(Iterators.mergeSorted(ids, String::compareTo));
+    }
+    if (Literal.equals(form_)) {
+
+      // TODO : ensure that the order of appearance of each term is respected
+
+      // First, fill a Bloom filter with the UUIDs of the documents. Then, filter subsequent
+      // terms using the Bloom filter created with the previous term.
+      @Var
+      BloomFilters<String> bfs = docsIds == null ? null : new BloomFilters<>(docsIds);
+
+      for (int i = 0; i < terms.size() - 1; i++) {
+
+        Iterator<String> iter =
+            dataStore.getDocsIds(scanners, writers, dataset, terms.get(i), fields(), bfs);
+
+        if (!iter.hasNext()) {
+          return ITERATOR_EMPTY;
+        }
+
+        bfs = new BloomFilters<>();
+
+        while (iter.hasNext()) {
+          bfs.put(iter.next());
+        }
+      }
+      return dataStore.getDocsIds(scanners, writers, dataset, terms.get(terms.size() - 1), fields(),
+          bfs);
+    }
+    if (Thesaurus.equals(form_)) {
+      // TODO : backport code
+    }
+    return ITERATOR_EMPTY;
+  }
+
+  private Set<String> fields() {
+    return Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
+  }
+
+  private List<String> terms(Function<String, SpanSequence> tokenizer) {
+
+    // Sort terms by decreasing length
+    ToIntFunction<String> byTermLength = term -> {
+      if (WildcardMatcher.startsWithWildcard(term)) {
+        return WildcardMatcher.prefix(reverse(term)).length();
+      }
+      return WildcardMatcher.prefix(term).length();
+    };
+
+    // Build a list of terms
     List<String> terms;
 
     if (tokenizer == null || WildcardMatcher.hasWildcards(value_)) {
@@ -296,37 +309,14 @@ final public class TerminalNode extends AbstractNode {
       terms = tokenizer.apply(value_).stream().map(Span::text).collect(Collectors.toList());
     }
 
-    // Discard small terms
-    terms = terms.stream().filter(term -> term.length() >= 3).collect(Collectors.toList());
-
-    if (terms.isEmpty()) {
-      return Constants.ITERATOR_EMPTY;
-    }
-
-    // Set fields
-    Set<String> keepFields = Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
-
-    // Execute query according to the query form
-    if (Inflectional.equals(form_)) {
-
-      List<Iterator<String>> ids = new ArrayList<>();
-
-      for (String term : terms) {
-        ids.add(dataStore.searchByTerm(scanners, writers, dataset,
-            WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"),
-            keepFields));
-      }
-      return new DedupIterator<>(Iterators.mergeSorted(ids, String::compareTo));
-    }
-
-    if (Literal.equals(form_)) {
-      return dataStore.searchByTerms(scanners, writers, dataset, terms, keepFields);
-    }
-
-    if (Thesaurus.equals(form_)) {
-      // TODO : backport code
-    }
-    return Constants.ITERATOR_EMPTY;
+    // Discard small terms and order the remaining ones by length
+    return terms.stream().filter(term -> !(WildcardMatcher.startsWithWildcard(term)
+        && WildcardMatcher.endsWithWildcard(term))).filter(term -> {
+          if (WildcardMatcher.startsWithWildcard(term)) {
+            return WildcardMatcher.prefix(reverse(term)).length() >= 3;
+          }
+          return WildcardMatcher.prefix(term).length() >= 3;
+        }).sorted(Comparator.comparingInt(byTermLength).reversed()).collect(Collectors.toList());
   }
 
   public enum eTermForms {

@@ -5,7 +5,6 @@ import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
 import java.util.Iterator;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -46,7 +45,7 @@ final public class DataStoreCache {
   }
 
   /**
-   * Get a list of values.
+   * Get cached values.
    *
    * @param scanners scanners.
    * @param cacheId the cache id.
@@ -65,7 +64,7 @@ final public class DataStoreCache {
     Range range;
 
     if (nextValue == null) {
-      range = Range.exact(cacheId);
+      range = Range.exact(new Text(cacheId), TEXT_CACHE);
     } else {
       Key begin = new Key(new Text(cacheId), TEXT_CACHE, new Text(nextValue));
       Key end = begin.followingKey(PartialKey.ROW);
@@ -80,51 +79,48 @@ final public class DataStoreCache {
   }
 
   /**
-   * Write a list of values.
+   * Cache values.
    *
    * @param writers writers.
-   * @param iterator values.
-   * @return a cache id.
+   * @param cacheId the cache id.
+   * @param iterator the values to cache.
    */
-  public static String write(Writers writers, Iterator<String> iterator) {
-    return write(writers, iterator, -1);
+  public static void write(Writers writers, String cacheId, Iterator<String> iterator) {
+    write(writers, cacheId, iterator, -1);
   }
 
   /**
-   * Write a list of values.
+   * Cache values.
    *
+   * @param writers writers.
+   * @param cacheId the cache id.
+   * @param iterator the values to cache.
    * @param delegateToBackgroundThreadAfter synchronously write to cache until this number of
    *        elements is reached. After that, delegate the remaining writes to a background thread.
    *        If this number is less than or equals to zero, performs the whole operation
    *        synchronously.
-   * @param writers writers.
-   * @param iterator values.
-   * @return a cache id.
    */
-  public static String write(Writers writers, Iterator<String> iterator,
+  public static void write(Writers writers, String cacheId, Iterator<String> iterator,
       @Var int delegateToBackgroundThreadAfter) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(cacheId, "cacheId should not be null");
     Preconditions.checkNotNull(iterator, "iterator should not be null");
 
-    Text uuid = new Text(UUID.randomUUID().toString());
-
     if (delegateToBackgroundThreadAfter <= 0) {
-      write(writers, iterator, uuid, -1);
+      writeCache(writers, cacheId, iterator, -1);
     } else {
-      write(writers, iterator, uuid, delegateToBackgroundThreadAfter);
-      executorService_
-          .execute(() -> write(writers, iterator, uuid, delegateToBackgroundThreadAfter));
+      writeCache(writers, cacheId, iterator, delegateToBackgroundThreadAfter);
+      executorService_.execute(() -> writeCache(writers, cacheId, iterator, -1));
     }
-    return uuid.toString();
   }
 
-  private static void write(Writers writers, Iterator<String> iterator, Text uuid,
+  private static void writeCache(Writers writers, String cacheId, Iterator<String> iterator,
       @Var int maxElementsToWrite) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(cacheId, "cacheId should not be null");
     Preconditions.checkNotNull(iterator, "iterator should not be null");
-    Preconditions.checkNotNull(uuid, "uuid should not be null");
 
     try {
       if (maxElementsToWrite < 0) {
@@ -132,7 +128,7 @@ final public class DataStoreCache {
 
           String value = iterator.next();
 
-          Mutation mutation = new Mutation(uuid);
+          Mutation mutation = new Mutation(cacheId);
           mutation.put(TEXT_CACHE, new Text(Strings.nullToEmpty(value)), VALUE_EMPTY);
 
           writers.blob().addMutation(mutation);
@@ -142,7 +138,7 @@ final public class DataStoreCache {
 
           String value = iterator.next();
 
-          Mutation mutation = new Mutation(uuid);
+          Mutation mutation = new Mutation(cacheId);
           mutation.put(TEXT_CACHE, new Text(Strings.nullToEmpty(value)), VALUE_EMPTY);
 
           writers.blob().addMutation(mutation);
@@ -153,11 +149,11 @@ final public class DataStoreCache {
         }
       } else {
         logger_.warn(
-            LogFormatterManager.logFormatter().message("write ignored").add("uuid", uuid.toString())
+            LogFormatterManager.logFormatter().message("write ignored").add("cache_id", cacheId)
                 .add("max_elements_to_write", maxElementsToWrite).formatWarn());
       }
 
-      // flush otherwise mutations might not have been written when readCache() is called
+      // flush otherwise mutations might not have been written when read() is called
       writers.flush();
     } catch (MutationsRejectedException e) {
       logger_.error(LogFormatterManager.logFormatter().message(e).formatError());

@@ -1,14 +1,13 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
-import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
-import java.util.Collection;
-import java.util.Comparator;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -16,14 +15,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.function.ToIntFunction;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -37,13 +33,13 @@ import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
-import com.computablefacts.jupiter.storage.DedupIterator;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.jupiter.storage.termstore.FieldCount;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
 import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
 import com.computablefacts.jupiter.storage.termstore.Term;
+import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.Codecs;
@@ -52,13 +48,19 @@ import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
 import com.github.wnameless.json.flattener.JsonFlattener;
+import com.google.common.annotations.Beta;
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -66,7 +68,7 @@ import com.google.errorprone.annotations.Var;
  * <p>
  * This storage layer acts as a generic data store. For now, this storage layer is mostly used to
  * persist/retrieve JSON objects. Raw JSON objects are stored to a {@link BlobStore}. Indexed terms
- * are stored to a {@link BlobStore}.
+ * are stored to a {@link TermStore}.
  * </p>
  *
  * <p>
@@ -76,6 +78,7 @@ import com.google.errorprone.annotations.Var;
 @CheckReturnValue
 final public class DataStore {
 
+  private static final HashFunction hashFunction_ = Hashing.goodFastHash(128);
   private static final Logger logger_ = LoggerFactory.getLogger(DataStore.class);
 
   private final String name_;
@@ -575,52 +578,6 @@ final public class DataStore {
   }
 
   /**
-   * Get UUIDs ordered in lexicographic order.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset (optional).
-   * @param minTerm number (optional). Beginning of the range (included).
-   * @param maxTerm number (optional). End of the range (included).
-   * @return iterator.
-   */
-  @Deprecated
-  public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, Number minTerm,
-      Number maxTerm) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkArgument(minTerm != null || maxTerm != null,
-        "minTerm and maxTerm cannot be null at the same time");
-    Preconditions.checkArgument(scanners.index() instanceof Scanner,
-        "index scanner must guarantee the result order");
-
-    return numericalRangeScan(scanners, dataset, minTerm, maxTerm, null, null);
-  }
-
-  /**
-   * Get UUIDs ordered in lexicographic order.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset (optional).
-   * @param minTerm number (optional). Beginning of the range (included).
-   * @param maxTerm number (optional). End of the range (excluded).
-   * @param fields fields patterns to keep (optional).
-   * @param docsIds document ids to keep (optional).
-   * @return iterator.
-   */
-  @Deprecated
-  public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, Number minTerm,
-      Number maxTerm, Set<String> fields, BloomFilters<String> docsIds) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkArgument(minTerm != null || maxTerm != null,
-        "minTerm and maxTerm cannot be null at the same time");
-    Preconditions.checkArgument(scanners.index() instanceof Scanner,
-        "index scanner must guarantee the result order");
-
-    return termStore_.getBucketsIds(scanners.index(), dataset, minTerm, maxTerm, fields, docsIds);
-  }
-
-  /**
    * Get all JSON from the blob storage layer. Note that using a BatchScanner improves performances
    * a lot.
    *
@@ -663,177 +620,171 @@ final public class DataStore {
   }
 
   /**
-   * Get the ids of all documents for which a numerical term is in a given range.
+   * Estimate the number of occurrences of a given term.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset (optional).
+   * @param fields which fields must be considered (optional).
+   * @param term searched term. Might contain wildcard characters.
+   * @return the estimated number of occurrences of the given term.
+   */
+  @Beta
+  public long estimateCount(Scanners scanners, String dataset, Set<String> fields, String term) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+    Preconditions.checkArgument(
+        !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
+        "term cannot start AND end with a wildcard");
+
+    @Var
+    long count = 0;
+
+    Iterator<TermCount> iter = termStore_.getCounts(scanners.index(), dataset, fields, term);
+
+    while (iter.hasNext()) {
+      TermCount termCount = iter.next();
+      count += termCount.count();
+    }
+    return count;
+  }
+
+  /**
+   * Estimate the number of occurrences of all terms in [minTerm, maxTerm].
+   *
+   * @param scanners scanners.
+   * @param dataset dataset (optional).
+   * @param fields which fields must be considered (optional).
+   * @param minTerm first searched term. Wildcard characters are not allowed.
+   * @param maxTerm last searched term. Wildcard characters are not allowed.
+   * @return the estimated number of terms in [minTerm, maxTerm].
+   */
+  @Beta
+  public long estimateCount(Scanners scanners, String dataset, Set<String> fields, Object minTerm,
+      Object maxTerm) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+    Preconditions.checkArgument(
+        minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
+        "minTerm and maxTerm must be of the same type");
+
+    @Var
+    long count = 0;
+
+    Iterator<TermCount> iter =
+        termStore_.getCounts(scanners.index(), dataset, fields, minTerm, maxTerm);
+
+    while (iter.hasNext()) {
+      TermCount termCount = iter.next();
+      count += termCount.count();
+    }
+    return count;
+  }
+
+  /**
+   * Get the ids of all documents where at least one token matches "term".
    *
    * @param scanners scanners.
    * @param writers writers.
-   * @param dataset dataset.
-   * @param minTerm number (optional). Beginning of the range (included).
-   * @param maxTerm number (optional). End of the range (included).
-   * @param fields fields to keep (optional).
-   * @param docsIds document ids to keep (optional).
-   * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
-   *         {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
+   * @param dataset dataset (optional).
+   * @param fields which fields must be considered (optional).
+   * @param term searched term. Might contain wildcard characters.
+   * @param docsIds which docs must be considered (optional).
+   * @return an ordered stream of documents ids.
    */
-  @Deprecated
-  public Iterator<String> searchByNumericalRange(Scanners scanners, Writers writers, String dataset,
-      Number minTerm, Number maxTerm, Set<String> fields, BloomFilters<String> docsIds) {
+  @Beta
+  public Iterator<String> getDocsIds(Scanners scanners, Writers writers, String dataset,
+      String term, Set<String> fields, BloomFilters<String> docsIds) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+
+    // Build a cache key
+    List<String> params = Lists.newArrayList(Strings.nullToEmpty(dataset), term);
+
+    if (fields != null) {
+      params.addAll(fields);
+    }
+    if (docsIds != null) {
+      params.add(BloomFilters.toString(docsIds));
+    }
+
+    Collections.sort(params);
+
+    String cacheId = hashFunction_.newHasher()
+        .putString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).hash().toString();
+
+    // TODO : ensure the cache does not already contain the query result
+
+    // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
+    Iterator<String> bucketsIds = Iterators.transform(
+        termStore_.getBucketsIds(scanners.index(), dataset, term, fields, docsIds), Term::bucketId);
+
+    DataStoreCache.write(writers, cacheId, bucketsIds);
+
+    // Returns an iterator over the documents ids
+    return DataStoreCache.read(scanners, cacheId);
+  }
+
+  /**
+   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm].
+   *
+   * @param scanners scanners.
+   * @param writers writers.
+   * @param dataset dataset (optional).
+   * @param fields which fields must be considered (optional).
+   * @param minTerm first searched term. Wildcard characters are not allowed.
+   * @param maxTerm last searched term. Wildcard characters are not allowed.
+   * @param docsIds which docs must be considered (optional).
+   * @return an ordered stream of documents ids.
+   */
+  @Beta
+  public Iterator<String> getDocsIds(Scanners scanners, Writers writers, String dataset,
+      Object minTerm, Object maxTerm, Set<String> fields, BloomFilters<String> docsIds) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
         "minTerm and maxTerm cannot be null at the same time");
+    Preconditions.checkArgument(
+        minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
+        "minTerm and maxTerm must be of the same type");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
-          .add("dataset", dataset).add("min_term", minTerm).add("max_term", maxTerm)
-          .add("has_keep_fields", fields != null).add("has_keep_docs", docsIds != null)
-          .formatInfo());
+    // Build a cache key
+    List<String> params = Lists.newArrayList(Strings.nullToEmpty(dataset));
+
+    if (minTerm != null) {
+      params.add(minTerm.toString());
+    }
+    if (maxTerm != null) {
+      params.add(maxTerm.toString());
+    }
+    if (fields != null) {
+      params.addAll(fields);
+    }
+    if (docsIds != null) {
+      params.add(BloomFilters.toString(docsIds));
     }
 
-    // TODO : backport code in order to avoid this write/read trick (sort doc ids)
-    return DataStoreCache.read(scanners, DataStoreCache.write(writers,
-            new DedupIterator<>(Iterators.transform(
-                numericalRangeScan(scanners, dataset, minTerm, maxTerm, fields, docsIds),
-                Term::bucketId))));
-  }
+    Collections.sort(params);
 
-  /**
-   * Get the ids of all documents which contain a given term.
-   *
-   * @param scanners scanners.
-   * @param writers writers.
-   * @param dataset dataset.
-   * @param term a single term to match.
-   * @param fields fields to keep (optional).
-   * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
-   *         {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
-   */
-  @Deprecated
-  public Iterator<String> searchByTerm(Scanners scanners, Writers writers, String dataset,
-      String term, Set<String> fields) {
-    return searchByTerms(scanners, writers, dataset, Sets.newHashSet(term), fields, null);
-  }
+    String cacheId = hashFunction_.newHasher()
+        .putString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).hash().toString();
 
-  /**
-   * Get the ids of all documents which contain a given term.
-   *
-   * @param scanners scanners.
-   * @param writers writers.
-   * @param dataset dataset.
-   * @param term a single term to match.
-   * @param fields fields to keep (optional).
-   * @param docsIds document ids to keep (optional).
-   * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
-   *         {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
-   */
-  @Deprecated
-  public Iterator<String> searchByTerm(Scanners scanners, Writers writers, String dataset,
-      String term, Set<String> fields, BloomFilters<String> docsIds) {
-    return searchByTerms(scanners, writers, dataset, Sets.newHashSet(term), fields, docsIds);
-  }
+    // TODO : ensure the cache does not already contain the query result
 
-  /**
-   * Get the ids of all documents which contain a list of terms (in any order of appearance).
-   *
-   * @param scanners scanners.
-   * @param writers writers.
-   * @param dataset dataset.
-   * @param terms one or more terms to match.
-   * @param fields fields to keep (optional).
-   * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
-   *         {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
-   */
-  @Deprecated
-  public Iterator<String> searchByTerms(Scanners scanners, Writers writers, String dataset,
-      Collection<String> terms, Set<String> fields) {
-    return searchByTerms(scanners, writers, dataset, terms, fields, null);
-  }
+    // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
+    Iterator<String> bucketsIds = Iterators.transform(
+        termStore_.getBucketsIds(scanners.index(), dataset, minTerm, maxTerm, fields, docsIds),
+        Term::bucketId);
 
-  /**
-   * Get the ids of all documents which contain a list of terms (in any order of appearance).
-   *
-   * @param scanners scanners.
-   * @param writers writers.
-   * @param dataset dataset.
-   * @param terms one or more terms to match.
-   * @param fields fields to keep (optional).
-   * @param docsIds document ids to keep (optional).
-   * @return doc ids. Ids are sorted if and only if the {@link Scanners} class use
-   *         {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
-   */
-  @Deprecated
-  public Iterator<String> searchByTerms(Scanners scanners, Writers writers, String dataset,
-      Collection<String> terms, Set<String> fields, BloomFilters<String> docsIds) {
+    DataStoreCache.write(writers, cacheId, bucketsIds);
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(terms, "terms should not be null");
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
-          .add("dataset", dataset).add("terms", terms).add("has_keep_fields", fields != null)
-          .add("has_keep_docs", docsIds != null).formatInfo());
-    }
-
-    // Sort terms by decreasing length
-    ToIntFunction<String> byTermLength = term -> {
-      if (WildcardMatcher.startsWithWildcard(term)) {
-        return WildcardMatcher.prefix(reverse(term)).length();
-      }
-      return WildcardMatcher.prefix(term).length();
-    };
-
-    List<String> newTerms = terms.stream()
-        .filter(term -> !(WildcardMatcher.startsWithWildcard(term)
-            && WildcardMatcher.endsWithWildcard(term)))
-        .sorted(Comparator.comparingInt(byTermLength).reversed()).collect(Collectors.toList());
-
-    if (newTerms.isEmpty()) {
-      if (logger_.isWarnEnabled()) {
-        logger_.warn(LogFormatterManager.logFormatter().message("all terms have been pruned")
-            .add("dataset", dataset).add("terms", terms).add("has_keep_fields", fields != null)
-            .add("has_keep_docs", docsIds != null).formatWarn());
-      }
-      return ITERATOR_EMPTY;
-    }
-
-    // First, fill a Bloom filter with the UUIDs of the documents. Then, filter subsequent
-    // terms using the Bloom filter created with the previous term.
-    @Var
-    BloomFilters<String> newKeepDocs = docsIds == null ? null : new BloomFilters<>(docsIds);
-
-    for (int i = 0; i < newTerms.size() - 1; i++) {
-
-      // TODO : if terms is a sorted Collection, ensure that the order of appearance is respected.
-
-      Iterator<Term> iter =
-          termStore_.getBucketsIds(scanners.index(), dataset, newTerms.get(0), fields, docsIds);
-
-      if (!iter.hasNext()) {
-        return ITERATOR_EMPTY;
-      }
-
-      newKeepDocs = new BloomFilters<>();
-
-      while (iter.hasNext()) {
-        Term term = iter.next();
-        newKeepDocs.put(term.bucketId());
-      }
-    }
-
-    Iterator<Term> iter = termStore_.getBucketsIds(scanners.index(), dataset,
-        newTerms.get(newTerms.size() - 1), fields, newKeepDocs);
-
-    // TODO : backport code in order to avoid this write/read trick (sort doc ids)
-    return DataStoreCache.read(scanners, DataStoreCache.write(writers,
-        new DedupIterator<>(Iterators.transform(iter, Term::bucketId))));
+    // Returns an iterator over the documents ids
+    return DataStoreCache.read(scanners, cacheId);
   }
 
   /**
@@ -843,6 +794,7 @@ final public class DataStore {
    * @param auths the user authorizations.
    * @return {@link DataStoreInfos}.
    */
+  @Beta
   public DataStoreInfos infos(Set<String> datasets, Authorizations auths) {
 
     DataStoreInfos infos = new DataStoreInfos(name());
@@ -944,8 +896,7 @@ final public class DataStore {
     }
 
     List<String> path =
-        Splitter.on(SEPARATOR_CURRENCY_SIGN).trimResults()
-        .omitEmptyStrings().splitToList(field);
+        Splitter.on(SEPARATOR_CURRENCY_SIGN).trimResults().omitEmptyStrings().splitToList(field);
 
     String vizAdm = STRING_ADM; // for backward compatibility
     String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");

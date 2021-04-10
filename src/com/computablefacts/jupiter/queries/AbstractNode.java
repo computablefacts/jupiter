@@ -46,8 +46,8 @@ public abstract class AbstractNode {
   }
 
   final public Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,
-      String dataset, BloomFilters<String> keepDocs) {
-    return execute(dataStore, scanners, writers, dataset, keepDocs, null);
+      String dataset, BloomFilters<String> docsIds) {
+    return execute(dataStore, scanners, writers, dataset, docsIds, null);
   }
 
   @Deprecated
@@ -57,5 +57,5 @@ public abstract class AbstractNode {
       Function<String, SpanSequence> tokenizer);
 
   public abstract Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,
-      String dataset, BloomFilters<String> keepDocs, Function<String, SpanSequence> tokenizer);
+      String dataset, BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer);
 }
