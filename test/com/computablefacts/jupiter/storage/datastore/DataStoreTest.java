@@ -744,7 +744,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   public void testDataStoreInfos() throws Exception {
 
     DataStore dataStore = newDataStore(Constants.AUTH_ADM);
-    DataStore.Infos infos = dataStore.infos(Sets.newHashSet("first_dataset"), Constants.AUTH_ADM);
+    DataStoreInfos infos = dataStore.infos(Sets.newHashSet("first_dataset"), Constants.AUTH_ADM);
     Map<String, Object> json = infos.json();
 
     List<Map<String, Object>> jsons =
