@@ -225,19 +225,19 @@ final public class BlobStore extends AbstractStorage {
    * @param scanner scanner.
    * @param dataset dataset/namespace.
    * @param keys keys (optional).
-   * @param keepFields fields to keep if Accumulo Values are JSON objects (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
   public Iterator<Blob<Value>> get(ScannerBase scanner, String dataset, Set<String> keys,
-      Set<String> keepFields) {
+      Set<String> fields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("has_keep_fields", keepFields != null)
-          .add("has_keys", keys != null).formatInfo());
+      logger_.info(
+          LogFormatterManager.logFormatter().add("table_name", tableName()).add("dataset", dataset)
+              .add("has_fields", fields != null).add("has_keys", keys != null).formatInfo());
     }
 
     scanner.clearColumns();
@@ -255,11 +255,11 @@ final public class BlobStore extends AbstractStorage {
 
     scanner.addScanIterator(setting2);
 
-    if (keepFields != null) {
+    if (fields != null) {
 
       IteratorSetting setting3 =
           new IteratorSetting(23, BlobStoreFilterOutJsonFieldsIterator.class);
-      BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting3, keepFields);
+      BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting3, fields);
 
       scanner.addScanIterator(setting3);
     }
