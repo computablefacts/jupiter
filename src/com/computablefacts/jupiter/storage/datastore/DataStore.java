@@ -1,6 +1,9 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
+import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
+import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
@@ -34,7 +37,6 @@ import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
-import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.DedupIterator;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
@@ -50,7 +52,6 @@ import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
 import com.github.wnameless.json.flattener.JsonFlattener;
-import com.google.common.annotations.Beta;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -381,7 +382,7 @@ final public class DataStore {
 
     @Var
     boolean isOk = true;
-    Authorizations auths = new Authorizations(Constants.STRING_ADM);
+    Authorizations auths = new Authorizations(STRING_ADM);
 
     try (BatchDeleter deleter = termStore_.deleter(auths)) {
       isOk = isOk && termStore_.removeDataset(deleter, dataset);
@@ -459,12 +460,12 @@ final public class DataStore {
 
     Map<String, Multiset<Object>> fields = new HashMap<>();
     Map<String, Object> newJson =
-        new JsonFlattener(json).withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
+        new JsonFlattener(json).withSeparator(SEPARATOR_CURRENCY_SIGN).flattenAsMap();
 
     for (String field : newJson.keySet()) {
 
       // Attributes starting with an underscore should not be indexed
-      if (field.startsWith("_") || field.contains(Constants.SEPARATOR_CURRENCY_SIGN + "_")) {
+      if (field.startsWith("_") || field.contains(SEPARATOR_CURRENCY_SIGN + "_")) {
         continue;
       }
       if (keepField != null && !keepField.test(field)) {
@@ -522,7 +523,7 @@ final public class DataStore {
   }
 
   /**
-   * Get visibility labels by field.
+   * Get the visibility labels available for a given field.
    *
    * @param scanners scanners.
    * @param dataset dataset.
@@ -539,7 +540,7 @@ final public class DataStore {
   }
 
   /**
-   * Get count by field.
+   * Get the number of indexed terms for a given field.
    *
    * @param scanners scanners.
    * @param dataset dataset.
@@ -556,7 +557,7 @@ final public class DataStore {
   }
 
   /**
-   * Get the date of last update by field.
+   * Get the date of last of a given field.
    *
    * @param scanners scanners.
    * @param dataset dataset.
@@ -582,6 +583,7 @@ final public class DataStore {
    * @param maxTerm number (optional). End of the range (included).
    * @return iterator.
    */
+  @Deprecated
   public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, Number minTerm,
       Number maxTerm) {
 
@@ -605,6 +607,7 @@ final public class DataStore {
    * @param docsIds document ids to keep (optional).
    * @return iterator.
    */
+  @Deprecated
   public Iterator<Term> numericalRangeScan(Scanners scanners, String dataset, Number minTerm,
       Number maxTerm, Set<String> fields, BloomFilters<String> docsIds) {
 
@@ -673,7 +676,7 @@ final public class DataStore {
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
-  @Beta
+  @Deprecated
   public Iterator<String> searchByNumericalRange(Scanners scanners, Writers writers, String dataset,
       Number minTerm, Number maxTerm, Set<String> fields, BloomFilters<String> docsIds) {
 
@@ -708,6 +711,7 @@ final public class DataStore {
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
+  @Deprecated
   public Iterator<String> searchByTerm(Scanners scanners, Writers writers, String dataset,
       String term, Set<String> fields) {
     return searchByTerms(scanners, writers, dataset, Sets.newHashSet(term), fields, null);
@@ -726,6 +730,7 @@ final public class DataStore {
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
+  @Deprecated
   public Iterator<String> searchByTerm(Scanners scanners, Writers writers, String dataset,
       String term, Set<String> fields, BloomFilters<String> docsIds) {
     return searchByTerms(scanners, writers, dataset, Sets.newHashSet(term), fields, docsIds);
@@ -743,6 +748,7 @@ final public class DataStore {
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
+  @Deprecated
   public Iterator<String> searchByTerms(Scanners scanners, Writers writers, String dataset,
       Collection<String> terms, Set<String> fields) {
     return searchByTerms(scanners, writers, dataset, terms, fields, null);
@@ -761,6 +767,7 @@ final public class DataStore {
    *         {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner} underneath.
    */
+  @Deprecated
   public Iterator<String> searchByTerms(Scanners scanners, Writers writers, String dataset,
       Collection<String> terms, Set<String> fields, BloomFilters<String> docsIds) {
 
@@ -893,10 +900,10 @@ final public class DataStore {
           .add("dataset", dataset).add("doc_id", docId).add("blob", blob).formatDebug());
     }
 
-    String vizAdm = Constants.STRING_ADM; // for backward compatibility
+    String vizAdm = STRING_ADM; // for backward compatibility
     String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
     String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(docId);
-    String vizRawData = vizDataset + Constants.STRING_RAW_DATA;
+    String vizRawData = vizDataset + STRING_RAW_DATA;
 
     if (!blobStore_.putJson(writers.blob(), dataset, docId,
         Sets.newHashSet(vizAdm, vizUuid, vizRawData), blob)) {
@@ -936,10 +943,11 @@ final public class DataStore {
           .add("nb_occurrences_in_doc", nbOccurrencesInDoc).formatDebug());
     }
 
-    List<String> path = Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN).trimResults()
+    List<String> path =
+        Splitter.on(SEPARATOR_CURRENCY_SIGN).trimResults()
         .omitEmptyStrings().splitToList(field);
 
-    String vizAdm = Constants.STRING_ADM; // for backward compatibility
+    String vizAdm = STRING_ADM; // for backward compatibility
     String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
     String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(docId);
 
