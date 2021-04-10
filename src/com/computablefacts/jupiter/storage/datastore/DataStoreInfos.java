@@ -23,7 +23,7 @@ final public class DataStoreInfos {
   private final Table<String, String, Long> fieldsCounts_ = HashBasedTable.create();
   private final Table<String, String, Set<String>> fieldsVisibilityLabels_ =
       HashBasedTable.create();
-  private final Table<String, String, String> fieldsLastUpdate_ = HashBasedTable.create();
+  private final Table<String, String, String> fieldsLastUpdates_ = HashBasedTable.create();
   private final Table<String, String, Set<String>> fieldsTypes_ = HashBasedTable.create();
 
   public DataStoreInfos(String name) {
@@ -66,15 +66,15 @@ final public class DataStoreInfos {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
 
-    if (fieldsLastUpdate_.contains(dataset, field)) {
-      String oldLastUpdate = fieldsLastUpdate_.get(dataset, field);
+    if (fieldsLastUpdates_.contains(dataset, field)) {
+      String oldLastUpdate = fieldsLastUpdates_.get(dataset, field);
       int cmp = oldLastUpdate.compareTo(lastUpdate);
       if (cmp < 0) {
-        fieldsLastUpdate_.remove(dataset, field);
-        fieldsLastUpdate_.put(dataset, field, lastUpdate);
+        fieldsLastUpdates_.remove(dataset, field);
+        fieldsLastUpdates_.put(dataset, field, lastUpdate);
       }
     } else {
-      fieldsLastUpdate_.put(dataset, field, lastUpdate);
+      fieldsLastUpdates_.put(dataset, field, lastUpdate);
     }
 
     addType(dataset, field, type);
@@ -90,7 +90,7 @@ final public class DataStoreInfos {
             fieldsVisibilityLabels_.cellSet().stream()
                 .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
                 .collect(Collectors.toSet()),
-            fieldsLastUpdate_.cellSet().stream()
+            fieldsLastUpdates_.cellSet().stream()
                 .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
                 .collect(Collectors.toSet())))
         .stream().map(cell -> {
@@ -102,7 +102,7 @@ final public class DataStoreInfos {
           map.put("dataset", dataset);
           map.put("field", field.replace(Constants.SEPARATOR_CURRENCY_SIGN, '.'));
           map.put("last_update",
-              fieldsLastUpdate_.contains(dataset, field) ? fieldsLastUpdate_.get(dataset, field)
+              fieldsLastUpdates_.contains(dataset, field) ? fieldsLastUpdates_.get(dataset, field)
                   : null);
           map.put("nb_index_entries",
               fieldsCounts_.contains(dataset, field) ? fieldsCounts_.get(dataset, field) : 0);
