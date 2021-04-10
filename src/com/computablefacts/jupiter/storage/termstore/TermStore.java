@@ -543,7 +543,7 @@ final public class TermStore extends AbstractStorage {
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
-   * @param fields where the specified term must be searched for (optional).
+   * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
    * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
@@ -606,7 +606,7 @@ final public class TermStore extends AbstractStorage {
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
-   * @param fields where the specified term must be searched for (optional).
+   * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
    * @param bucketsIds which buckets must be considered (optional).
    * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
@@ -741,7 +741,7 @@ final public class TermStore extends AbstractStorage {
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
-   * @param fields where the specified term must be searched for (optional).
+   * @param fields @param fields which fields must be considered (optional).
    * @param minTerm first searched term. Wildcard characters are not allowed.
    * @param maxTerm last searched term. Wildcard characters are not allowed.
    * @param bucketsIds which buckets must be considered (optional).
