@@ -189,6 +189,7 @@ public class BlobTest {
     Assert.assertTrue(blob.isFile());
     Assert.assertEquals(new String(cf), blob.dataset());
     Assert.assertEquals(new String(row), blob.key());
+    Assert.assertEquals(Sets.newHashSet(), blob.labels());
     Assert.assertEquals(Lists.newArrayList(file.getName(), "10"), blob.properties());
     Assert.assertEquals(val, blob.value().get());
   }
