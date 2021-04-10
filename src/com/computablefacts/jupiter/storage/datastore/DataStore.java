@@ -986,7 +986,7 @@ final public class DataStore {
    *
    * @param datasets a list of datasets.
    * @param auths the user authorizations.
-   * @return {@link Infos}.
+   * @return {@link DataStoreInfos}.
    */
   public DataStoreInfos infos(Set<String> datasets, Authorizations auths) {
 
