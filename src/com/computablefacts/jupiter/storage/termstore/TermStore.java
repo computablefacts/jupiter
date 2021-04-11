@@ -209,7 +209,7 @@ final public class TermStore extends AbstractStorage {
 
           configurations().tableOperations().attachIterator(tableName(), setting);
 
-          // Set default splits on [a-z0-9]
+          // Set default splits on [a-zA-Z0-9]
           SortedSet<Text> splits = new TreeSet<>();
 
           for (char i = '0'; i < '9' + 1; i++) {
@@ -217,6 +217,10 @@ final public class TermStore extends AbstractStorage {
           }
 
           for (char i = 'a'; i < 'z' + 1; i++) {
+            splits.add(new Text(Character.toString(i)));
+          }
+
+          for (char i = 'A'; i < 'Z' + 1; i++) {
             splits.add(new Text(Character.toString(i)));
           }
 
