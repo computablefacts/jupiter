@@ -131,7 +131,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     String dataset = "blobs";
     String bucketId = "1";
     Set<String> labels = Sets.newHashSet();
-    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_RAW_FILE");
+    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_FILE");
     BlobStore blobStore = newBlobStore(auths);
 
     try (BatchWriter writer = blobStore.writer()) {
@@ -156,7 +156,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     String dataset = "blobs";
     String bucketId = "2";
     Set<String> labels = Sets.newHashSet();
-    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_RAW_FILE");
+    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA");
     BlobStore blobStore = newBlobStore(auths);
 
     try (BatchWriter writer = blobStore.writer()) {
@@ -181,7 +181,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     String dataset = "blobs";
     String bucketId = "3";
     Set<String> labels = Sets.newHashSet();
-    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_RAW_FILE");
+    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA");
     BlobStore blobStore = newBlobStore(auths);
 
     try (BatchWriter writer = blobStore.writer()) {
@@ -267,7 +267,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     String dataset = "blobs";
     Set<String> labels = Sets.newHashSet();
-    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_RAW_FILE");
+    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA");
     BlobStore blobStore = newBlobStore(auths);
 
     try (BatchWriter writer = blobStore.writer()) {
@@ -297,14 +297,14 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
-  public void testAnonymizeJsonFields() throws Exception {
+  public void testAnonymizeJson() throws Exception {
 
     Map<String, Object> json = Data.json(1);
 
     String dataset = "blobs";
     Set<String> labels = Sets.newHashSet();
     Authorizations auths =
-        new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_RAW_FILE", "BLOBS_ACTORS_NAME");
+        new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_ACTORS_NAME");
     BlobStore blobStore = newBlobStore(auths);
 
     try (BatchWriter writer = blobStore.writer()) {
@@ -315,8 +315,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
         blobStore.batchScanner(new Authorizations("ADM", "BLOBS_ACTORS_NAME"), 1)) {
 
       List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.get(scanner, dataset, null, Sets.newHashSet("Actors[*]¤name", "Actors[*]¤age"))
-          .forEachRemaining(blobs::add);
+      blobStore.get(scanner, dataset).forEachRemaining(blobs::add);
 
       Assert.assertEquals(1, blobs.size());
 
@@ -334,13 +333,42 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     }
   }
 
-  private BlobStore newBlobStore(Authorizations auths) throws Exception {
-    String username = nextUsername();
-    return newBlobStore(auths, username);
+  @Test
+  public void testAnonymizeBlob() throws Exception {
+
+    String str = Codecs.asString(Data.json(1));
+    String dataset = "blobs";
+    String bucketId = "2";
+    Set<String> labels = Sets.newHashSet();
+    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA");
+    BlobStore blobStore = newBlobStore(auths);
+
+    try (BatchWriter writer = blobStore.writer()) {
+      Assert.assertTrue(blobStore.putString(writer, dataset, bucketId, labels, str));
+    }
+
+    try (BatchScanner scanner = blobStore.batchScanner(new Authorizations("ADM"), 1)) {
+
+      List<Blob<Value>> blobs = new ArrayList<>();
+      blobStore.get(scanner, dataset).forEachRemaining(blobs::add);
+
+      Assert.assertEquals(1, blobs.size());
+
+      Blob<Value> blob = blobs.get(0);
+
+      Assert.assertTrue(blob.isString());
+      Assert.assertEquals("blobs", blob.dataset());
+      Assert.assertEquals("2", blob.key());
+      Assert.assertEquals(Sets.newHashSet("ADM", "BLOBS_RAW_DATA"), blob.labels());
+      Assert.assertEquals(Lists.newArrayList(), blob.properties());
+      Assert.assertEquals(Codecs.asObject("{\"is_anonymized\":\"true\"}"),
+          Codecs.asObject(blob.value().toString()));
+    }
   }
 
-  private BlobStore newBlobStore(Authorizations auths, String username) throws Exception {
+  private BlobStore newBlobStore(Authorizations auths) throws Exception {
 
+    String username = nextUsername();
     String tableName = nextTableName();
 
     MiniAccumuloClusterUtils.newUser(accumulo(), username);
