@@ -553,7 +553,7 @@ final public class TermStore extends AbstractStorage {
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<TermCount> getCounts(ScannerBase scanner, String dataset, Set<String> fields,
+  public Iterator<TermCount> counts(ScannerBase scanner, String dataset, Set<String> fields,
       String term) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -617,7 +617,7 @@ final public class TermStore extends AbstractStorage {
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> getBucketsIds(ScannerBase scanner, String dataset, String term,
+  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, String term,
       Set<String> fields, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -682,7 +682,7 @@ final public class TermStore extends AbstractStorage {
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<TermCount> getCounts(ScannerBase scanner, String dataset, Set<String> fields,
+  public Iterator<TermCount> counts(ScannerBase scanner, String dataset, Set<String> fields,
       Object minTerm, Object maxTerm) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -753,7 +753,7 @@ final public class TermStore extends AbstractStorage {
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> getBucketsIds(ScannerBase scanner, String dataset, Object minTerm,
+  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Object minTerm,
       Object maxTerm, Set<String> fields, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");

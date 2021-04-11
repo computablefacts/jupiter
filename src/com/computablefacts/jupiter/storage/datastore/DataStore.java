@@ -640,7 +640,7 @@ final public class DataStore {
     @Var
     long count = 0;
 
-    Iterator<TermCount> iter = termStore_.getCounts(scanners.index(), dataset, fields, term);
+    Iterator<TermCount> iter = termStore_.counts(scanners.index(), dataset, fields, term);
 
     while (iter.hasNext()) {
       TermCount termCount = iter.next();
@@ -674,7 +674,7 @@ final public class DataStore {
     long count = 0;
 
     Iterator<TermCount> iter =
-        termStore_.getCounts(scanners.index(), dataset, fields, minTerm, maxTerm);
+        termStore_.counts(scanners.index(), dataset, fields, minTerm, maxTerm);
 
     while (iter.hasNext()) {
       TermCount termCount = iter.next();
@@ -721,7 +721,7 @@ final public class DataStore {
 
     // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
     Iterator<String> bucketsIds = Iterators.transform(
-        termStore_.getBucketsIds(scanners.index(), dataset, term, fields, docsIds), Term::bucketId);
+        termStore_.bucketsIds(scanners.index(), dataset, term, fields, docsIds), Term::bucketId);
 
     DataStoreCache.write(writers, cacheId, bucketsIds);
 
@@ -778,7 +778,7 @@ final public class DataStore {
 
     // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
     Iterator<String> bucketsIds = Iterators.transform(
-        termStore_.getBucketsIds(scanners.index(), dataset, minTerm, maxTerm, fields, docsIds),
+        termStore_.bucketsIds(scanners.index(), dataset, minTerm, maxTerm, fields, docsIds),
         Term::bucketId);
 
     DataStoreCache.write(writers, cacheId, bucketsIds);

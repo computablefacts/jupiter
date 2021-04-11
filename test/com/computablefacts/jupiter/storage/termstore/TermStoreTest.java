@@ -97,12 +97,12 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, fieldLastUpdates.size());
 
       List<TermCount> termsCounts = new ArrayList<>();
-      termStore.getCounts(scanner, dataset, null, "john").forEachRemaining(termsCounts::add);
+      termStore.counts(scanner, dataset, null, "john").forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
 
       List<Term> terms = new ArrayList<>();
-      termStore.getBucketsIds(scanner, dataset, "john", null, null).forEachRemaining(terms::add);
+      termStore.bucketsIds(scanner, dataset, "john", null, null).forEachRemaining(terms::add);
 
       Assert.assertEquals(1, terms.size());
     }
@@ -132,12 +132,12 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(fieldLastUpdates.isEmpty());
 
       List<TermCount> termsCounts = new ArrayList<>();
-      termStore.getCounts(scanner, dataset, null, "john").forEachRemaining(termsCounts::add);
+      termStore.counts(scanner, dataset, null, "john").forEachRemaining(termsCounts::add);
 
       Assert.assertTrue(termsCounts.isEmpty());
 
       List<Term> terms = new ArrayList<>();
-      termStore.getBucketsIds(scanner, dataset, "john", null, null).forEachRemaining(terms::add);
+      termStore.bucketsIds(scanner, dataset, "john", null, null).forEachRemaining(terms::add);
 
       Assert.assertTrue(terms.isEmpty());
     }
