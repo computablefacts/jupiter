@@ -266,12 +266,13 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     Map<String, Object> json = Data.json(1);
 
     String dataset = "blobs";
+    String key = "3";
     Set<String> labels = Sets.newHashSet();
     Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA");
     BlobStore blobStore = newBlobStore(auths);
 
     try (BatchWriter writer = blobStore.writer()) {
-      Assert.assertTrue(blobStore.putJson(writer, dataset, "3", labels, json));
+      Assert.assertTrue(blobStore.putJson(writer, dataset, key, labels, json));
     }
 
     try (BatchScanner scanner =
@@ -286,8 +287,8 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Blob<Value> blob = blobs.get(0);
 
       Assert.assertTrue(blob.isJson());
-      Assert.assertEquals("blobs", blob.dataset());
-      Assert.assertEquals("3", blob.key());
+      Assert.assertEquals(dataset, blob.dataset());
+      Assert.assertEquals(key, blob.key());
       Assert.assertEquals(Sets.newHashSet("ADM", "BLOBS_RAW_DATA"), blob.labels());
       Assert.assertEquals(Lists.newArrayList(), blob.properties());
       Assert.assertEquals(Codecs.asObject(
@@ -302,13 +303,13 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     Map<String, Object> json = Data.json(1);
 
     String dataset = "blobs";
+    String key = "3";
     Set<String> labels = Sets.newHashSet();
-    Authorizations auths =
-        new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_ACTORS_NAME");
+    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_ACTORS_NAME");
     BlobStore blobStore = newBlobStore(auths);
 
     try (BatchWriter writer = blobStore.writer()) {
-      Assert.assertTrue(blobStore.putJson(writer, dataset, "3", labels, json));
+      Assert.assertTrue(blobStore.putJson(writer, dataset, key, labels, json));
     }
 
     try (BatchScanner scanner =
@@ -322,8 +323,8 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Blob<Value> blob = blobs.get(0);
 
       Assert.assertTrue(blob.isJson());
-      Assert.assertEquals("blobs", blob.dataset());
-      Assert.assertEquals("3", blob.key());
+      Assert.assertEquals(dataset, blob.dataset());
+      Assert.assertEquals(key, blob.key());
       Assert.assertEquals(Sets.newHashSet("ADM", "BLOBS_RAW_DATA"), blob.labels());
       Assert.assertEquals(Lists.newArrayList(), blob.properties());
       Assert.assertEquals(
@@ -337,14 +338,15 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
   public void testAnonymizeBlob() throws Exception {
 
     String str = Codecs.asString(Data.json(1));
+
     String dataset = "blobs";
-    String bucketId = "2";
+    String key = "2";
     Set<String> labels = Sets.newHashSet();
     Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA");
     BlobStore blobStore = newBlobStore(auths);
 
     try (BatchWriter writer = blobStore.writer()) {
-      Assert.assertTrue(blobStore.putString(writer, dataset, bucketId, labels, str));
+      Assert.assertTrue(blobStore.putString(writer, dataset, key, labels, str));
     }
 
     try (BatchScanner scanner = blobStore.batchScanner(new Authorizations("ADM"), 1)) {
@@ -357,8 +359,8 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Blob<Value> blob = blobs.get(0);
 
       Assert.assertTrue(blob.isString());
-      Assert.assertEquals("blobs", blob.dataset());
-      Assert.assertEquals("2", blob.key());
+      Assert.assertEquals(dataset, blob.dataset());
+      Assert.assertEquals(key, blob.key());
       Assert.assertEquals(Sets.newHashSet("ADM", "BLOBS_RAW_DATA"), blob.labels());
       Assert.assertEquals(Lists.newArrayList(), blob.properties());
       Assert.assertEquals(Codecs.asObject("{\"is_anonymized\":\"true\"}"),
