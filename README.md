@@ -186,7 +186,7 @@ try (BatchWriter writer = termStore.writer()) {
 // Get the number of occurrences
 try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA"))) {
 
-    Iterator<TermCount> tcs = termStore.getCounts(scanner, "my_buckets", null, "joh*");
+    Iterator<TermCount> tcs = termStore.counts(scanner, "my_buckets", null, "joh*");
     TermCount tc = Iterators.get(tcs, 0);
     
     Assert.assertEquals("my_buckets", tc.dataset());
@@ -195,7 +195,7 @@ try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA
     Assert.assertEquals(1, tc.count());
     Assert.assertEquals(bucketSpecificLabels, tc.labels());
 
-    tcs = termStore.getCounts(scanner, "my_buckets", null, 30, 40);
+    tcs = termStore.counts(scanner, "my_buckets", null, 30, 40);
     tc = Iterators.get(tcs, 0);
 
     Assert.assertEquals("my_buckets", tc.dataset());
@@ -208,7 +208,7 @@ try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA
 // Get the buckets ids
 try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA"))) {
     
-    Iterator<Term> ts = termStore.getBucketsIds(scanner, "my_buckets", null, "joh*", null, null);
+    Iterator<Term> ts = termStore.bucketsIds(scanner, "my_buckets", null, "joh*", null, null);
     Term t = Iterators.get(ts, 0);
     
     Assert.assertEquals("my_buckets", t.dataset());
@@ -218,7 +218,7 @@ try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA
     Assert.assertEquals(1, t.count());
     Assert.assertEquals(bucketSpecificLabels, t.labels());
     
-    ts = termStore.getBucketsIds(scanner, "my_buckets", null, 30, 40, null, null);
+    ts = termStore.bucketsIds(scanner, "my_buckets", null, 30, 40, null, null);
     t = Iterators.get(ts, 0);
     
     Assert.assertEquals("my_buckets", t.dataset());
