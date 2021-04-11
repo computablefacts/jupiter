@@ -20,7 +20,6 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.iterators.BlobStoreAnonymizingIterator;
 import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterator;
-import com.computablefacts.jupiter.iterators.BlobStoreJsonFieldsAnonymizingIterator;
 import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
@@ -244,24 +243,18 @@ final public class BlobStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(dataset));
 
-    IteratorSetting setting = new IteratorSetting(21, BlobStoreAnonymizingIterator.class);
-    BlobStoreAnonymizingIterator.setAuthorizations(setting, scanner.getAuthorizations());
+    IteratorSetting setting1 = new IteratorSetting(21, BlobStoreAnonymizingIterator.class);
+    BlobStoreAnonymizingIterator.setAuthorizations(setting1, scanner.getAuthorizations());
 
-    scanner.addScanIterator(setting);
+    scanner.addScanIterator(setting1);
 
-    IteratorSetting setting2 =
-        new IteratorSetting(22, BlobStoreJsonFieldsAnonymizingIterator.class);
-    BlobStoreJsonFieldsAnonymizingIterator.setAuthorizations(setting2, scanner.getAuthorizations());
+    if (fields != null && !fields.isEmpty()) {
 
-    scanner.addScanIterator(setting2);
+      IteratorSetting setting2 =
+          new IteratorSetting(22, BlobStoreFilterOutJsonFieldsIterator.class);
+      BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting2, fields);
 
-    if (fields != null) {
-
-      IteratorSetting setting3 =
-          new IteratorSetting(23, BlobStoreFilterOutJsonFieldsIterator.class);
-      BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting3, fields);
-
-      scanner.addScanIterator(setting3);
+      scanner.addScanIterator(setting2);
     }
 
     List<Range> ranges;

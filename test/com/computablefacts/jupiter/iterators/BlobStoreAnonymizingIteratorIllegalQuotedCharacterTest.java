@@ -18,12 +18,12 @@ import org.junit.Test;
 import com.computablefacts.jupiter.storage.Constants;
 import com.google.errorprone.annotations.Var;
 
-public class BlobStoreJsonFieldsAnonymizingIteratorIllegalQuotedCharacterTest {
+public class BlobStoreAnonymizingIteratorIllegalQuotedCharacterTest {
 
   @Test
   public void testWithoutIllegalQuotedCharacterInFilteredFields() throws Exception {
 
-    BlobStoreJsonFieldsAnonymizingIterator iterator =
+    BlobStoreAnonymizingIterator iterator =
         iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_NAME", "DATASET_1_AGE"));
 
     @Var
@@ -55,7 +55,7 @@ public class BlobStoreJsonFieldsAnonymizingIteratorIllegalQuotedCharacterTest {
   @Test
   public void testFiltersWithIllegalQuotedCharacterInFilteredFields() throws Exception {
 
-    BlobStoreJsonFieldsAnonymizingIterator iterator =
+    BlobStoreAnonymizingIterator iterator =
         iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_NAME", "DATASET_1_CITY"));
 
     @Var
@@ -84,11 +84,11 @@ public class BlobStoreJsonFieldsAnonymizingIteratorIllegalQuotedCharacterTest {
     Assert.assertEquals(3, countDataset2);
   }
 
-  private BlobStoreJsonFieldsAnonymizingIterator iterator(Authorizations auths) throws IOException {
+  private BlobStoreAnonymizingIterator iterator(Authorizations auths) throws IOException {
 
-    BlobStoreJsonFieldsAnonymizingIterator iterator = new BlobStoreJsonFieldsAnonymizingIterator();
-    IteratorSetting setting = new IteratorSetting(1, BlobStoreJsonFieldsAnonymizingIterator.class);
-    BlobStoreJsonFieldsAnonymizingIterator.setAuthorizations(setting, auths);
+    BlobStoreAnonymizingIterator iterator = new BlobStoreAnonymizingIterator();
+    IteratorSetting setting = new IteratorSetting(1, BlobStoreAnonymizingIterator.class);
+    BlobStoreAnonymizingIterator.setAuthorizations(setting, auths);
 
     Assert.assertTrue(iterator.validateOptions(setting.getOptions()));
 

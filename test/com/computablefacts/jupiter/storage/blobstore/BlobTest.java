@@ -65,7 +65,7 @@ public class BlobTest {
     byte[] row = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
     byte[] cf = "my_dataset".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "1\0".getBytes(StandardCharsets.UTF_8);
-    byte[] cv = new ColumnVisibility().getExpression();
+    byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_DATA").getExpression();
     byte[] val = str.getBytes(StandardCharsets.UTF_8);
 
     Mutation expected = new Mutation(row);
@@ -84,7 +84,7 @@ public class BlobTest {
     byte[] row = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
     byte[] cf = "my_dataset".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "3\0".getBytes(StandardCharsets.UTF_8);
-    byte[] cv = new ColumnVisibility().getExpression();
+    byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_DATA").getExpression();
     byte[] val = Codecs.asString(json).getBytes(StandardCharsets.UTF_8);
 
     Mutation expected = new Mutation(row);
@@ -103,7 +103,7 @@ public class BlobTest {
 
     byte[] row = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
     byte[] cf = "my_dataset".getBytes(StandardCharsets.UTF_8);
-    byte[] cv = new ColumnVisibility().getExpression();
+    byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_FILE").getExpression();
     byte[] val = java.nio.file.Files.readAllBytes(file.toPath());
 
     StringBuilder cq = new StringBuilder();

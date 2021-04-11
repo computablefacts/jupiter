@@ -2,6 +2,9 @@ package com.computablefacts.jupiter.storage.blobstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
+import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
+import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
+import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_FILE;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -16,6 +19,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
+import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.nona.Generated;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -69,8 +73,8 @@ final public class Blob<T> {
     Preconditions.checkNotNull(labels, "labels should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    return newMutation(dataset, key, labels, TYPE_STRING, value.getBytes(StandardCharsets.UTF_8),
-        null);
+    return newMutation(dataset, key, new HashSet<>(labels), TYPE_STRING,
+        value.getBytes(StandardCharsets.UTF_8), null);
   }
 
   public static Mutation fromJson(String dataset, String key, Set<String> labels, String value) {
@@ -80,8 +84,8 @@ final public class Blob<T> {
     Preconditions.checkNotNull(labels, "labels should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    return newMutation(dataset, key, labels, TYPE_JSON, value.getBytes(StandardCharsets.UTF_8),
-        null);
+    return newMutation(dataset, key, new HashSet<>(labels), TYPE_JSON,
+        value.getBytes(StandardCharsets.UTF_8), null);
   }
 
   public static Mutation fromFile(String dataset, String key, Set<String> labels,
@@ -94,7 +98,7 @@ final public class Blob<T> {
     Preconditions.checkArgument(file.exists(), "Missing file : %s", file);
 
     try {
-      return newMutation(dataset, key, labels, TYPE_FILE,
+      return newMutation(dataset, key, new HashSet<>(labels), TYPE_FILE,
           java.nio.file.Files.readAllBytes(file.toPath()),
           Lists.newArrayList(file.getName(), Long.toString(file.length(), 10)));
     } catch (IOException e) {
@@ -147,6 +151,14 @@ final public class Blob<T> {
 
     if (properties != null && !properties.isEmpty()) {
       cq.append(Joiner.on(SEPARATOR_NUL).join(properties));
+    }
+
+    labels.add(STRING_ADM);
+
+    if (type == TYPE_FILE) {
+      labels.add(AbstractStorage.toVisibilityLabel(dataset + "_" + STRING_RAW_FILE));
+    } else {
+      labels.add(AbstractStorage.toVisibilityLabel(dataset + "_" + STRING_RAW_DATA));
     }
 
     ColumnVisibility cv = new ColumnVisibility(Joiner.on(SEPARATOR_PIPE).join(labels));

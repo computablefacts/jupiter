@@ -21,7 +21,7 @@ import com.google.errorprone.annotations.Var;
 public class BlobStoreAnonymizingIteratorTest {
 
   @Test
-  public void testNull() {
+  public void testNullAuthorizations() {
 
     BlobStoreAnonymizingIterator iterator = new BlobStoreAnonymizingIterator();
     IteratorSetting iteratorSetting = new IteratorSetting(1, BlobStoreAnonymizingIterator.class);
@@ -31,10 +31,9 @@ public class BlobStoreAnonymizingIteratorTest {
   }
 
   @Test
-  public void testExactValue() throws Exception {
+  public void testNoMatchingAuthorizations() throws Exception {
 
-    BlobStoreAnonymizingIterator iterator =
-        iterator(new Authorizations(Constants.STRING_ADM, "DS1", "DS2"));
+    BlobStoreAnonymizingIterator iterator = iterator(new Authorizations());
 
     @Var
     int countDataset1 = 0;
@@ -47,11 +46,11 @@ public class BlobStoreAnonymizingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("1", value);
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("2", value);
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
         countDataset2++;
       }
 
@@ -63,10 +62,9 @@ public class BlobStoreAnonymizingIteratorTest {
   }
 
   @Test
-  public void testMaskedValue() throws Exception {
+  public void testOnlyAdmAuthorization() throws Exception {
 
-    BlobStoreAnonymizingIterator iterator =
-        iterator(new Authorizations(Constants.STRING_ADM, "DS1"));
+    BlobStoreAnonymizingIterator iterator = iterator(new Authorizations(Constants.STRING_ADM));
 
     @Var
     int countDataset1 = 0;
@@ -79,11 +77,106 @@ public class BlobStoreAnonymizingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("1", value);
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals(Constants.VALUE_ANONYMIZED.toString(), value);
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        countDataset2++;
+      }
+
+      iterator.next();
+    }
+
+    Assert.assertEquals(3, countDataset1);
+    Assert.assertEquals(3, countDataset2);
+  }
+
+  @Test
+  public void testOnlyRawDataAuthorization() throws Exception {
+
+    BlobStoreAnonymizingIterator iterator = iterator(new Authorizations("DATASET_1_RAW_DATA"));
+
+    @Var
+    int countDataset1 = 0;
+    @Var
+    int countDataset2 = 0;
+
+    while (iterator.hasTop()) {
+
+      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String value = iterator.getTopValue().toString();
+
+      if ("DATASET_1".equals(cf)) {
+        Assert.assertEquals(json(), value);
+        countDataset1++;
+      }
+      if ("DATASET_2".equals(cf)) {
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        countDataset2++;
+      }
+
+      iterator.next();
+    }
+
+    Assert.assertEquals(3, countDataset1);
+    Assert.assertEquals(3, countDataset2);
+  }
+
+  @Test
+  public void testTwoMatchingAuthorizations1() throws Exception {
+
+    BlobStoreAnonymizingIterator iterator =
+        iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_AGE", "DATASET_1_CITY"));
+
+    @Var
+    int countDataset1 = 0;
+    @Var
+    int countDataset2 = 0;
+
+    while (iterator.hasTop()) {
+
+      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String value = iterator.getTopValue().toString();
+
+      if ("DATASET_1".equals(cf)) {
+        Assert.assertEquals("{\"age\":31,\"city\":\"New York\"}", value);
+        countDataset1++;
+      }
+      if ("DATASET_2".equals(cf)) {
+        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        countDataset2++;
+      }
+
+      iterator.next();
+    }
+
+    Assert.assertEquals(3, countDataset1);
+    Assert.assertEquals(3, countDataset2);
+  }
+
+  @Test
+  public void testTwoMatchingAuthorizations2() throws Exception {
+
+    BlobStoreAnonymizingIterator iterator =
+        iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_AGE", "DATASET_2_CITY"));
+
+    @Var
+    int countDataset1 = 0;
+    @Var
+    int countDataset2 = 0;
+
+    while (iterator.hasTop()) {
+
+      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String value = iterator.getTopValue().toString();
+
+      if ("DATASET_1".equals(cf)) {
+        Assert.assertEquals("{\"age\":31}", value);
+        countDataset1++;
+      }
+      if ("DATASET_2".equals(cf)) {
+        Assert.assertEquals("{\"city\":\"New York\"}", value);
         countDataset2++;
       }
 
@@ -112,14 +205,24 @@ public class BlobStoreAnonymizingIteratorTest {
 
     SortedMap<Key, Value> map = new TreeMap<>();
 
-    map.put(new Key("KEY_1", "DATASET_1", "", new ColumnVisibility("ADM|DS1"), 0), new Value("1"));
-    map.put(new Key("KEY_2", "DATASET_1", "", new ColumnVisibility("ADM|DS1"), 0), new Value("1"));
-    map.put(new Key("KEY_3", "DATASET_1", "", new ColumnVisibility("ADM|DS1"), 0), new Value("1"));
+    map.put(new Key("KEY_1", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("KEY_2", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("KEY_3", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+        new Value(json()));
 
-    map.put(new Key("KEY_1", "DATASET_2", "", new ColumnVisibility("ADM|DS2"), 0), new Value("2"));
-    map.put(new Key("KEY_2", "DATASET_2", "", new ColumnVisibility("ADM|DS2"), 0), new Value("2"));
-    map.put(new Key("KEY_3", "DATASET_2", "", new ColumnVisibility("ADM|DS2"), 0), new Value("2"));
+    map.put(new Key("KEY_1", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("KEY_2", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("KEY_3", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+        new Value(json()));
 
     return map;
+  }
+
+  private String json() {
+    return "{\"name\":\"John\", \"age\":31, \"city\":\"New York\"}";
   }
 }

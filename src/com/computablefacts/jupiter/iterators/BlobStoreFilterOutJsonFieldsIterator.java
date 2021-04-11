@@ -127,7 +127,7 @@ public class BlobStoreFilterOutJsonFieldsIterator
 
   @Override
   public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment environment) {
-    AnonymizingIterator iterator = new BlobStoreJsonFieldsAnonymizingIterator();
+    BlobStoreFilterOutJsonFieldsIterator iterator = new BlobStoreFilterOutJsonFieldsIterator();
     iterator.init(source_.deepCopy(environment), options_, environment);
     return iterator;
   }
