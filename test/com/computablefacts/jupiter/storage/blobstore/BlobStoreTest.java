@@ -28,7 +28,7 @@ import com.google.common.collect.Sets;
 public class BlobStoreTest extends MiniAccumuloClusterTest {
 
   @Test
-  public void addLocalityGroup() throws Exception {
+  public void testAddLocalityGroup() throws Exception {
 
     File file = Data.file(10);
     String str = Codecs.asString(Data.json(1));
