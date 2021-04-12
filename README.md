@@ -195,7 +195,7 @@ try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA
     Assert.assertEquals(1, tc.count());
     Assert.assertEquals(bucketSpecificLabels, tc.labels());
 
-    tcs = termStore.counts(scanner, "my_buckets", 30, 40);
+    tcs = termStore.counts(scanner, "my_buckets", null, 30, 40);
     tc = Iterators.get(tcs, 0);
 
     Assert.assertEquals("my_buckets", tc.dataset());
@@ -218,7 +218,7 @@ try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA
     Assert.assertEquals(1, t.count());
     Assert.assertEquals(bucketSpecificLabels, t.labels());
     
-    ts = termStore.bucketsIds(scanner, "my_buckets", 30, 40);
+    ts = termStore.bucketsIds(scanner, "my_buckets", null, 30, 40, null);
     t = Iterators.get(ts, 0);
     
     Assert.assertEquals("my_buckets", t.dataset());
