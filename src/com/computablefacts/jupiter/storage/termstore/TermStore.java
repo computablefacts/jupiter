@@ -547,8 +547,8 @@ final public class TermStore extends AbstractStorage {
    * @param scanner scanner.
    * @param dataset dataset (optional).
    * @param term searched term. Might contain wildcard characters.
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
+   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
+   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
   public Iterator<TermCount> counts(ScannerBase scanner, String dataset, String term) {
@@ -563,8 +563,8 @@ final public class TermStore extends AbstractStorage {
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
+   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
+   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
   public Iterator<TermCount> counts(ScannerBase scanner, String dataset, Set<String> fields,
@@ -624,8 +624,8 @@ final public class TermStore extends AbstractStorage {
    * @param scanner scanner.
    * @param dataset dataset (optional).
    * @param term searched term. Might contain wildcard characters.
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
+   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
+   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
   public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, String term) {
@@ -641,8 +641,8 @@ final public class TermStore extends AbstractStorage {
    * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
    * @param bucketsIds which buckets must be considered (optional).
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
+   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
+   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
   public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
@@ -706,8 +706,8 @@ final public class TermStore extends AbstractStorage {
    * @param fields which fields must be considered (optional).
    * @param minTerm first searched term (included). Wildcard characters are not allowed.
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
+   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
+   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
   public Iterator<TermCount> counts(ScannerBase scanner, String dataset, Set<String> fields,
@@ -729,39 +729,26 @@ final public class TermStore extends AbstractStorage {
     scanner.clearColumns();
     scanner.clearScanIterators();
 
-    String newMinTerm;
-    String newMaxTerm;
+    Key beginKey;
+    Key endKey;
 
     if ((minTerm == null || minTerm instanceof String)
         && (maxTerm == null || maxTerm instanceof String)) {
 
-      newMinTerm = (String) minTerm;
-      newMaxTerm = (String) maxTerm;
+      beginKey = minTerm == null ? null : new Key((String) minTerm);
+      endKey = maxTerm == null ? null : new Key((String) maxTerm);
 
-      Preconditions.checkState(newMinTerm == null || !WildcardMatcher.hasWildcards(newMinTerm),
+      Preconditions.checkState(minTerm == null || !WildcardMatcher.hasWildcards((String) minTerm),
           "wildcards are forbidden in minTerm");
-      Preconditions.checkState(newMaxTerm == null || !WildcardMatcher.hasWildcards(newMaxTerm),
+      Preconditions.checkState(maxTerm == null || !WildcardMatcher.hasWildcards((String) maxTerm),
           "wildcards are forbidden in maxTerm");
 
     } else { // Objects other than String are lexicoded
-      newMinTerm = minTerm == null ? null : Codecs.defaultLexicoder.apply(minTerm).text();
-      newMaxTerm = maxTerm == null ? null : Codecs.defaultLexicoder.apply(maxTerm).text();
+      beginKey = minTerm == null ? null : new Key(Codecs.defaultLexicoder.apply(minTerm).text());
+      endKey = maxTerm == null ? null : new Key(Codecs.defaultLexicoder.apply(maxTerm).text());
     }
 
-    Range range;
-
-    if (newMinTerm == null) { // scan ]-inf, maxTerm]
-      Key endKey = new Key(newMaxTerm);
-      range = new Range(null, endKey);
-    } else if (newMaxTerm == null) { // scan [minTerm, +inf[
-      Key startKey = new Key(newMinTerm);
-      range = new Range(startKey, null);
-    } else { // scan [minTerm, maxTerm]
-      Key startKey = new Key(newMinTerm);
-      Key endKey = new Key(newMaxTerm);
-      range = new Range(startKey, endKey);
-    }
-
+    Range range = new Range(beginKey, endKey);
     String newDataset = dataset == null ? null : forwardCount(dataset);
 
     return scanCounts(scanner, newDataset, fields, range, false);
@@ -777,8 +764,8 @@ final public class TermStore extends AbstractStorage {
    * @param minTerm first searched term (included). Wildcard characters are not allowed.
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @param bucketsIds which buckets must be considered (optional).
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
+   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
+   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
   public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
@@ -800,39 +787,26 @@ final public class TermStore extends AbstractStorage {
     scanner.clearColumns();
     scanner.clearScanIterators();
 
-    String newMinTerm;
-    String newMaxTerm;
+    Key beginKey;
+    Key endKey;
 
     if ((minTerm == null || minTerm instanceof String)
         && (maxTerm == null || maxTerm instanceof String)) {
 
-      newMinTerm = (String) minTerm;
-      newMaxTerm = (String) maxTerm;
+      beginKey = minTerm == null ? null : new Key((String) minTerm);
+      endKey = maxTerm == null ? null : new Key((String) maxTerm);
 
-      Preconditions.checkState(newMinTerm == null || !WildcardMatcher.hasWildcards(newMinTerm),
+      Preconditions.checkState(minTerm == null || !WildcardMatcher.hasWildcards((String) minTerm),
           "wildcards are forbidden in minTerm");
-      Preconditions.checkState(newMaxTerm == null || !WildcardMatcher.hasWildcards(newMaxTerm),
+      Preconditions.checkState(maxTerm == null || !WildcardMatcher.hasWildcards((String) maxTerm),
           "wildcards are forbidden in maxTerm");
 
     } else { // Objects other than String are lexicoded
-      newMinTerm = minTerm == null ? null : Codecs.defaultLexicoder.apply(minTerm).text();
-      newMaxTerm = maxTerm == null ? null : Codecs.defaultLexicoder.apply(maxTerm).text();
+      beginKey = minTerm == null ? null : new Key(Codecs.defaultLexicoder.apply(minTerm).text());
+      endKey = maxTerm == null ? null : new Key(Codecs.defaultLexicoder.apply(maxTerm).text());
     }
 
-    Range range;
-
-    if (newMinTerm == null) { // scan ]-inf, maxTerm]
-      Key endKey = new Key(newMaxTerm);
-      range = new Range(null, endKey);
-    } else if (newMaxTerm == null) { // scan [minTerm, +inf[
-      Key startKey = new Key(newMinTerm);
-      range = new Range(startKey, null);
-    } else { // scan [minTerm, maxTerm]
-      Key startKey = new Key(newMinTerm);
-      Key endKey = new Key(newMaxTerm);
-      range = new Range(startKey, endKey);
-    }
-
+    Range range = new Range(beginKey, endKey);
     String newDataset = dataset == null ? null : forwardIndex(dataset);
 
     return scanIndex(scanner, newDataset, fields, range, false, bucketsIds);
