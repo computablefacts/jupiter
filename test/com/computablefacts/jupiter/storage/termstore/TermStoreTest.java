@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.storage.termstore;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -503,7 +504,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       // Throws an exception
-      termStore.counts(scanner, dataset, Sets.newHashSet("age"), null, null);
+      Iterator<TermCount> iterator =
+          termStore.counts(scanner, dataset, Sets.newHashSet("age"), null, null);
     }
   }
 
@@ -525,7 +527,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       // Throws an exception
-      termStore.bucketsIds(scanner, dataset, Sets.newHashSet("age"), null, null, null);
+      Iterator<Term> iterator =
+          termStore.bucketsIds(scanner, dataset, Sets.newHashSet("age"), null, null, null);
     }
   }
 
@@ -547,7 +550,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       // Throws an exception
-      termStore.counts(scanner, dataset, Sets.newHashSet("last_name"), "do*", null);
+      Iterator<TermCount> iterator =
+          termStore.counts(scanner, dataset, Sets.newHashSet("last_name"), "do*", null);
     }
   }
 
@@ -569,7 +573,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       // Throws an exception
-      termStore.bucketsIds(scanner, dataset, Sets.newHashSet("last_name"), "do*", null, null);
+      Iterator<Term> iterator =
+          termStore.bucketsIds(scanner, dataset, Sets.newHashSet("last_name"), "do*", null, null);
     }
   }
 
@@ -591,7 +596,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       // Throws an exception
-      termStore.counts(scanner, dataset, null, "do*", 37);
+      Iterator<TermCount> iterator = termStore.counts(scanner, dataset, null, "do*", 37);
     }
   }
 
@@ -613,7 +618,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       // Throws an exception
-      termStore.bucketsIds(scanner, dataset, null, "do*", 37, null);
+      Iterator<Term> iterator = termStore.bucketsIds(scanner, dataset, null, "do*", 37, null);
     }
   }
 
@@ -840,7 +845,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("john", bucketsIds.get(1).term());
       Assert.assertEquals(1, bucketsIds.get(1).count());
 
-      bucketsIds = new ArrayList<>();
+      bucketsIds.clear();
       termStore.bucketsIds(scanner, dataset, fields, "ja", "jo", null)
           .forEachRemaining(bucketsIds::add);
 
