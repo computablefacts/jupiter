@@ -740,7 +740,7 @@ final public class TermStore extends AbstractStorage {
 
       Preconditions.checkState(newMinTerm == null || !WildcardMatcher.hasWildcards(newMinTerm),
           "wildcards are forbidden in minTerm");
-      Preconditions.checkArgument(newMaxTerm == null || !WildcardMatcher.hasWildcards(newMaxTerm),
+      Preconditions.checkState(newMaxTerm == null || !WildcardMatcher.hasWildcards(newMaxTerm),
           "wildcards are forbidden in maxTerm");
 
     } else { // Objects other than String are lexicoded
@@ -811,7 +811,7 @@ final public class TermStore extends AbstractStorage {
 
       Preconditions.checkState(newMinTerm == null || !WildcardMatcher.hasWildcards(newMinTerm),
           "wildcards are forbidden in minTerm");
-      Preconditions.checkArgument(newMaxTerm == null || !WildcardMatcher.hasWildcards(newMaxTerm),
+      Preconditions.checkState(newMaxTerm == null || !WildcardMatcher.hasWildcards(newMaxTerm),
           "wildcards are forbidden in maxTerm");
 
     } else { // Objects other than String are lexicoded
