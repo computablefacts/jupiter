@@ -698,29 +698,12 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * For each field in a given dataset, get the number of occurrences of all terms in [minTerm,
-   * maxTerm]. Note that this method only hits the forward index.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset (optional).
-   * @param minTerm first searched term. Wildcard characters are not allowed.
-   * @param maxTerm last searched term. Wildcard characters are not allowed.
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
-   */
-  public Iterator<TermCount> counts(ScannerBase scanner, String dataset, Object minTerm,
-      Object maxTerm) {
-    return counts(scanner, dataset, null, minTerm, maxTerm);
-  }
-
-  /**
    * For each field of each bucket in a given dataset, get the number of occurrences of all terms in
    * [minTerm, maxTerm]. Note that this method only hits the forward index.
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
-   * @param fields where the specified terms must be searched for (optional).
+   * @param fields which fields must be considered (optional).
    * @param minTerm first searched term. Wildcard characters are not allowed.
    * @param maxTerm last searched term. Wildcard characters are not allowed.
    * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
@@ -785,29 +768,12 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * For each field in a given dataset, get buckets having a term in [minTerm, maxTerm]. Note that
-   * this method only hits the forward index.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset (optional).
-   * @param minTerm first searched term. Wildcard characters are not allowed.
-   * @param maxTerm last searched term. Wildcard characters are not allowed.
-   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
-   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
-   */
-  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Object minTerm,
-      Object maxTerm) {
-    return bucketsIds(scanner, dataset, null,minTerm, maxTerm,  null);
-  }
-
-  /**
    * For each field of a given list of buckets in a given dataset, get buckets having a term in
    * [minTerm, maxTerm]. Note that this method only hits the forward index.
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
-   * @param fields @param fields which fields must be considered (optional).
+   * @param fields which fields must be considered (optional).
    * @param minTerm first searched term. Wildcard characters are not allowed.
    * @param maxTerm last searched term. Wildcard characters are not allowed.
    * @param bucketsIds which buckets must be considered (optional).
@@ -815,8 +781,8 @@ final public class TermStore extends AbstractStorage {
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields, Object minTerm,
-      Object maxTerm, BloomFilters<String> bucketsIds) {
+  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
+      Object minTerm, Object maxTerm, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
@@ -828,7 +794,7 @@ final public class TermStore extends AbstractStorage {
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
           .add("dataset", dataset).add("fields", fields).add("min_term", minTerm)
-          .add("max_term", maxTerm).formatInfo());
+          .add("max_term", maxTerm).add("has_buckets_ids", bucketsIds != null).formatInfo());
     }
 
     scanner.clearColumns();
