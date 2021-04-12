@@ -542,6 +542,20 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
+   * For each field in a given dataset, get the number of occurrences of a given term.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset (optional).
+   * @param term searched term. Might contain wildcard characters.
+   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
+   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
+   *         {@link org.apache.accumulo.core.client.BatchScanner}.
+   */
+  public Iterator<TermCount> counts(ScannerBase scanner, String dataset, String term) {
+    return counts(scanner, dataset, null, term);
+  }
+
+  /**
    * For each field of each bucket in a given dataset, get the number of occurrences of a given
    * term.
    *
@@ -605,6 +619,20 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
+   * For each field in a given dataset, get the ones matching a given term.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset (optional).
+   * @param term searched term. Might contain wildcard characters.
+   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
+   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
+   *         {@link org.apache.accumulo.core.client.BatchScanner}.
+   */
+  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, String term) {
+    return bucketsIds(scanner, dataset, null, term, null);
+  }
+
+  /**
    * For each field of a given list of buckets in a given dataset, get the ones matching a given
    * term.
    *
@@ -617,8 +645,8 @@ final public class TermStore extends AbstractStorage {
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, String term,
-      Set<String> fields, BloomFilters<String> bucketsIds) {
+  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
+      String term, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
@@ -667,6 +695,23 @@ final public class TermStore extends AbstractStorage {
       scanner.addScanIterator(setting);
     }
     return scanIndex(scanner, newDataset, fields, range, isTermBackward, bucketsIds);
+  }
+
+  /**
+   * For each field in a given dataset, get the number of occurrences of all terms in [minTerm,
+   * maxTerm]. Note that this method only hits the forward index.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset (optional).
+   * @param minTerm first searched term. Wildcard characters are not allowed.
+   * @param maxTerm last searched term. Wildcard characters are not allowed.
+   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
+   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of
+   *         {@link org.apache.accumulo.core.client.BatchScanner}.
+   */
+  public Iterator<TermCount> counts(ScannerBase scanner, String dataset, Object minTerm,
+      Object maxTerm) {
+    return counts(scanner, dataset, null, minTerm, maxTerm);
   }
 
   /**
@@ -740,6 +785,23 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
+   * For each field in a given dataset, get buckets having a term in [minTerm, maxTerm]. Note that
+   * this method only hits the forward index.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset (optional).
+   * @param minTerm first searched term. Wildcard characters are not allowed.
+   * @param maxTerm last searched term. Wildcard characters are not allowed.
+   * @return an iterator whose entries are sorted if and only if {@link ScannerBase} is an instance
+   *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
+   *         {@link org.apache.accumulo.core.client.BatchScanner}.
+   */
+  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Object minTerm,
+      Object maxTerm) {
+    return bucketsIds(scanner, dataset, null,minTerm, maxTerm,  null);
+  }
+
+  /**
    * For each field of a given list of buckets in a given dataset, get buckets having a term in
    * [minTerm, maxTerm]. Note that this method only hits the forward index.
    *
@@ -753,8 +815,8 @@ final public class TermStore extends AbstractStorage {
    *         of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Object minTerm,
-      Object maxTerm, Set<String> fields, BloomFilters<String> bucketsIds) {
+  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields, Object minTerm,
+      Object maxTerm, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,

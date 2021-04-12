@@ -97,12 +97,12 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, fieldLastUpdates.size());
 
       List<TermCount> termsCounts = new ArrayList<>();
-      termStore.counts(scanner, dataset, null, "john").forEachRemaining(termsCounts::add);
+      termStore.counts(scanner, dataset, "john").forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
 
       List<Term> terms = new ArrayList<>();
-      termStore.bucketsIds(scanner, dataset, "john", null, null).forEachRemaining(terms::add);
+      termStore.bucketsIds(scanner, dataset, "john").forEachRemaining(terms::add);
 
       Assert.assertEquals(1, terms.size());
     }
@@ -132,14 +132,202 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(fieldLastUpdates.isEmpty());
 
       List<TermCount> termsCounts = new ArrayList<>();
-      termStore.counts(scanner, dataset, null, "john").forEachRemaining(termsCounts::add);
+      termStore.counts(scanner, dataset, "john").forEachRemaining(termsCounts::add);
 
       Assert.assertTrue(termsCounts.isEmpty());
 
       List<Term> terms = new ArrayList<>();
-      termStore.bucketsIds(scanner, dataset, "john", null, null).forEachRemaining(terms::add);
+      termStore.bucketsIds(scanner, dataset, "john").forEachRemaining(terms::add);
 
       Assert.assertTrue(terms.isEmpty());
+    }
+  }
+
+  @Test
+  public void testHitsForwardIndex() throws Exception {
+
+    String dataset = "terms";
+    Set<String> labels = Sets.newHashSet();
+    Authorizations auths = new Authorizations("ADM", "TERMS_");
+    TermStore termStore = newTermStore(auths);
+
+    try (BatchWriter writer = termStore.writer()) {
+
+      Assert
+          .assertTrue(termStore.put(writer, dataset, "1", "first_name", "john", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "1", "last_name", "doe", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "1", "age", 37, 1, labels, labels));
+
+      Assert
+          .assertTrue(termStore.put(writer, dataset, "2", "first_name", "jane", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "2", "last_name", "doe", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "2", "age", 27, 1, labels, labels));
+    }
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      // Check counts
+      List<TermCount> termsCounts = new ArrayList<>();
+      termStore.counts(scanner, dataset, "jo*").forEachRemaining(termsCounts::add);
+
+      Assert.assertEquals(1, termsCounts.size());
+      Assert.assertEquals("first_name", termsCounts.get(0).field());
+      Assert.assertEquals("john", termsCounts.get(0).term());
+      Assert.assertEquals(1, termsCounts.get(0).count());
+
+      termsCounts.clear();
+      termStore.counts(scanner, dataset, "ja*").forEachRemaining(termsCounts::add);
+
+      Assert.assertEquals(1, termsCounts.size());
+      Assert.assertEquals("first_name", termsCounts.get(0).field());
+      Assert.assertEquals("jane", termsCounts.get(0).term());
+      Assert.assertEquals(1, termsCounts.get(0).count());
+
+      termsCounts.clear();
+      termStore.counts(scanner, dataset, "j???").forEachRemaining(termsCounts::add);
+
+      Assert.assertEquals(2, termsCounts.size());
+      Assert.assertEquals("first_name", termsCounts.get(0).field());
+      Assert.assertEquals("jane", termsCounts.get(0).term());
+      Assert.assertEquals(1, termsCounts.get(0).count());
+      Assert.assertEquals("first_name", termsCounts.get(1).field());
+      Assert.assertEquals("john", termsCounts.get(1).term());
+      Assert.assertEquals(1, termsCounts.get(1).count());
+
+      termsCounts.clear();
+      termStore.counts(scanner, dataset, "d?e").forEachRemaining(termsCounts::add);
+
+      Assert.assertEquals(1, termsCounts.size());
+      Assert.assertEquals("last_name", termsCounts.get(0).field());
+      Assert.assertEquals("doe", termsCounts.get(0).term());
+      Assert.assertEquals(2, termsCounts.get(0).count());
+
+      // Check terms
+      List<Term> bucketsIds = new ArrayList<>();
+      termStore.bucketsIds(scanner, dataset, "jo*").forEachRemaining(bucketsIds::add);
+
+      Assert.assertEquals(1, bucketsIds.size());
+      Assert.assertEquals("1", bucketsIds.get(0).bucketId());
+      Assert.assertEquals("first_name", bucketsIds.get(0).field());
+      Assert.assertEquals("john", bucketsIds.get(0).term());
+      Assert.assertEquals(1, bucketsIds.get(0).count());
+
+      bucketsIds.clear();
+      termStore.bucketsIds(scanner, dataset, "ja*").forEachRemaining(bucketsIds::add);
+
+      Assert.assertEquals(1, bucketsIds.size());
+      Assert.assertEquals("2", bucketsIds.get(0).bucketId());
+      Assert.assertEquals("first_name", bucketsIds.get(0).field());
+      Assert.assertEquals("jane", bucketsIds.get(0).term());
+      Assert.assertEquals(1, bucketsIds.get(0).count());
+
+      bucketsIds.clear();
+      termStore.bucketsIds(scanner, dataset, "j???").forEachRemaining(bucketsIds::add);
+
+      Assert.assertEquals(2, bucketsIds.size());
+      Assert.assertEquals("2", bucketsIds.get(0).bucketId());
+      Assert.assertEquals("first_name", bucketsIds.get(0).field());
+      Assert.assertEquals("jane", bucketsIds.get(0).term());
+      Assert.assertEquals(1, bucketsIds.get(0).count());
+      Assert.assertEquals("1", bucketsIds.get(1).bucketId());
+      Assert.assertEquals("first_name", bucketsIds.get(1).field());
+      Assert.assertEquals("john", bucketsIds.get(1).term());
+      Assert.assertEquals(1, bucketsIds.get(1).count());
+
+      bucketsIds.clear();
+      termStore.bucketsIds(scanner, dataset, "d?e").forEachRemaining(bucketsIds::add);
+
+      Assert.assertEquals(2, bucketsIds.size());
+      Assert.assertEquals("1", bucketsIds.get(0).bucketId());
+      Assert.assertEquals("last_name", bucketsIds.get(0).field());
+      Assert.assertEquals("doe", bucketsIds.get(0).term());
+      Assert.assertEquals(1, bucketsIds.get(0).count());
+      Assert.assertEquals("2", bucketsIds.get(1).bucketId());
+      Assert.assertEquals("last_name", bucketsIds.get(1).field());
+      Assert.assertEquals("doe", bucketsIds.get(1).term());
+      Assert.assertEquals(1, bucketsIds.get(1).count());
+    }
+  }
+
+  @Test
+  public void testHitsBackwardIndex() throws Exception {
+
+    String dataset = "terms";
+    Set<String> labels = Sets.newHashSet();
+    Authorizations auths = new Authorizations("ADM", "TERMS_");
+    TermStore termStore = newTermStore(auths);
+
+    try (BatchWriter writer = termStore.writer()) {
+
+      Assert
+          .assertTrue(termStore.put(writer, dataset, "1", "first_name", "john", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "1", "last_name", "doe", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "1", "age", 37, 1, labels, labels));
+
+      Assert
+          .assertTrue(termStore.put(writer, dataset, "2", "first_name", "jane", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "2", "last_name", "doe", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "2", "age", 27, 1, labels, labels));
+    }
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      // Check counts
+      List<TermCount> termsCounts = new ArrayList<>();
+      termStore.counts(scanner, dataset, "*hn").forEachRemaining(termsCounts::add);
+
+      Assert.assertEquals(1, termsCounts.size());
+      Assert.assertEquals("first_name", termsCounts.get(0).field());
+      Assert.assertEquals("john", termsCounts.get(0).term());
+      Assert.assertEquals(1, termsCounts.get(0).count());
+
+      termsCounts.clear();
+      termStore.counts(scanner, dataset, "*ne").forEachRemaining(termsCounts::add);
+
+      Assert.assertEquals(1, termsCounts.size());
+      Assert.assertEquals("first_name", termsCounts.get(0).field());
+      Assert.assertEquals("jane", termsCounts.get(0).term());
+      Assert.assertEquals(1, termsCounts.get(0).count());
+
+      termsCounts.clear();
+      termStore.counts(scanner, dataset, "?oe").forEachRemaining(termsCounts::add);
+
+      Assert.assertEquals(1, termsCounts.size());
+      Assert.assertEquals("last_name", termsCounts.get(0).field());
+      Assert.assertEquals("doe", termsCounts.get(0).term());
+      Assert.assertEquals(2, termsCounts.get(0).count());
+
+      // Check terms
+      List<Term> bucketsIds = new ArrayList<>();
+      termStore.bucketsIds(scanner, dataset, "*hn").forEachRemaining(bucketsIds::add);
+
+      Assert.assertEquals(1, bucketsIds.size());
+      Assert.assertEquals("1", bucketsIds.get(0).bucketId());
+      Assert.assertEquals("first_name", bucketsIds.get(0).field());
+      Assert.assertEquals("john", bucketsIds.get(0).term());
+      Assert.assertEquals(1, bucketsIds.get(0).count());
+
+      bucketsIds.clear();
+      termStore.bucketsIds(scanner, dataset, "*ne").forEachRemaining(bucketsIds::add);
+
+      Assert.assertEquals(1, bucketsIds.size());
+      Assert.assertEquals("2", bucketsIds.get(0).bucketId());
+      Assert.assertEquals("first_name", bucketsIds.get(0).field());
+      Assert.assertEquals("jane", bucketsIds.get(0).term());
+      Assert.assertEquals(1, bucketsIds.get(0).count());
+
+      bucketsIds.clear();
+      termStore.bucketsIds(scanner, dataset, "?oe").forEachRemaining(bucketsIds::add);
+
+      Assert.assertEquals(2, bucketsIds.size());
+      Assert.assertEquals("1", bucketsIds.get(0).bucketId());
+      Assert.assertEquals("last_name", bucketsIds.get(0).field());
+      Assert.assertEquals("doe", bucketsIds.get(0).term());
+      Assert.assertEquals(1, bucketsIds.get(0).count());
+      Assert.assertEquals("2", bucketsIds.get(1).bucketId());
+      Assert.assertEquals("last_name", bucketsIds.get(1).field());
+      Assert.assertEquals("doe", bucketsIds.get(1).term());
+      Assert.assertEquals(1, bucketsIds.get(1).count());
     }
   }
 

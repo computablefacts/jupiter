@@ -721,7 +721,7 @@ final public class DataStore {
 
     // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
     Iterator<String> bucketsIds = Iterators.transform(
-        termStore_.bucketsIds(scanners.index(), dataset, term, fields, docsIds), Term::bucketId);
+        termStore_.bucketsIds(scanners.index(), dataset, fields, term, docsIds), Term::bucketId);
 
     DataStoreCache.write(writers, cacheId, bucketsIds);
 
@@ -778,7 +778,7 @@ final public class DataStore {
 
     // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
     Iterator<String> bucketsIds = Iterators.transform(
-        termStore_.bucketsIds(scanners.index(), dataset, minTerm, maxTerm, fields, docsIds),
+        termStore_.bucketsIds(scanners.index(), dataset, fields, minTerm, maxTerm, docsIds),
         Term::bucketId);
 
     DataStoreCache.write(writers, cacheId, bucketsIds);
