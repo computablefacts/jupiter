@@ -38,7 +38,6 @@ import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.jupiter.storage.termstore.FieldCount;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
 import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
-import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.jupiter.storage.termstore.TermCount;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.nona.Generated;
@@ -434,6 +433,20 @@ final public class DataStore {
    * Persist a single JSON object.
    *
    * @param writers writers.
+   * @param dataset dataset.
+   * @param docId unique identifier.
+   * @param json JSON object.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean persist(Writers writers, String dataset, String docId, Map<String, Object> json) {
+    return persist(writers, dataset, docId, Codecs.asString(json), key -> true,
+        Codecs.defaultTokenizer);
+  }
+
+  /**
+   * Persist a single JSON object.
+   *
+   * @param writers writers.
    * @param dataset the dataset.
    * @param docId the document identifier
    * @param json the JSON object as a String.
@@ -720,8 +733,9 @@ final public class DataStore {
     // TODO : ensure the cache does not already contain the query result
 
     // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
-    Iterator<String> bucketsIds = Iterators.transform(
-        termStore_.bucketsIds(scanners.index(), dataset, fields, term, docsIds), Term::bucketId);
+    Iterator<String> bucketsIds =
+        Iterators.transform(termStore_.bucketsIds(scanners.index(), dataset, fields, term, docsIds),
+            t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
     DataStoreCache.write(writers, cacheId, bucketsIds);
 
@@ -779,7 +793,7 @@ final public class DataStore {
     // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
     Iterator<String> bucketsIds = Iterators.transform(
         termStore_.bucketsIds(scanners.index(), dataset, fields, minTerm, maxTerm, docsIds),
-        Term::bucketId);
+        t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
     DataStoreCache.write(writers, cacheId, bucketsIds);
 
