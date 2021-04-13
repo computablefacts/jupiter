@@ -125,7 +125,7 @@ final public class TermStore extends AbstractStorage {
       scanner.fetchColumnFamily(new Text(dataset));
     } else {
 
-      IteratorSetting setting = new IteratorSetting(23, "WildcardFilter", WildcardFilter.class);
+      IteratorSetting setting = new IteratorSetting(23, "WildcardFilter2", WildcardFilter.class);
       WildcardFilter.applyOnColumnFamily(setting);
       WildcardFilter.addWildcard(setting, hitsBackwardIndex ? "*_BCNT" : "*_FCNT");
 
@@ -169,7 +169,7 @@ final public class TermStore extends AbstractStorage {
       scanner.fetchColumnFamily(new Text(dataset));
     } else {
 
-      IteratorSetting settings = new IteratorSetting(23, "WildcardFilter", WildcardFilter.class);
+      IteratorSetting settings = new IteratorSetting(23, "WildcardFilter2", WildcardFilter.class);
       WildcardFilter.applyOnColumnFamily(settings);
       WildcardFilter.addWildcard(settings, hitsBackwardIndex ? "*_BIDX" : "*_FIDX");
 
@@ -609,7 +609,7 @@ final public class TermStore extends AbstractStorage {
 
       range = Range.prefix(WildcardMatcher.prefix(newTerm));
 
-      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
+      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter1", WildcardFilter.class);
       WildcardFilter.applyOnRow(setting);
       WildcardFilter.addWildcard(setting, newTerm);
 
@@ -688,7 +688,7 @@ final public class TermStore extends AbstractStorage {
 
       range = Range.prefix(WildcardMatcher.prefix(newTerm));
 
-      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
+      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter1", WildcardFilter.class);
       WildcardFilter.applyOnRow(setting);
       WildcardFilter.addWildcard(setting, newTerm);
 
