@@ -708,8 +708,8 @@ final public class DataStore {
    * @return an ordered stream of documents ids.
    */
   @Beta
-  public Iterator<String> getDocsIds(Scanners scanners, Writers writers, String dataset,
-      String term, Set<String> fields, BloomFilters<String> docsIds) {
+  public Iterator<String> docsIds(Scanners scanners, Writers writers, String dataset, String term,
+      Set<String> fields, BloomFilters<String> docsIds) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(writers, "writers should not be null");
@@ -733,9 +733,9 @@ final public class DataStore {
     if (!DataStoreCache.hasData(scanners, cacheId)) {
 
       // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
-      Iterator<String> bucketsIds =
-              Iterators.transform(termStore_.bucketsIds(scanners.index(), dataset, fields, term, docsIds),
-                      t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
+      Iterator<String> bucketsIds = Iterators.transform(
+          termStore_.bucketsIds(scanners.index(), dataset, fields, term, docsIds),
+          t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
       DataStoreCache.write(writers, cacheId, bucketsIds);
     }
@@ -757,7 +757,7 @@ final public class DataStore {
    * @return an ordered stream of documents ids.
    */
   @Beta
-  public Iterator<String> getDocsIds(Scanners scanners, Writers writers, String dataset,
+  public Iterator<String> docsIds(Scanners scanners, Writers writers, String dataset,
       Object minTerm, Object maxTerm, Set<String> fields, BloomFilters<String> docsIds) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
