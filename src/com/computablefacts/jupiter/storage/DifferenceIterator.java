@@ -27,13 +27,6 @@ public class DifferenceIterator<T extends Comparable<T>> extends AbstractIterato
   @Override
   protected T computeNext() {
 
-    if (!iter1_.hasNext()) {
-      return endOfData();
-    }
-    if (!iter2_.hasNext()) {
-      return iter1_.next();
-    }
-
     while (iter1_.hasNext()) {
 
       T cur1 = iter1_.next();
