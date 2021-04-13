@@ -191,8 +191,6 @@ final public class TerminalNode extends AbstractNode {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(dataset),
-        "dataset should neither be null nor empty");
 
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset).add("key", key_)

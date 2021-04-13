@@ -1,6 +1,10 @@
 package com.computablefacts.jupiter.queries;
 
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+
+import java.util.AbstractMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import com.computablefacts.jupiter.BloomFilters;
@@ -9,6 +13,7 @@ import com.computablefacts.jupiter.storage.datastore.Scanners;
 import com.computablefacts.jupiter.storage.datastore.Writers;
 import com.computablefacts.nona.types.SpanSequence;
 import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 /**
@@ -40,14 +45,20 @@ public abstract class AbstractNode {
     return count(dataStore, scanners, dataset, null);
   }
 
-  final public Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,
-      String dataset) {
-    return execute(dataStore, scanners, writers, dataset, null, null);
+  final public Iterator<Map.Entry<String, String>> execute(DataStore dataStore, Scanners scanners,
+      Writers writers, String dataset) {
+    return Iterators.transform(execute(dataStore, scanners, writers, dataset, null, null), t -> {
+      int index = t.indexOf(SEPARATOR_NUL);
+      return new AbstractMap.SimpleEntry<>(t.substring(0, index), t.substring(index + 1));
+    });
   }
 
-  final public Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,
-      String dataset, BloomFilters<String> docsIds) {
-    return execute(dataStore, scanners, writers, dataset, docsIds, null);
+  final public Iterator<Map.Entry<String, String>> execute(DataStore dataStore, Scanners scanners,
+      Writers writers, String dataset, BloomFilters<String> docsIds) {
+    return Iterators.transform(execute(dataStore, scanners, writers, dataset, docsIds, null), t -> {
+      int index = t.indexOf(SEPARATOR_NUL);
+      return new AbstractMap.SimpleEntry<>(t.substring(0, index), t.substring(index + 1));
+    });
   }
 
   @Deprecated
