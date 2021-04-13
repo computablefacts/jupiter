@@ -128,7 +128,7 @@ final public class DataStoreInfos {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
 
-    String newType = type == Term.TYPE_STRING ? "STRING"
+    String newType = type == Term.TYPE_STRING ? "TEXT"
         : type == Term.TYPE_DATE ? "DATE"
             : type == Term.TYPE_NUMBER ? "NUMBER"
                 : type == Term.TYPE_BOOLEAN ? "BOOLEAN" : "UNKNOWN";
