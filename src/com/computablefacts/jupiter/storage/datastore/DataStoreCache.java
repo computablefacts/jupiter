@@ -34,6 +34,17 @@ final public class DataStoreCache {
   private DataStoreCache() {}
 
   /**
+   * Check if a cache id already exists.
+   *
+   * @param scanners scanners.
+   * @param cacheId the cache id.
+   * @return true iif the cache id already exists, false otherwise.
+   */
+  public static boolean hasData(Scanners scanners, String cacheId) {
+    return read(scanners, cacheId).hasNext();
+  }
+
+  /**
    * Get a list of values.
    *
    * @param scanners scanners.

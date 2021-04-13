@@ -730,14 +730,15 @@ final public class DataStore {
     String cacheId = hashFunction_.newHasher()
         .putString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).hash().toString();
 
-    // TODO : ensure the cache does not already contain the query result
+    if (!DataStoreCache.hasData(scanners, cacheId)) {
 
-    // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
-    Iterator<String> bucketsIds =
-        Iterators.transform(termStore_.bucketsIds(scanners.index(), dataset, fields, term, docsIds),
-            t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
+      // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
+      Iterator<String> bucketsIds =
+              Iterators.transform(termStore_.bucketsIds(scanners.index(), dataset, fields, term, docsIds),
+                      t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
-    DataStoreCache.write(writers, cacheId, bucketsIds);
+      DataStoreCache.write(writers, cacheId, bucketsIds);
+    }
 
     // Returns an iterator over the documents ids
     return DataStoreCache.read(scanners, cacheId);
@@ -788,14 +789,15 @@ final public class DataStore {
     String cacheId = hashFunction_.newHasher()
         .putString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).hash().toString();
 
-    // TODO : ensure the cache does not already contain the query result
+    if (!DataStoreCache.hasData(scanners, cacheId)) {
 
-    // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
-    Iterator<String> bucketsIds = Iterators.transform(
-        termStore_.bucketsIds(scanners.index(), dataset, fields, minTerm, maxTerm, docsIds),
-        t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
+      // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
+      Iterator<String> bucketsIds = Iterators.transform(
+          termStore_.bucketsIds(scanners.index(), dataset, fields, minTerm, maxTerm, docsIds),
+          t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
-    DataStoreCache.write(writers, cacheId, bucketsIds);
+      DataStoreCache.write(writers, cacheId, bucketsIds);
+    }
 
     // Returns an iterator over the documents ids
     return DataStoreCache.read(scanners, cacheId);
