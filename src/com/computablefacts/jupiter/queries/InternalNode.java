@@ -18,7 +18,6 @@ import com.computablefacts.jupiter.storage.datastore.Writers;
 import com.computablefacts.nona.types.SpanSequence;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -72,8 +71,6 @@ final public class InternalNode extends AbstractNode {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(dataset),
-        "dataset should neither be null nor empty");
 
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset)
