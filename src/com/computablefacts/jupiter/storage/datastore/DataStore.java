@@ -641,7 +641,6 @@ final public class DataStore {
    * @param term searched term. Might contain wildcard characters.
    * @return the estimated number of occurrences of the given term.
    */
-  @Beta
   public long count(Scanners scanners, String dataset, Set<String> fields, String term) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
@@ -672,7 +671,6 @@ final public class DataStore {
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @return the estimated number of terms in [minTerm, maxTerm].
    */
-  @Beta
   public long count(Scanners scanners, String dataset, Set<String> fields, Object minTerm,
       Object maxTerm) {
 
@@ -707,7 +705,6 @@ final public class DataStore {
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  @Beta
   public Iterator<String> docsIds(Scanners scanners, Writers writers, String dataset, String term,
       Set<String> fields, BloomFilters<String> docsIds) {
 
@@ -758,7 +755,6 @@ final public class DataStore {
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  @Beta
   public Iterator<String> docsIds(Scanners scanners, Writers writers, String dataset,
       Set<String> fields, Object minTerm, Object maxTerm, BloomFilters<String> docsIds) {
 
