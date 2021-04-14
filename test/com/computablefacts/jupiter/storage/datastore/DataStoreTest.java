@@ -327,7 +327,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
-  public void testEstimateCount() throws Exception {
+  public void testCount() throws Exception {
 
     DataStore dataStore = newDataStore(AUTH_ADM);
 
