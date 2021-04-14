@@ -760,7 +760,7 @@ final public class DataStore {
    */
   @Beta
   public Iterator<String> docsIds(Scanners scanners, Writers writers, String dataset,
-      Object minTerm, Object maxTerm, Set<String> fields, BloomFilters<String> docsIds) {
+      Set<String> fields, Object minTerm, Object maxTerm, BloomFilters<String> docsIds) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(writers, "writers should not be null");
