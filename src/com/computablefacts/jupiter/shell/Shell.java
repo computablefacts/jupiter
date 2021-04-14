@@ -211,6 +211,9 @@ public class Shell {
     AtomicInteger ignored = new AtomicInteger(0);
 
     try (Writers writers = ds.writers()) {
+
+      ds.beginIngest();
+
       Files.compressedLineStream(f, StandardCharsets.UTF_8).forEach(line -> {
 
         String row = line.getValue();
@@ -241,6 +244,8 @@ public class Shell {
           }
         }
       });
+
+      ds.endIngest(writers, dataset);
     }
 
     stopwatch.stop();
