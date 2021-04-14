@@ -22,8 +22,8 @@ final public class DataStoreInfos {
 
   private final String name_;
   private final Table<String, String, Long> fieldsCounts_ = HashBasedTable.create();
-  private final Table<String, String, Double> fieldsDistinctBuckets_ = HashBasedTable.create();
-  private final Table<String, String, Double> fieldsDistinctTerms_ = HashBasedTable.create();
+  private final Table<String, String, Double> fieldsCardEstForBuckets_ = HashBasedTable.create();
+  private final Table<String, String, Double> fieldsCardEstForTerms_ = HashBasedTable.create();
   private final Table<String, String, Set<String>> fieldsVisibilityLabels_ =
       HashBasedTable.create();
   private final Table<String, String, String> fieldsLastUpdates_ = HashBasedTable.create();
@@ -55,12 +55,12 @@ final public class DataStoreInfos {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
 
-    if (fieldsDistinctTerms_.contains(dataset, field)) {
-      double oldEstimate = fieldsDistinctTerms_.get(dataset, field);
-      fieldsDistinctTerms_.remove(dataset, field);
-      fieldsDistinctTerms_.put(dataset, field, oldEstimate + estimate);
+    if (fieldsCardEstForTerms_.contains(dataset, field)) {
+      double oldEstimate = fieldsCardEstForTerms_.get(dataset, field);
+      fieldsCardEstForTerms_.remove(dataset, field);
+      fieldsCardEstForTerms_.put(dataset, field, oldEstimate + estimate);
     } else {
-      fieldsDistinctTerms_.put(dataset, field, estimate);
+      fieldsCardEstForTerms_.put(dataset, field, estimate);
     }
 
     addType(dataset, field, type);
@@ -72,12 +72,12 @@ final public class DataStoreInfos {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
 
-    if (fieldsDistinctBuckets_.contains(dataset, field)) {
-      double oldEstimate = fieldsDistinctBuckets_.get(dataset, field);
-      fieldsDistinctBuckets_.remove(dataset, field);
-      fieldsDistinctBuckets_.put(dataset, field, oldEstimate + estimate);
+    if (fieldsCardEstForBuckets_.contains(dataset, field)) {
+      double oldEstimate = fieldsCardEstForBuckets_.get(dataset, field);
+      fieldsCardEstForBuckets_.remove(dataset, field);
+      fieldsCardEstForBuckets_.put(dataset, field, oldEstimate + estimate);
     } else {
-      fieldsDistinctBuckets_.put(dataset, field, estimate);
+      fieldsCardEstForBuckets_.put(dataset, field, estimate);
     }
 
     addType(dataset, field, type);
@@ -123,10 +123,10 @@ final public class DataStoreInfos {
     set.addAll(fieldsCounts_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
-    set.addAll(fieldsDistinctBuckets_.cellSet().stream()
+    set.addAll(fieldsCardEstForBuckets_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
-    set.addAll(fieldsDistinctTerms_.cellSet().stream()
+    set.addAll(fieldsCardEstForTerms_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
     set.addAll(fieldsVisibilityLabels_.cellSet().stream()
@@ -150,11 +150,12 @@ final public class DataStoreInfos {
       map.put("nb_index_entries",
           fieldsCounts_.contains(dataset, field) ? fieldsCounts_.get(dataset, field) : 0);
       map.put("nb_distinct_terms",
-          fieldsDistinctTerms_.contains(dataset, field) ? fieldsDistinctTerms_.get(dataset, field)
+          fieldsCardEstForTerms_.contains(dataset, field)
+              ? fieldsCardEstForTerms_.get(dataset, field)
               : 0);
       map.put("nb_distinct_buckets",
-          fieldsDistinctBuckets_.contains(dataset, field)
-              ? fieldsDistinctBuckets_.get(dataset, field)
+          fieldsCardEstForBuckets_.contains(dataset, field)
+              ? fieldsCardEstForBuckets_.get(dataset, field)
               : 0);
       map.put("visibility_labels",
           fieldsVisibilityLabels_.contains(dataset, field)

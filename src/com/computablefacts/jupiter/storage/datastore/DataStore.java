@@ -882,20 +882,20 @@ final public class DataStore {
           infos.addCount(dataset, fieldCount.field(), fieldCount.type(), fieldCount.count());
         }
 
-        Iterator<FieldDistinctTerms> fieldDistinctTermsIterator =
+        Iterator<FieldDistinctTerms> fieldCardEstForTermsIterator =
             fieldCardinalityEstimationForTerms(scanners, dataset, null);
 
-        while (fieldDistinctTermsIterator.hasNext()) {
-          FieldDistinctTerms fieldDistinctTerms = fieldDistinctTermsIterator.next();
+        while (fieldCardEstForTermsIterator.hasNext()) {
+          FieldDistinctTerms fieldDistinctTerms = fieldCardEstForTermsIterator.next();
           infos.addCardinalityEstimationForTerms(dataset, fieldDistinctTerms.field(),
               fieldDistinctTerms.type(), fieldDistinctTerms.estimate());
         }
 
-        Iterator<FieldDistinctBuckets> fieldDistinctBucketsIterator =
+        Iterator<FieldDistinctBuckets> fieldCardEstForBucketsIterator =
             fieldCardinalityEstimationForBuckets(scanners, dataset, null);
 
-        while (fieldDistinctBucketsIterator.hasNext()) {
-          FieldDistinctBuckets fieldfieldDistinctBuckets = fieldDistinctBucketsIterator.next();
+        while (fieldCardEstForBucketsIterator.hasNext()) {
+          FieldDistinctBuckets fieldfieldDistinctBuckets = fieldCardEstForBucketsIterator.next();
           infos.addCardinalityEstimationForBuckets(dataset, fieldfieldDistinctBuckets.field(),
               fieldfieldDistinctBuckets.type(), fieldfieldDistinctBuckets.estimate());
         }
