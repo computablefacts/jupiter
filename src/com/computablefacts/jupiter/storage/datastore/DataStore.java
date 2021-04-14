@@ -642,7 +642,7 @@ final public class DataStore {
    * @return the estimated number of occurrences of the given term.
    */
   @Beta
-  public long estimateCount(Scanners scanners, String dataset, Set<String> fields, String term) {
+  public long count(Scanners scanners, String dataset, Set<String> fields, String term) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
@@ -673,7 +673,7 @@ final public class DataStore {
    * @return the estimated number of terms in [minTerm, maxTerm].
    */
   @Beta
-  public long estimateCount(Scanners scanners, String dataset, Set<String> fields, Object minTerm,
+  public long count(Scanners scanners, String dataset, Set<String> fields, Object minTerm,
       Object maxTerm) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");

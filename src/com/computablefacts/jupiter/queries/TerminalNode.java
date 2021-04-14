@@ -152,7 +152,7 @@ final public class TerminalNode extends AbstractNode {
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.estimateCount(scanners, dataset, fields, minTerm, maxTerm);
+          return dataStore.count(scanners, dataset, fields, minTerm, maxTerm);
         }
       }
       return 0; // Invalid range
@@ -168,13 +168,12 @@ final public class TerminalNode extends AbstractNode {
       return 0;
     }
     if (Inflectional.equals(form_)) {
-      return terms.stream()
-          .mapToLong(term -> dataStore.estimateCount(scanners, dataset, fields(), term)).sum();
+      return terms.stream().mapToLong(term -> dataStore.count(scanners, dataset, fields(), term))
+          .sum();
     }
     if (Literal.equals(form_)) {
-      return terms.stream()
-          .mapToLong(term -> dataStore.estimateCount(scanners, dataset, fields(), term)).max()
-          .orElse(0);
+      return terms.stream().mapToLong(term -> dataStore.count(scanners, dataset, fields(), term))
+          .max().orElse(0);
     }
     if (Thesaurus.equals(form_)) {
       // TODO : backport code
