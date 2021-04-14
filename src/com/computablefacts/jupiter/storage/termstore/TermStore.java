@@ -114,21 +114,20 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(range, "range should not be null");
 
-    if (fields != null && !fields.isEmpty()) {
-      IteratorSetting setting =
-          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreFieldFilter.class);
-      TermStoreFieldFilter.setFieldsToKeep(setting, fields);
-      scanner.addScanIterator(setting);
-    }
-
     if (dataset != null) {
       scanner.fetchColumnFamily(new Text(dataset));
     } else {
 
-      IteratorSetting setting = new IteratorSetting(23, "WildcardFilter2", WildcardFilter.class);
+      IteratorSetting setting = new IteratorSetting(22, "WildcardFilter2", WildcardFilter.class);
       WildcardFilter.applyOnColumnFamily(setting);
       WildcardFilter.addWildcard(setting, hitsBackwardIndex ? "*_BCNT" : "*_FCNT");
 
+      scanner.addScanIterator(setting);
+    }
+    if (fields != null && !fields.isEmpty()) {
+      IteratorSetting setting =
+          new IteratorSetting(23, "TermStoreFieldFilter", TermStoreFieldFilter.class);
+      TermStoreFieldFilter.setFieldsToKeep(setting, fields);
       scanner.addScanIterator(setting);
     }
     if (!setRange(scanner, range)) {
@@ -148,10 +147,21 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(range, "range should not be null");
 
+    if (dataset != null) {
+      scanner.fetchColumnFamily(new Text(dataset));
+    } else {
+
+      IteratorSetting settings = new IteratorSetting(22, "WildcardFilter2", WildcardFilter.class);
+      WildcardFilter.applyOnColumnFamily(settings);
+      WildcardFilter.addWildcard(settings, hitsBackwardIndex ? "*_BIDX" : "*_FIDX");
+
+      scanner.addScanIterator(settings);
+    }
+
     @Var
     boolean add = false;
     IteratorSetting setting =
-        new IteratorSetting(22, "TermStoreDocFieldFilter", TermStoreDocFieldFilter.class);
+        new IteratorSetting(23, "TermStoreDocFieldFilter", TermStoreDocFieldFilter.class);
 
     if (fields != null && !fields.isEmpty()) {
       add = true;
@@ -163,17 +173,6 @@ final public class TermStore extends AbstractStorage {
     }
     if (add) {
       scanner.addScanIterator(setting);
-    }
-
-    if (dataset != null) {
-      scanner.fetchColumnFamily(new Text(dataset));
-    } else {
-
-      IteratorSetting settings = new IteratorSetting(23, "WildcardFilter2", WildcardFilter.class);
-      WildcardFilter.applyOnColumnFamily(settings);
-      WildcardFilter.addWildcard(settings, hitsBackwardIndex ? "*_BIDX" : "*_FIDX");
-
-      scanner.addScanIterator(settings);
     }
     if (!setRange(scanner, range)) {
       return ITERATOR_EMPTY;
