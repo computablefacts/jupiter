@@ -381,6 +381,47 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
+  public void testRangeCount() throws Exception {
+
+    DataStore dataStore = newDataStore(AUTH_ADM);
+
+    try (Writers writers = dataStore.writers()) {
+      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
+      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
+    }
+
+    @Var
+    AbstractNode query = QueryBuilder.build("age:[* TO 20]");
+
+    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
+      Assert.assertEquals(2, query.count(dataStore, scanners, null));
+      Assert.assertEquals(2, query.count(dataStore, scanners, "dataset_1"));
+    }
+
+    query = QueryBuilder.build("age:[15 TO 20]");
+
+    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
+      Assert.assertEquals(2, query.count(dataStore, scanners, null));
+      Assert.assertEquals(2, query.count(dataStore, scanners, "dataset_1"));
+    }
+
+    query = QueryBuilder.build("age:[15 TO *]");
+
+    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
+      Assert.assertEquals(2, query.count(dataStore, scanners, null));
+      Assert.assertEquals(2, query.count(dataStore, scanners, "dataset_1"));
+    }
+
+    // Min. term should be included and max. term excluded
+    query = QueryBuilder.build("age:[17 TO 18]");
+
+    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
+      Assert.assertEquals(1, query.count(dataStore, scanners, null));
+      Assert.assertEquals(1, query.count(dataStore, scanners, "dataset_1"));
+    }
+  }
+
+  @Test
   public void testDataStoreInfos() throws Exception {
 
     DataStore dataStore = newDataStore(AUTH_ADM);

@@ -152,7 +152,9 @@ final public class TerminalNode extends AbstractNode {
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.count(scanners, dataset, fields, minTerm, maxTerm);
+          return dataStore.count(scanners, dataset, fields,
+              minTerm == null ? null : new BigDecimal(minTerm),
+              maxTerm == null ? null : new BigDecimal(maxTerm));
         }
       }
       return 0; // Invalid range
@@ -220,9 +222,9 @@ final public class TerminalNode extends AbstractNode {
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.docsIds(scanners, writers, dataset,
+          return dataStore.docsIds(scanners, writers, dataset, fields,
               minTerm == null ? null : new BigDecimal(minTerm),
-              maxTerm == null ? null : new BigDecimal(maxTerm), fields, null);
+              maxTerm == null ? null : new BigDecimal(maxTerm), null);
         }
       }
       return ITERATOR_EMPTY; // Invalid range

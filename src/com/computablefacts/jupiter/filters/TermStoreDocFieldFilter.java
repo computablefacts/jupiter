@@ -116,12 +116,12 @@ public class TermStoreDocFieldFilter extends Filter {
       type = Integer.parseInt(cq.substring(index2 + 1), 10);
     }
 
-    if (keepDocs_ != null && doc != null) {
+    if (keepDocs_ != null) {
       if (!acceptDoc(doc)) {
         return false;
       }
     }
-    if (keepFields_ != null && field != null) {
+    if (keepFields_ != null) {
       if (!acceptField(field)) {
         return false;
       }

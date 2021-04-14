@@ -90,7 +90,7 @@ public class TermStoreFieldFilter extends Filter {
       type = Integer.parseInt(cq.substring(index + 1), 10);
     }
 
-    if (keepFields_ != null && field != null) {
+    if (keepFields_ != null) {
       if (!acceptField(field)) {
         return false;
       }
