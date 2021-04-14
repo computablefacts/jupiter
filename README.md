@@ -5,9 +5,9 @@
 [![codecov](https://codecov.io/gh/computablefacts/jupiter/branch/master/graph/badge.svg)](https://codecov.io/gh/computablefacts/jupiter)
 
 This project implements 3 data stores on top of [Apache Accumulo](https://accumulo.apache.org/) : 
-one for [blobs](/src/com/computablefacts/jupiter/storage/blobstore), one for [terms](/src/com/computablefacts/jupiter/storage/termstore) 
+one for [blobs](#blobstore), one for [terms](#termstore) 
 and facts (a *fact* is a predicate expression that makes a declarative statement 
-about a problem domain) and one for [JSON objects](/src/com/computablefacts/jupiter/storage/datastore). 
+about a problem domain) and one for [JSON objects](#datastore). 
 
 These data stores **are not** meant to be efficients but are intended to be easy to use.
 
@@ -189,20 +189,16 @@ try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA
     Iterator<TermCount> tcs = termStore.counts(scanner, "my_buckets", "joh*");
     TermCount tc = Iterators.get(tcs, 0);
     
-    Assert.assertEquals("my_buckets", tc.dataset());
     Assert.assertEquals("first_name", tc.field());
     Assert.assertEquals("john", tc.term());
     Assert.assertEquals(1, tc.count());
-    Assert.assertEquals(bucketSpecificLabels, tc.labels());
 
     tcs = termStore.counts(scanner, "my_buckets", null, 30, 40);
     tc = Iterators.get(tcs, 0);
 
-    Assert.assertEquals("my_buckets", tc.dataset());
     Assert.assertEquals("age", tc.field());
     Assert.assertEquals("37", tc.term());
     Assert.assertEquals(1, tc.count());
-    Assert.assertEquals(bucketSpecificLabels, tc.labels());
 }
 
 // Get the buckets ids
@@ -211,21 +207,11 @@ try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA
     Iterator<Term> ts = termStore.bucketsIds(scanner, "my_buckets", "joh*");
     Term t = Iterators.get(ts, 0);
     
-    Assert.assertEquals("my_buckets", t.dataset());
     Assert.assertEquals(bucketId, t.bucketId());
-    Assert.assertEquals("first_name", t.field());
-    Assert.assertEquals("john", t.term());
-    Assert.assertEquals(1, t.count());
-    Assert.assertEquals(bucketSpecificLabels, t.labels());
     
     ts = termStore.bucketsIds(scanner, "my_buckets", null, 30, 40, null);
     t = Iterators.get(ts, 0);
     
-    Assert.assertEquals("my_buckets", t.dataset());
     Assert.assertEquals(bucketId, t.bucketId());
-    Assert.assertEquals("age", t.field());
-    Assert.assertEquals("37", t.term());
-    Assert.assertEquals(1, t.count());
-    Assert.assertEquals(bucketSpecificLabels, t.labels());
 }
 ```
