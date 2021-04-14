@@ -42,6 +42,7 @@ import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -546,14 +547,16 @@ final public class TermStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(count(dataset)));
 
+    List<Range> ranges;
+
     if (fields != null && !fields.isEmpty()) {
-
-      List<Range> ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
           .collect(Collectors.toList());
-
-      if (!setRanges(scanner, ranges)) {
-        return ITERATOR_EMPTY;
-      }
+    } else {
+      ranges = Lists.newArrayList(new Range());
+    }
+    if (!setRanges(scanner, ranges)) {
+      return ITERATOR_EMPTY;
     }
     return Iterators.transform(scanner.iterator(),
         entry -> FieldCount.fromKeyValue(entry.getKey(), entry.getValue()));
@@ -582,14 +585,16 @@ final public class TermStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(visibility(dataset)));
 
+    List<Range> ranges;
+
     if (fields != null && !fields.isEmpty()) {
-
-      List<Range> ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
           .collect(Collectors.toList());
-
-      if (!setRanges(scanner, ranges)) {
-        return ITERATOR_EMPTY;
-      }
+    } else {
+      ranges = Lists.newArrayList(new Range());
+    }
+    if (!setRanges(scanner, ranges)) {
+      return ITERATOR_EMPTY;
     }
     return Iterators.transform(scanner.iterator(),
         entry -> FieldLabels.fromKeyValue(entry.getKey(), entry.getValue()));
@@ -618,14 +623,16 @@ final public class TermStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(lastUpdate(dataset)));
 
+    List<Range> ranges;
+
     if (fields != null && !fields.isEmpty()) {
-
-      List<Range> ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
           .collect(Collectors.toList());
-
-      if (!setRanges(scanner, ranges)) {
-        return ITERATOR_EMPTY;
-      }
+    } else {
+      ranges = Lists.newArrayList(new Range());
+    }
+    if (!setRanges(scanner, ranges)) {
+      return ITERATOR_EMPTY;
     }
     return Iterators.transform(scanner.iterator(),
         entry -> FieldLastUpdate.fromKeyValue(entry.getKey(), entry.getValue()));
@@ -655,14 +662,16 @@ final public class TermStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(distinctTerms(dataset)));
 
+    List<Range> ranges;
+
     if (fields != null && !fields.isEmpty()) {
-
-      List<Range> ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
           .collect(Collectors.toList());
-
-      if (!setRanges(scanner, ranges)) {
-        return ITERATOR_EMPTY;
-      }
+    } else {
+      ranges = Lists.newArrayList(new Range());
+    }
+    if (!setRanges(scanner, ranges)) {
+      return ITERATOR_EMPTY;
     }
     return Iterators.transform(scanner.iterator(),
         entry -> FieldDistinctTerms.fromKeyValue(entry.getKey(), entry.getValue()));
@@ -692,14 +701,16 @@ final public class TermStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(distinctBuckets(dataset)));
 
+    List<Range> ranges;
+
     if (fields != null && !fields.isEmpty()) {
-
-      List<Range> ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
           .collect(Collectors.toList());
-
-      if (!setRanges(scanner, ranges)) {
-        return ITERATOR_EMPTY;
-      }
+    } else {
+      ranges = Lists.newArrayList(new Range());
+    }
+    if (!setRanges(scanner, ranges)) {
+      return ITERATOR_EMPTY;
     }
     return Iterators.transform(scanner.iterator(),
         entry -> FieldDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue()));
