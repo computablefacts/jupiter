@@ -279,6 +279,54 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
+  public void testRowLevelAuthorizations() throws Exception {
+
+    DataStore dataStore =
+        newDataStore(new Authorizations("ADM", "DATASET_1_ROW_1", "DATASET_1_ROW_2"));
+
+    try (Writers writers = dataStore.writers()) {
+      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
+      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
+    }
+
+    AbstractNode query = QueryBuilder.build("joh* OR jan*");
+
+    try (Scanners scanners = dataStore.scanners(new Authorizations("DATASET_1_ROW_1"))) {
+      try (Writers writers = dataStore.writers()) {
+
+        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
+        query.execute(dataStore, scanners, writers, null).forEachRemaining(docsIds::add);
+
+        Assert.assertEquals(1, docsIds.size());
+        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+
+        docsIds.clear();
+        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+
+        Assert.assertEquals(1, docsIds.size());
+        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+      }
+    }
+
+    try (Scanners scanners = dataStore.scanners(new Authorizations("DATASET_1_ROW_2"))) {
+      try (Writers writers = dataStore.writers()) {
+
+        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
+        query.execute(dataStore, scanners, writers, null).forEachRemaining(docsIds::add);
+
+        Assert.assertEquals(1, docsIds.size());
+        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(0));
+
+        docsIds.clear();
+        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+
+        Assert.assertEquals(1, docsIds.size());
+        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(0));
+      }
+    }
+  }
+
+  @Test
   public void testDataStoreInfos() throws Exception {
 
     DataStore dataStore = newDataStore(AUTH_ADM);

@@ -717,6 +717,8 @@ final public class DataStore {
 
     // Build a cache key
     List<String> params = Lists.newArrayList(Strings.nullToEmpty(dataset), term);
+    params.addAll(Splitter.on(',').trimResults().omitEmptyStrings()
+        .splitToList(scanners.index().getAuthorizations().toString()));
 
     if (fields != null) {
       params.addAll(fields);
@@ -770,6 +772,8 @@ final public class DataStore {
 
     // Build a cache key
     List<String> params = Lists.newArrayList(Strings.nullToEmpty(dataset));
+    params.addAll(Splitter.on(',').trimResults().omitEmptyStrings()
+        .splitToList(scanners.index().getAuthorizations().toString()));
 
     if (minTerm != null) {
       params.add(minTerm.toString());
