@@ -5,12 +5,18 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.datasketches.theta.Sketch;
 
 import com.computablefacts.jupiter.storage.Constants;
+import com.computablefacts.jupiter.storage.termstore.MySketch;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -29,17 +35,20 @@ public class TermStoreCombiner extends Combiner {
 
     String cf = key.getColumnFamily().toString();
 
-    if (cf.endsWith("IDX")) {
+    if (cf.endsWith("IDX")) { // matches _FIDX and _BIDX
       return reduceIndex(iter);
     }
-    if (cf.endsWith("CNT")) {
+    if (cf.endsWith("CNT")) { // matches _FCNT and _BCNT
       return reduceCount(iter);
     }
-    if (cf.endsWith("VIZ")) {
+    if (cf.endsWith("_VIZ")) {
       return reduceFieldVisibility(iter);
     }
-    if (cf.endsWith("LU")) {
+    if (cf.endsWith("_LU")) {
       return reduceFieldLastUpdate(iter);
+    }
+    if (cf.endsWith("_DB") || cf.endsWith("_DT")) {
+      return reduceSketches(iter);
     }
     return new Value();
   }
@@ -105,5 +114,15 @@ public class TermStoreCombiner extends Combiner {
       return new Value(Long.toString(sum, 10));
     }
     return new Value(Long.toString(sum, 10) + Constants.SEPARATOR_NUL + builder.toString());
+  }
+
+  private Value reduceSketches(Iterator<Value> iter) {
+
+    List<byte[]> sketches =
+        StreamSupport.stream(Spliterators.spliteratorUnknownSize(iter, Spliterator.ORDERED), false)
+            .map(Value::get).collect(Collectors.toList());
+    Sketch sketch = MySketch.union(sketches);
+
+    return new Value(sketch.toByteArray());
   }
 }

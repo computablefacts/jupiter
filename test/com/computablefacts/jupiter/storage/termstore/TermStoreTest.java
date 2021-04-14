@@ -1,5 +1,7 @@
 package com.computablefacts.jupiter.storage.termstore;
 
+import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -988,6 +990,153 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("first_name", bucketsIds.get(0).field());
       Assert.assertEquals("jane", bucketsIds.get(0).term());
       Assert.assertEquals(1, bucketsIds.get(0).count());
+    }
+  }
+
+  @Test
+  public void testSketches() throws Exception {
+
+    String dataset = "terms";
+    Set<String> labels = Sets.newHashSet();
+    TermStore termStore = newTermStore(AUTH_ADM);
+
+    try (BatchWriter writer = termStore.writer()) {
+
+      termStore.beginIngest();
+
+      for (int i = 0; i < 5; i++) {
+
+        String bucketId = "a" + i;
+
+        Assert.assertTrue(
+            termStore.put(writer, dataset, bucketId, "first_name", "john", 1, labels, labels));
+        Assert.assertTrue(
+            termStore.put(writer, dataset, bucketId, "last_name", "doe", 1, labels, labels));
+        Assert.assertTrue(termStore.put(writer, dataset, bucketId, "age", 37, 1, labels, labels));
+      }
+
+      Assert.assertTrue(termStore.endIngest(writer, dataset));
+    }
+
+    try (Scanner scanner = termStore.scanner(AUTH_ADM)) {
+
+      // Check distinct terms
+      List<FieldDistinctTerms> distinctTerms = new ArrayList<>();
+      termStore.fieldDistinctTerms(scanner, dataset, null).forEachRemaining(distinctTerms::add);
+
+      Assert.assertEquals(3, distinctTerms.size());
+
+      Assert.assertEquals(dataset, distinctTerms.get(0).dataset());
+      Assert.assertEquals("age", distinctTerms.get(0).field());
+      Assert.assertEquals(Term.TYPE_NUMBER, distinctTerms.get(0).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(0).labels());
+      Assert.assertEquals(1.0, distinctTerms.get(0).estimate(), 0.0000001);
+
+      Assert.assertEquals(dataset, distinctTerms.get(1).dataset());
+      Assert.assertEquals("first_name", distinctTerms.get(1).field());
+      Assert.assertEquals(Term.TYPE_STRING, distinctTerms.get(1).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(1).labels());
+      Assert.assertEquals(1.0, distinctTerms.get(1).estimate(), 0.0000001);
+
+      Assert.assertEquals(dataset, distinctTerms.get(2).dataset());
+      Assert.assertEquals("last_name", distinctTerms.get(2).field());
+      Assert.assertEquals(Term.TYPE_STRING, distinctTerms.get(2).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(2).labels());
+      Assert.assertEquals(1.0, distinctTerms.get(2).estimate(), 0.0000001);
+
+      // Check distinct buckets
+      List<FieldDistinctBuckets> distinctBuckets = new ArrayList<>();
+      termStore.fieldDistinctBuckets(scanner, dataset, null).forEachRemaining(distinctBuckets::add);
+
+      Assert.assertEquals(3, distinctBuckets.size());
+
+      Assert.assertEquals(dataset, distinctBuckets.get(0).dataset());
+      Assert.assertEquals("age", distinctBuckets.get(0).field());
+      Assert.assertEquals(Term.TYPE_NUMBER, distinctBuckets.get(0).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(0).labels());
+      Assert.assertEquals(5.0, distinctBuckets.get(0).estimate(), 0.0000001);
+
+      Assert.assertEquals(dataset, distinctBuckets.get(1).dataset());
+      Assert.assertEquals("first_name", distinctBuckets.get(1).field());
+      Assert.assertEquals(Term.TYPE_STRING, distinctBuckets.get(1).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(1).labels());
+      Assert.assertEquals(5.0, distinctBuckets.get(1).estimate(), 0.0000001);
+
+      Assert.assertEquals(dataset, distinctBuckets.get(2).dataset());
+      Assert.assertEquals("last_name", distinctBuckets.get(2).field());
+      Assert.assertEquals(Term.TYPE_STRING, distinctBuckets.get(2).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(2).labels());
+      Assert.assertEquals(5.0, distinctBuckets.get(2).estimate(), 0.0000001);
+    }
+
+    // Add more entries to the store and ensure distinct counts are updated
+    try (BatchWriter writer = termStore.writer()) {
+
+      termStore.beginIngest();
+
+      for (int i = 0; i < 5; i++) {
+
+        String bucketId = "b" + i;
+
+        Assert.assertTrue(
+            termStore.put(writer, dataset, bucketId, "first_name", "jane", 1, labels, labels));
+        Assert.assertTrue(
+            termStore.put(writer, dataset, bucketId, "last_name", "doe", 1, labels, labels));
+        Assert.assertTrue(termStore.put(writer, dataset, bucketId, "age", 27, 1, labels, labels));
+      }
+
+      Assert.assertTrue(termStore.endIngest(writer, dataset));
+    }
+
+    try (Scanner scanner = termStore.scanner(AUTH_ADM)) {
+
+      // Check distinct terms
+      List<FieldDistinctTerms> distinctTerms = new ArrayList<>();
+      termStore.fieldDistinctTerms(scanner, dataset, null).forEachRemaining(distinctTerms::add);
+
+      Assert.assertEquals(3, distinctTerms.size());
+
+      Assert.assertEquals(dataset, distinctTerms.get(0).dataset());
+      Assert.assertEquals("age", distinctTerms.get(0).field());
+      Assert.assertEquals(Term.TYPE_NUMBER, distinctTerms.get(0).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(0).labels());
+      Assert.assertEquals(2.0, distinctTerms.get(0).estimate(), 0.0000001);
+
+      Assert.assertEquals(dataset, distinctTerms.get(1).dataset());
+      Assert.assertEquals("first_name", distinctTerms.get(1).field());
+      Assert.assertEquals(Term.TYPE_STRING, distinctTerms.get(1).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(1).labels());
+      Assert.assertEquals(2.0, distinctTerms.get(1).estimate(), 0.0000001);
+
+      Assert.assertEquals(dataset, distinctTerms.get(2).dataset());
+      Assert.assertEquals("last_name", distinctTerms.get(2).field());
+      Assert.assertEquals(Term.TYPE_STRING, distinctTerms.get(2).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(2).labels());
+      Assert.assertEquals(1.0, distinctTerms.get(2).estimate(), 0.0000001);
+
+      // Check distinct buckets
+      List<FieldDistinctBuckets> distinctBuckets = new ArrayList<>();
+      termStore.fieldDistinctBuckets(scanner, dataset, null).forEachRemaining(distinctBuckets::add);
+
+      Assert.assertEquals(3, distinctBuckets.size());
+
+      Assert.assertEquals(dataset, distinctBuckets.get(0).dataset());
+      Assert.assertEquals("age", distinctBuckets.get(0).field());
+      Assert.assertEquals(Term.TYPE_NUMBER, distinctBuckets.get(0).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(0).labels());
+      Assert.assertEquals(10.0, distinctBuckets.get(0).estimate(), 0.0000001);
+
+      Assert.assertEquals(dataset, distinctBuckets.get(1).dataset());
+      Assert.assertEquals("first_name", distinctBuckets.get(1).field());
+      Assert.assertEquals(Term.TYPE_STRING, distinctBuckets.get(1).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(1).labels());
+      Assert.assertEquals(10.0, distinctBuckets.get(1).estimate(), 0.0000001);
+
+      Assert.assertEquals(dataset, distinctBuckets.get(2).dataset());
+      Assert.assertEquals("last_name", distinctBuckets.get(2).field());
+      Assert.assertEquals(Term.TYPE_STRING, distinctBuckets.get(2).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(2).labels());
+      Assert.assertEquals(10.0, distinctBuckets.get(2).estimate(), 0.0000001);
     }
   }
 

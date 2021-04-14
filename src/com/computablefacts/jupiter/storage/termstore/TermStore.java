@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +39,11 @@ import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.WildcardMatcher;
+import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -59,6 +62,8 @@ import com.google.errorprone.annotations.Var;
  *  Row                     | Column Family   | Column Qualifier                  | Visibility                                  | Value
  * =========================+=================+===================================+=============================================+=================================
  *  <field>\0<term_type>    | <dataset>_CNT   | (empty)                           | ADM|<dataset>_CNT                           | <#occurrences>
+ *  <field>\0<term_type>    | <dataset>_DB    | (empty)                           | ADM|<dataset>_DB                            | <#distinct_buckets>
+ *  <field>\0<term_type>    | <dataset>_DT    | (empty)                           | ADM|<dataset>_DT                            | <#distinct_terms>
  *  <field>\0<term_type>    | <dataset>_LU    | (empty)                           | ADM|<dataset>_LU                            | <utc_date>
  *  <field>\0<term_type>    | <dataset>_VIZ   | (empty)                           | ADM|<dataset>_VIZ                           | viz1\0viz2\0
  *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | <#occurrences>
@@ -76,8 +81,19 @@ final public class TermStore extends AbstractStorage {
 
   private static final Logger logger_ = LoggerFactory.getLogger(TermStore.class);
 
+  private Map<String, MySketch> distinctTerms_;
+  private Map<String, MySketch> distinctBuckets_;
+
   public TermStore(Configurations configurations, String name) {
     super(configurations, name);
+  }
+
+  static String distinctTerms(String dataset) {
+    return dataset + "_DT";
+  }
+
+  static String distinctBuckets(String dataset) {
+    return dataset + "_DB";
   }
 
   static String count(String dataset) {
@@ -290,9 +306,9 @@ final public class TermStore extends AbstractStorage {
           .add("dataset", dataset).formatInfo());
     }
 
-    Set<String> cfs = Sets.newHashSet(count(dataset), lastUpdate(dataset), visibility(dataset),
-        forwardCount(dataset), forwardIndex(dataset), backwardCount(dataset),
-        backwardIndex(dataset));
+    Set<String> cfs = Sets.newHashSet(distinctTerms(dataset), distinctBuckets(dataset),
+        count(dataset), lastUpdate(dataset), visibility(dataset), forwardCount(dataset),
+        forwardIndex(dataset), backwardCount(dataset), backwardIndex(dataset));
 
     return remove(deleter, cfs);
   }
@@ -336,6 +352,39 @@ final public class TermStore extends AbstractStorage {
     }
     return size == groups.size()
         || Tables.setLocalityGroups(configurations().tableOperations(), tableName(), groups, false);
+  }
+
+  @Beta
+  public void beginIngest() {
+    distinctTerms_ = new HashMap<>();
+    distinctBuckets_ = new HashMap<>();
+  }
+
+  @Beta
+  @CanIgnoreReturnValue
+  public boolean endIngest(BatchWriter writer, String dataset) {
+
+    Preconditions.checkNotNull(writer, "writer should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    @Var
+    boolean isOk = true;
+
+    if (distinctTerms_ != null) {
+      for (Map.Entry<String, MySketch> sketch : distinctTerms_.entrySet()) {
+        isOk = add(writer, FieldDistinctTerms.newMutation(dataset, sketch.getKey(),
+            sketch.getValue().toByteArray())) && isOk;
+      }
+      distinctTerms_ = null;
+    }
+    if (distinctBuckets_ != null) {
+      for (Map.Entry<String, MySketch> sketch : distinctBuckets_.entrySet()) {
+        isOk = add(writer, FieldDistinctBuckets.newMutation(dataset, sketch.getKey(),
+            sketch.getValue().toByteArray())) && isOk;
+      }
+      distinctBuckets_ = null;
+    }
+    return isOk;
   }
 
   /**
@@ -406,6 +455,28 @@ final public class TermStore extends AbstractStorage {
                   term.toString()))
               .formatWarn());
       return false;
+    }
+
+    // Compute the number of distinct terms
+    if (distinctTerms_ != null) {
+
+      String key = field + SEPARATOR_NUL + newType;
+
+      if (!distinctTerms_.containsKey(key)) {
+        distinctTerms_.put(key, new MySketch());
+      }
+      distinctTerms_.get(key).offer(newTerm);
+    }
+
+    // Compute the number of distinct buckets
+    if (distinctBuckets_ != null) {
+
+      String key = field + SEPARATOR_NUL + newType;
+
+      if (!distinctBuckets_.containsKey(key)) {
+        distinctBuckets_.put(key, new MySketch());
+      }
+      distinctBuckets_.get(key).offer(bucketId);
     }
 
     // Ingest stats
@@ -538,6 +609,80 @@ final public class TermStore extends AbstractStorage {
     }
     return Iterators.transform(scanner.iterator(),
         entry -> FieldLastUpdate.fromKeyValue(entry.getKey(), entry.getValue()));
+  }
+
+  /**
+   * Get the number of distinct terms in each field.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset.
+   * @param fields fields (optional).
+   * @return the number of distinct terms.
+   */
+  @Beta
+  public Iterator<FieldDistinctTerms> fieldDistinctTerms(ScannerBase scanner, String dataset,
+      Set<String> fields) {
+
+    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("fields", fields).formatInfo());
+    }
+
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+    scanner.fetchColumnFamily(new Text(distinctTerms(dataset)));
+
+    if (fields != null && !fields.isEmpty()) {
+
+      List<Range> ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+          .collect(Collectors.toList());
+
+      if (!setRanges(scanner, ranges)) {
+        return ITERATOR_EMPTY;
+      }
+    }
+    return Iterators.transform(scanner.iterator(),
+        entry -> FieldDistinctTerms.fromKeyValue(entry.getKey(), entry.getValue()));
+  }
+
+  /**
+   * Get the number of distinct buckets in each field.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset.
+   * @param fields fields (optional).
+   * @return the number of distinct buckets.
+   */
+  @Beta
+  public Iterator<FieldDistinctBuckets> fieldDistinctBuckets(ScannerBase scanner, String dataset,
+      Set<String> fields) {
+
+    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("fields", fields).formatInfo());
+    }
+
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+    scanner.fetchColumnFamily(new Text(distinctBuckets(dataset)));
+
+    if (fields != null && !fields.isEmpty()) {
+
+      List<Range> ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+          .collect(Collectors.toList());
+
+      if (!setRanges(scanner, ranges)) {
+        return ITERATOR_EMPTY;
+      }
+    }
+    return Iterators.transform(scanner.iterator(),
+        entry -> FieldDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
