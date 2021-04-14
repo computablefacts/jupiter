@@ -333,11 +333,31 @@ final public class TermStore extends AbstractStorage {
 
     int size = groups.size();
 
+    String count = count(dataset);
+    String visibility = visibility(dataset);
+    String lastUpdate = lastUpdate(dataset);
+    String distinctTerms = distinctTerms(dataset);
+    String distinctBuckets = distinctBuckets(dataset);
     String forwardCount = forwardCount(dataset);
     String forwardIndex = forwardIndex(dataset);
     String backwardCount = backwardCount(dataset);
     String backwardIndex = backwardIndex(dataset);
 
+    if (!groups.containsKey(count)) {
+      groups.put(count, Sets.newHashSet(new Text(count)));
+    }
+    if (!groups.containsKey(visibility)) {
+      groups.put(visibility, Sets.newHashSet(new Text(visibility)));
+    }
+    if (!groups.containsKey(lastUpdate)) {
+      groups.put(lastUpdate, Sets.newHashSet(new Text(lastUpdate)));
+    }
+    if (!groups.containsKey(distinctTerms)) {
+      groups.put(distinctTerms, Sets.newHashSet(new Text(distinctTerms)));
+    }
+    if (!groups.containsKey(distinctBuckets)) {
+      groups.put(distinctBuckets, Sets.newHashSet(new Text(distinctBuckets)));
+    }
     if (!groups.containsKey(forwardCount)) {
       groups.put(forwardCount, Sets.newHashSet(new Text(forwardCount)));
     }
