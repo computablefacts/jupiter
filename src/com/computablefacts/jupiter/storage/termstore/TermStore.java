@@ -81,8 +81,8 @@ final public class TermStore extends AbstractStorage {
 
   private static final Logger logger_ = LoggerFactory.getLogger(TermStore.class);
 
-  private Map<String, MySketch> distinctTerms_;
-  private Map<String, MySketch> distinctBuckets_;
+  private Map<String, MySketch> fieldsCardinalityEstimatorsForTerms_;
+  private Map<String, MySketch> fieldsCardinalityEstimatorsForBuckets_;
 
   public TermStore(Configurations configurations, String name) {
     super(configurations, name);
@@ -376,8 +376,8 @@ final public class TermStore extends AbstractStorage {
 
   @Beta
   public void beginIngest() {
-    distinctTerms_ = new HashMap<>();
-    distinctBuckets_ = new HashMap<>();
+    fieldsCardinalityEstimatorsForTerms_ = new HashMap<>();
+    fieldsCardinalityEstimatorsForBuckets_ = new HashMap<>();
   }
 
   @Beta
@@ -390,19 +390,19 @@ final public class TermStore extends AbstractStorage {
     @Var
     boolean isOk = true;
 
-    if (distinctTerms_ != null) {
-      for (Map.Entry<String, MySketch> sketch : distinctTerms_.entrySet()) {
+    if (fieldsCardinalityEstimatorsForTerms_ != null) {
+      for (Map.Entry<String, MySketch> sketch : fieldsCardinalityEstimatorsForTerms_.entrySet()) {
         isOk = add(writer, FieldDistinctTerms.newMutation(dataset, sketch.getKey(),
             sketch.getValue().toByteArray())) && isOk;
       }
-      distinctTerms_ = null;
+      fieldsCardinalityEstimatorsForTerms_ = null;
     }
-    if (distinctBuckets_ != null) {
-      for (Map.Entry<String, MySketch> sketch : distinctBuckets_.entrySet()) {
+    if (fieldsCardinalityEstimatorsForBuckets_ != null) {
+      for (Map.Entry<String, MySketch> sketch : fieldsCardinalityEstimatorsForBuckets_.entrySet()) {
         isOk = add(writer, FieldDistinctBuckets.newMutation(dataset, sketch.getKey(),
             sketch.getValue().toByteArray())) && isOk;
       }
-      distinctBuckets_ = null;
+      fieldsCardinalityEstimatorsForBuckets_ = null;
     }
     return isOk;
   }
@@ -478,25 +478,25 @@ final public class TermStore extends AbstractStorage {
     }
 
     // Compute the number of distinct terms
-    if (distinctTerms_ != null) {
+    if (fieldsCardinalityEstimatorsForTerms_ != null) {
 
       String key = field + SEPARATOR_NUL + newType;
 
-      if (!distinctTerms_.containsKey(key)) {
-        distinctTerms_.put(key, new MySketch());
+      if (!fieldsCardinalityEstimatorsForTerms_.containsKey(key)) {
+        fieldsCardinalityEstimatorsForTerms_.put(key, new MySketch());
       }
-      distinctTerms_.get(key).offer(newTerm);
+      fieldsCardinalityEstimatorsForTerms_.get(key).offer(newTerm);
     }
 
     // Compute the number of distinct buckets
-    if (distinctBuckets_ != null) {
+    if (fieldsCardinalityEstimatorsForBuckets_ != null) {
 
       String key = field + SEPARATOR_NUL + newType;
 
-      if (!distinctBuckets_.containsKey(key)) {
-        distinctBuckets_.put(key, new MySketch());
+      if (!fieldsCardinalityEstimatorsForBuckets_.containsKey(key)) {
+        fieldsCardinalityEstimatorsForBuckets_.put(key, new MySketch());
       }
-      distinctBuckets_.get(key).offer(bucketId);
+      fieldsCardinalityEstimatorsForBuckets_.get(key).offer(bucketId);
     }
 
     // Ingest stats
@@ -640,8 +640,8 @@ final public class TermStore extends AbstractStorage {
    * @return the number of distinct terms.
    */
   @Beta
-  public Iterator<FieldDistinctTerms> fieldDistinctTerms(ScannerBase scanner, String dataset,
-      Set<String> fields) {
+  public Iterator<FieldDistinctTerms> fieldCardinalityEstimationForTerms(ScannerBase scanner,
+      String dataset, Set<String> fields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -677,8 +677,8 @@ final public class TermStore extends AbstractStorage {
    * @return the number of distinct buckets.
    */
   @Beta
-  public Iterator<FieldDistinctBuckets> fieldDistinctBuckets(ScannerBase scanner, String dataset,
-      Set<String> fields) {
+  public Iterator<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(ScannerBase scanner,
+      String dataset, Set<String> fields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");

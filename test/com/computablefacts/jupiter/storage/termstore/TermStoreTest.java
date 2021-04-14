@@ -1032,7 +1032,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // Check distinct terms
       List<FieldDistinctTerms> distinctTerms = new ArrayList<>();
-      termStore.fieldDistinctTerms(scanner, dataset, null).forEachRemaining(distinctTerms::add);
+      termStore.fieldCardinalityEstimationForTerms(scanner, dataset, null).forEachRemaining(distinctTerms::add);
 
       Assert.assertEquals(3, distinctTerms.size());
 
@@ -1056,7 +1056,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // Check distinct buckets
       List<FieldDistinctBuckets> distinctBuckets = new ArrayList<>();
-      termStore.fieldDistinctBuckets(scanner, dataset, null).forEachRemaining(distinctBuckets::add);
+      termStore.fieldCardinalityEstimationForBuckets(scanner, dataset, null).forEachRemaining(distinctBuckets::add);
 
       Assert.assertEquals(3, distinctBuckets.size());
 
@@ -1102,7 +1102,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // Check distinct terms
       List<FieldDistinctTerms> distinctTerms = new ArrayList<>();
-      termStore.fieldDistinctTerms(scanner, dataset, null).forEachRemaining(distinctTerms::add);
+      termStore.fieldCardinalityEstimationForTerms(scanner, dataset, null).forEachRemaining(distinctTerms::add);
 
       Assert.assertEquals(3, distinctTerms.size());
 
@@ -1126,7 +1126,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // Check distinct buckets
       List<FieldDistinctBuckets> distinctBuckets = new ArrayList<>();
-      termStore.fieldDistinctBuckets(scanner, dataset, null).forEachRemaining(distinctBuckets::add);
+      termStore.fieldCardinalityEstimationForBuckets(scanner, dataset, null).forEachRemaining(distinctBuckets::add);
 
       Assert.assertEquals(3, distinctBuckets.size());
 

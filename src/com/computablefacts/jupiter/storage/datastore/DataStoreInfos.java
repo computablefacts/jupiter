@@ -1,5 +1,7 @@
 package com.computablefacts.jupiter.storage.datastore;
 
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
+
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,7 +10,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.termstore.Term;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
@@ -21,6 +22,8 @@ final public class DataStoreInfos {
 
   private final String name_;
   private final Table<String, String, Long> fieldsCounts_ = HashBasedTable.create();
+  private final Table<String, String, Double> fieldsDistinctBuckets_ = HashBasedTable.create();
+  private final Table<String, String, Double> fieldsDistinctTerms_ = HashBasedTable.create();
   private final Table<String, String, Set<String>> fieldsVisibilityLabels_ =
       HashBasedTable.create();
   private final Table<String, String, String> fieldsLastUpdates_ = HashBasedTable.create();
@@ -41,6 +44,40 @@ final public class DataStoreInfos {
       fieldsCounts_.put(dataset, field, oldCount + count);
     } else {
       fieldsCounts_.put(dataset, field, count);
+    }
+
+    addType(dataset, field, type);
+  }
+
+  public void addCardinalityEstimationForTerms(String dataset, String field, int type,
+      double estimate) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+
+    if (fieldsDistinctTerms_.contains(dataset, field)) {
+      double oldEstimate = fieldsDistinctTerms_.get(dataset, field);
+      fieldsDistinctTerms_.remove(dataset, field);
+      fieldsDistinctTerms_.put(dataset, field, oldEstimate + estimate);
+    } else {
+      fieldsDistinctTerms_.put(dataset, field, estimate);
+    }
+
+    addType(dataset, field, type);
+  }
+
+  public void addCardinalityEstimationForBuckets(String dataset, String field, int type,
+      double estimate) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+
+    if (fieldsDistinctBuckets_.contains(dataset, field)) {
+      double oldEstimate = fieldsDistinctBuckets_.get(dataset, field);
+      fieldsDistinctBuckets_.remove(dataset, field);
+      fieldsDistinctBuckets_.put(dataset, field, oldEstimate + estimate);
+    } else {
+      fieldsDistinctBuckets_.put(dataset, field, estimate);
     }
 
     addType(dataset, field, type);
@@ -82,39 +119,52 @@ final public class DataStoreInfos {
 
   public Map<String, Object> json() {
 
-    List<Map<String, Object>> fields = Sets.union(
-        fieldsCounts_.cellSet().stream()
-            .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
-            .collect(Collectors.toSet()),
-        Sets.union(
-            fieldsVisibilityLabels_.cellSet().stream()
-                .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
-                .collect(Collectors.toSet()),
-            fieldsLastUpdates_.cellSet().stream()
-                .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
-                .collect(Collectors.toSet())))
-        .stream().map(cell -> {
+    Set<Map.Entry<String, String>> set = new HashSet<>();
+    set.addAll(fieldsCounts_.cellSet().stream()
+        .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+        .collect(Collectors.toSet()));
+    set.addAll(fieldsDistinctBuckets_.cellSet().stream()
+        .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+        .collect(Collectors.toSet()));
+    set.addAll(fieldsDistinctTerms_.cellSet().stream()
+        .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+        .collect(Collectors.toSet()));
+    set.addAll(fieldsVisibilityLabels_.cellSet().stream()
+        .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+        .collect(Collectors.toSet()));
+    set.addAll(fieldsLastUpdates_.cellSet().stream()
+        .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+        .collect(Collectors.toSet()));
 
-          String dataset = cell.getKey();
-          String field = cell.getValue();
+    List<Map<String, Object>> fields = set.stream().map(cell -> {
 
-          Map<String, Object> map = new HashMap<>();
-          map.put("dataset", dataset);
-          map.put("field", field.replace(Constants.SEPARATOR_CURRENCY_SIGN, '.'));
-          map.put("last_update",
-              fieldsLastUpdates_.contains(dataset, field) ? fieldsLastUpdates_.get(dataset, field)
-                  : null);
-          map.put("nb_index_entries",
-              fieldsCounts_.contains(dataset, field) ? fieldsCounts_.get(dataset, field) : 0);
-          map.put("visibility_labels",
-              fieldsVisibilityLabels_.contains(dataset, field)
-                  ? fieldsVisibilityLabels_.get(dataset, field)
-                  : Sets.newHashSet());
-          map.put("types", fieldsTypes_.contains(dataset, field) ? fieldsTypes_.get(dataset, field)
+      String dataset = cell.getKey();
+      String field = cell.getValue();
+
+      Map<String, Object> map = new HashMap<>();
+      map.put("dataset", dataset);
+      map.put("field", field.replace(SEPARATOR_CURRENCY_SIGN, '.'));
+      map.put("last_update",
+          fieldsLastUpdates_.contains(dataset, field) ? fieldsLastUpdates_.get(dataset, field)
+              : null);
+      map.put("nb_index_entries",
+          fieldsCounts_.contains(dataset, field) ? fieldsCounts_.get(dataset, field) : 0);
+      map.put("nb_distinct_terms",
+          fieldsDistinctTerms_.contains(dataset, field) ? fieldsDistinctTerms_.get(dataset, field)
+              : 0);
+      map.put("nb_distinct_buckets",
+          fieldsDistinctBuckets_.contains(dataset, field)
+              ? fieldsDistinctBuckets_.get(dataset, field)
+              : 0);
+      map.put("visibility_labels",
+          fieldsVisibilityLabels_.contains(dataset, field)
+              ? fieldsVisibilityLabels_.get(dataset, field)
               : Sets.newHashSet());
+      map.put("types", fieldsTypes_.contains(dataset, field) ? fieldsTypes_.get(dataset, field)
+          : Sets.newHashSet());
 
-          return map;
-        }).collect(Collectors.toList());
+      return map;
+    }).collect(Collectors.toList());
 
     Map<String, Object> map = new HashMap<>();
     map.put("name", name_);

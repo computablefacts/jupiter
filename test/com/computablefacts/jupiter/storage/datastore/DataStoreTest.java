@@ -530,8 +530,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore = newDataStore(AUTH_ADM);
 
     try (Writers writers = dataStore.writers()) {
+      dataStore.beginIngest();
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
+      dataStore.endIngest(writers, "dataset_1");
     }
 
     DataStoreInfos infos = dataStore.infos(Sets.newHashSet("dataset_1"), AUTH_ADM);
@@ -550,6 +552,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("dataset", "dataset_1");
     map.put("field", "birthdate");
     map.put("nb_index_entries", 2L);
+    map.put("nb_distinct_terms", 2.0);
+    map.put("nb_distinct_buckets", 2.0);
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_BIRTHDATE"));
     map.put("types", Sets.newHashSet("NUMBER"));
 
@@ -559,6 +563,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("dataset", "dataset_1");
     map.put("field", "last_name");
     map.put("nb_index_entries", 2L);
+    map.put("nb_distinct_terms", 1.0);
+    map.put("nb_distinct_buckets", 2.0);
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_LAST_NAME"));
     map.put("types", Sets.newHashSet("TEXT"));
 
@@ -568,6 +574,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("dataset", "dataset_1");
     map.put("field", "id");
     map.put("nb_index_entries", 2L);
+    map.put("nb_distinct_terms", 1.0);
+    map.put("nb_distinct_buckets", 2.0);
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_ID"));
     map.put("types", Sets.newHashSet("TEXT"));
 
@@ -577,6 +585,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("dataset", "dataset_1");
     map.put("field", "first_name");
     map.put("nb_index_entries", 2L);
+    map.put("nb_distinct_terms", 2.0);
+    map.put("nb_distinct_buckets", 2.0);
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_FIRST_NAME"));
     map.put("types", Sets.newHashSet("TEXT"));
 
@@ -586,6 +596,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("dataset", "dataset_1");
     map.put("field", "age");
     map.put("nb_index_entries", 2L);
+    map.put("nb_distinct_terms", 2.0);
+    map.put("nb_distinct_buckets", 2.0);
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_AGE"));
     map.put("types", Sets.newHashSet("NUMBER"));
 

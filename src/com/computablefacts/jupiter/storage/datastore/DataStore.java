@@ -36,6 +36,8 @@ import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.jupiter.storage.termstore.FieldCount;
+import com.computablefacts.jupiter.storage.termstore.FieldDistinctBuckets;
+import com.computablefacts.jupiter.storage.termstore.FieldDistinctTerms;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
 import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
 import com.computablefacts.jupiter.storage.termstore.TermCount;
@@ -60,6 +62,7 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -416,6 +419,21 @@ final public class DataStore {
     return isOk1 && isOk2;
   }
 
+  @Beta
+  public void beginIngest() {
+    termStore_.beginIngest();
+  }
+
+  @Beta
+  @CanIgnoreReturnValue
+  public boolean endIngest(Writers writers, String dataset) {
+
+    Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return termStore_.endIngest(writers.index(), dataset);
+  }
+
   /**
    * Persist a single JSON object.
    *
@@ -587,6 +605,44 @@ final public class DataStore {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     return termStore_.fieldLastUpdate(scanners.index(), dataset,
+        field == null ? null : Sets.newHashSet(field));
+  }
+
+  /**
+   * Get the number of distinct terms for a given field.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset.
+   * @param field field.
+   * @return count.
+   */
+  @Beta
+  public Iterator<FieldDistinctTerms> fieldCardinalityEstimationForTerms(Scanners scanners,
+      String dataset, String field) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return termStore_.fieldCardinalityEstimationForTerms(scanners.index(), dataset,
+        field == null ? null : Sets.newHashSet(field));
+  }
+
+  /**
+   * Get the number of distinct buckets for a given field.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset.
+   * @param field field.
+   * @return count.
+   */
+  @Beta
+  public Iterator<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(Scanners scanners,
+      String dataset, String field) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return termStore_.fieldCardinalityEstimationForBuckets(scanners.index(), dataset,
         field == null ? null : Sets.newHashSet(field));
   }
 
@@ -815,7 +871,7 @@ final public class DataStore {
 
     DataStoreInfos infos = new DataStoreInfos(name());
 
-    try (Scanners scanners = scanners(auths)) {
+    try (Scanners scanners = batchScanners(auths)) {
 
       datasets.forEach(dataset -> {
 
@@ -824,6 +880,24 @@ final public class DataStore {
         while (fieldCountIterator.hasNext()) {
           FieldCount fieldCount = fieldCountIterator.next();
           infos.addCount(dataset, fieldCount.field(), fieldCount.type(), fieldCount.count());
+        }
+
+        Iterator<FieldDistinctTerms> fieldDistinctTermsIterator =
+            fieldCardinalityEstimationForTerms(scanners, dataset, null);
+
+        while (fieldDistinctTermsIterator.hasNext()) {
+          FieldDistinctTerms fieldDistinctTerms = fieldDistinctTermsIterator.next();
+          infos.addCardinalityEstimationForTerms(dataset, fieldDistinctTerms.field(),
+              fieldDistinctTerms.type(), fieldDistinctTerms.estimate());
+        }
+
+        Iterator<FieldDistinctBuckets> fieldDistinctBucketsIterator =
+            fieldCardinalityEstimationForBuckets(scanners, dataset, null);
+
+        while (fieldDistinctBucketsIterator.hasNext()) {
+          FieldDistinctBuckets fieldfieldDistinctBuckets = fieldDistinctBucketsIterator.next();
+          infos.addCardinalityEstimationForBuckets(dataset, fieldfieldDistinctBuckets.field(),
+              fieldfieldDistinctBuckets.type(), fieldfieldDistinctBuckets.estimate());
         }
 
         Iterator<FieldLabels> fieldLabelsIterator = fieldLabels(scanners, dataset, null);
