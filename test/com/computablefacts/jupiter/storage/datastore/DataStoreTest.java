@@ -63,7 +63,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Tables.getLocalityGroups(dataStore.termStore().configurations().tableOperations(),
             dataStore.termStore().tableName());
 
-    Assert.assertEquals(4, groupsAfter.size());
+    Assert.assertEquals(9, groupsAfter.size());
+    Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_CNT")),
+        groupsAfter.get("dataset_1_CNT"));
+    Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_DB")), groupsAfter.get("dataset_1_DB"));
+    Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_DT")), groupsAfter.get("dataset_1_DT"));
+    Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_LU")), groupsAfter.get("dataset_1_LU"));
+    Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_VIZ")),
+        groupsAfter.get("dataset_1_VIZ"));
+
     Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_FCNT")),
         groupsAfter.get("dataset_1_FCNT"));
     Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_BCNT")),
