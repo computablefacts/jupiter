@@ -668,8 +668,8 @@ final public class DataStore {
    * @param scanners scanners.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
-   * @param minTerm first searched term. Wildcard characters are not allowed.
-   * @param maxTerm last searched term. Wildcard characters are not allowed.
+   * @param minTerm first searched term (included). Wildcard characters are not allowed.
+   * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @return the estimated number of terms in [minTerm, maxTerm].
    */
   @Beta
@@ -753,8 +753,8 @@ final public class DataStore {
    * @param writers writers.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
-   * @param minTerm first searched term. Wildcard characters are not allowed.
-   * @param maxTerm last searched term. Wildcard characters are not allowed.
+   * @param minTerm first searched term (included). Wildcard characters are not allowed.
+   * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
