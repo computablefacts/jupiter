@@ -167,6 +167,7 @@ bucket.put("last_name", "doe");
 bucket.put("age", 37);
 bucket.put("last_seen", new Date());
 
+String dataset = "my_buckets";
 String bucketId = UUID.randomUUID().toString();
 Set<String> bucketSpecificLabels = Sets.newHashSet("MY_BUCKETS_RAW_DATA");
 
@@ -179,39 +180,31 @@ try (BatchWriter writer = termStore.writer()) {
         Object value = keyValuePair.getValue();
         Set<String> fieldSpecificLabels = Sets.newHashSet();
         
-        boolean isOk = termStore.put(writer, "my_buckets", bucketId, key, value, 1, bucketSpecificLabels, fieldSpecificLabels);
+        boolean isOk = termStore.put(writer, dataset, bucketId, key, value, 1, bucketSpecificLabels, fieldSpecificLabels);
     });
 }
 
-// Get the number of occurrences
+// Get the number of distinct buckets containing a given term
 try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA"))) {
 
-    Iterator<TermCount> tcs = termStore.counts(scanner, "my_buckets", "joh*");
-    TermCount tc = Iterators.get(tcs, 0);
-    
-    Assert.assertEquals("first_name", tc.field());
-    Assert.assertEquals("john", tc.term());
-    Assert.assertEquals(1, tc.count());
-
-    tcs = termStore.counts(scanner, "my_buckets", null, 30, 40);
-    tc = Iterators.get(tcs, 0);
-
-    Assert.assertEquals("age", tc.field());
-    Assert.assertEquals("37", tc.term());
-    Assert.assertEquals(1, tc.count());
+    // Wildcard query
+    Iterator<TermDistinctBuckets> tcs = termStore.termCardinalityEstimationForBuckets(scanner, dataset, "joh*");
+    ...
+        
+    // Range query    
+    tcs = termStore.termCardinalityEstimationForBuckets(scanner, dataset, null, 30, 40);
+    ...
 }
 
-// Get the buckets ids
+// Get buckets ids containing a given term
 try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA"))) {
     
-    Iterator<Term> ts = termStore.bucketsIds(scanner, "my_buckets", "joh*");
-    Term t = Iterators.get(ts, 0);
-    
-    Assert.assertEquals(bucketId, t.bucketId());
-    
-    ts = termStore.bucketsIds(scanner, "my_buckets", null, 30, 40, null);
-    t = Iterators.get(ts, 0);
-    
-    Assert.assertEquals(bucketId, t.bucketId());
+    // Wildcard query
+    Iterator<Term> ts = termStore.bucketsIds(scanner, dataset, "joh*");
+    ...
+        
+    // Range query    
+    ts = termStore.bucketsIds(scanner, dataset, null, 30, 40, null);
+    ...
 }
 ```
