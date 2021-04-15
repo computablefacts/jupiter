@@ -349,43 +349,43 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(2, query.count(dataStore, scanners, null));
-      Assert.assertEquals(2, query.count(dataStore, scanners, "dataset_1"));
+      Assert.assertEquals(2, query.cardinality(dataStore, scanners, null));
+      Assert.assertEquals(2, query.cardinality(dataStore, scanners, "dataset_1"));
     }
 
     query = QueryBuilder.build("*ohn OR *ane");
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(2, query.count(dataStore, scanners, null));
-      Assert.assertEquals(2, query.count(dataStore, scanners, "dataset_1"));
+      Assert.assertEquals(2, query.cardinality(dataStore, scanners, null));
+      Assert.assertEquals(2, query.cardinality(dataStore, scanners, "dataset_1"));
     }
 
     query = QueryBuilder.build("joh* AND jan*");
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(1, query.count(dataStore, scanners, null));
-      Assert.assertEquals(1, query.count(dataStore, scanners, "dataset_1"));
+      Assert.assertEquals(1, query.cardinality(dataStore, scanners, null));
+      Assert.assertEquals(1, query.cardinality(dataStore, scanners, "dataset_1"));
     }
 
     query = QueryBuilder.build("*ohn AND *ane");
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(1, query.count(dataStore, scanners, null));
-      Assert.assertEquals(1, query.count(dataStore, scanners, "dataset_1"));
+      Assert.assertEquals(1, query.cardinality(dataStore, scanners, null));
+      Assert.assertEquals(1, query.cardinality(dataStore, scanners, "dataset_1"));
     }
 
     query = QueryBuilder.build("joh* AND NOT jan*");
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(1, query.count(dataStore, scanners, null));
-      Assert.assertEquals(1, query.count(dataStore, scanners, "dataset_1"));
+      Assert.assertEquals(1, query.cardinality(dataStore, scanners, null));
+      Assert.assertEquals(1, query.cardinality(dataStore, scanners, "dataset_1"));
     }
 
     query = QueryBuilder.build("*ohn AND NOT *ane");
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(1, query.count(dataStore, scanners, null));
-      Assert.assertEquals(1, query.count(dataStore, scanners, "dataset_1"));
+      Assert.assertEquals(1, query.cardinality(dataStore, scanners, null));
+      Assert.assertEquals(1, query.cardinality(dataStore, scanners, "dataset_1"));
     }
   }
 
@@ -403,30 +403,30 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode query = QueryBuilder.build("age:[* TO 20]");
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(2, query.count(dataStore, scanners, null));
-      Assert.assertEquals(2, query.count(dataStore, scanners, "dataset_1"));
+      Assert.assertEquals(2, query.cardinality(dataStore, scanners, null));
+      Assert.assertEquals(2, query.cardinality(dataStore, scanners, "dataset_1"));
     }
 
     query = QueryBuilder.build("age:[15 TO 20]");
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(2, query.count(dataStore, scanners, null));
-      Assert.assertEquals(2, query.count(dataStore, scanners, "dataset_1"));
+      Assert.assertEquals(2, query.cardinality(dataStore, scanners, null));
+      Assert.assertEquals(2, query.cardinality(dataStore, scanners, "dataset_1"));
     }
 
     query = QueryBuilder.build("age:[15 TO *]");
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(2, query.count(dataStore, scanners, null));
-      Assert.assertEquals(2, query.count(dataStore, scanners, "dataset_1"));
+      Assert.assertEquals(2, query.cardinality(dataStore, scanners, null));
+      Assert.assertEquals(2, query.cardinality(dataStore, scanners, "dataset_1"));
     }
 
     // Min. term should be included and max. term excluded
     query = QueryBuilder.build("age:[17 TO 18]");
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(1, query.count(dataStore, scanners, null));
-      Assert.assertEquals(1, query.count(dataStore, scanners, "dataset_1"));
+      Assert.assertEquals(1, query.cardinality(dataStore, scanners, null));
+      Assert.assertEquals(1, query.cardinality(dataStore, scanners, "dataset_1"));
     }
   }
 

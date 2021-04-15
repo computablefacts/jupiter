@@ -41,8 +41,8 @@ public abstract class AbstractNode {
     this.exclude_ = exclude;
   }
 
-  final public long count(DataStore dataStore, Scanners scanners, String dataset) {
-    return count(dataStore, scanners, dataset, null);
+  final public long cardinality(DataStore dataStore, Scanners scanners, String dataset) {
+    return cardinality(dataStore, scanners, dataset, null);
   }
 
   final public Iterator<Map.Entry<String, String>> execute(DataStore dataStore, Scanners scanners,
@@ -64,7 +64,7 @@ public abstract class AbstractNode {
   @Deprecated
   public abstract Set<String> terms();
 
-  public abstract long count(DataStore dataStore, Scanners scanners, String dataset,
+  public abstract long cardinality(DataStore dataStore, Scanners scanners, String dataset,
       Function<String, SpanSequence> tokenizer);
 
   public abstract Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,

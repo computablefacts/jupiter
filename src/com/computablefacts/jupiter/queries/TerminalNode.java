@@ -116,8 +116,8 @@ final public class TerminalNode extends AbstractNode {
   }
 
   @Override
-  public long count(DataStore dataStore, Scanners scanners, String dataset,
-      Function<String, SpanSequence> tokenizer) {
+  public long cardinality(DataStore dataStore, Scanners scanners, String dataset,
+                          Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(scanners, "scanners should not be null");
