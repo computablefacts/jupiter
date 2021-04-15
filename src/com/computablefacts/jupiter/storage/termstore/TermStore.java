@@ -522,7 +522,7 @@ final public class TermStore extends AbstractStorage {
    * @param fields fields (optional).
    * @return visibility labels.
    */
-  public Iterator<FieldLabels> fieldLabels(ScannerBase scanner, String dataset,
+  public Iterator<FieldLabels> fieldVisibilityLabels(ScannerBase scanner, String dataset,
       Set<String> fields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");

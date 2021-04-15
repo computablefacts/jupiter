@@ -91,7 +91,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<FieldLabels> fieldLabels = new ArrayList<>();
-      termStore.fieldLabels(scanner, dataset, Sets.newHashSet("first_name"))
+      termStore.fieldVisibilityLabels(scanner, dataset, Sets.newHashSet("first_name"))
           .forEachRemaining(fieldLabels::add);
 
       Assert.assertEquals(1, fieldLabels.size());
@@ -120,7 +120,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       List<FieldLabels> fieldLabels = new ArrayList<>();
-      termStore.fieldLabels(scanner, dataset, Sets.newHashSet("first_name"))
+      termStore.fieldVisibilityLabels(scanner, dataset, Sets.newHashSet("first_name"))
           .forEachRemaining(fieldLabels::add);
 
       Assert.assertTrue(fieldLabels.isEmpty());
@@ -171,7 +171,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // Check first dataset
       List<FieldLabels> fieldLabels = new ArrayList<>();
-      termStore.fieldLabels(scanner, "dataset_1", Sets.newHashSet("first_name"))
+      termStore.fieldVisibilityLabels(scanner, "dataset_1", Sets.newHashSet("first_name"))
           .forEachRemaining(fieldLabels::add);
 
       Assert.assertEquals(1, fieldLabels.size());
@@ -194,7 +194,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // Check second dataset
       fieldLabels.clear();
-      termStore.fieldLabels(scanner, "dataset_2", Sets.newHashSet("first_name"))
+      termStore.fieldVisibilityLabels(scanner, "dataset_2", Sets.newHashSet("first_name"))
           .forEachRemaining(fieldLabels::add);
 
       Assert.assertEquals(1, fieldLabels.size());
@@ -226,7 +226,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // First dataset has been removed
       List<FieldLabels> fieldLabels = new ArrayList<>();
-      termStore.fieldLabels(scanner, "dataset_1", Sets.newHashSet("first_name"))
+      termStore.fieldVisibilityLabels(scanner, "dataset_1", Sets.newHashSet("first_name"))
           .forEachRemaining(fieldLabels::add);
 
       Assert.assertTrue(fieldLabels.isEmpty());
@@ -249,7 +249,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // Second dataset is always present
       fieldLabels.clear();
-      termStore.fieldLabels(scanner, "dataset_2", Sets.newHashSet("first_name"))
+      termStore.fieldVisibilityLabels(scanner, "dataset_2", Sets.newHashSet("first_name"))
           .forEachRemaining(fieldLabels::add);
 
       Assert.assertEquals(1, fieldLabels.size());

@@ -563,12 +563,13 @@ final public class DataStore {
    * @param field field.
    * @return visibility labels.
    */
-  public Iterator<FieldLabels> fieldLabels(Scanners scanners, String dataset, String field) {
+  public Iterator<FieldLabels> fieldVisibilityLabels(Scanners scanners, String dataset,
+      String field) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldLabels(scanners.index(), dataset,
+    return termStore_.fieldVisibilityLabels(scanners.index(), dataset,
         field == null ? null : Sets.newHashSet(field));
   }
 
@@ -875,7 +876,7 @@ final public class DataStore {
               fieldfieldDistinctBuckets.type(), fieldfieldDistinctBuckets.estimate());
         }
 
-        Iterator<FieldLabels> labelsIterator = fieldLabels(scanners, dataset, null);
+        Iterator<FieldLabels> labelsIterator = fieldVisibilityLabels(scanners, dataset, null);
 
         while (labelsIterator.hasNext()) {
           FieldLabels fieldLabels = labelsIterator.next();
