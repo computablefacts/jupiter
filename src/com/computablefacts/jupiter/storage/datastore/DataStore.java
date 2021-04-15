@@ -39,7 +39,7 @@ import com.computablefacts.jupiter.storage.termstore.FieldDistinctBuckets;
 import com.computablefacts.jupiter.storage.termstore.FieldDistinctTerms;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
 import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
-import com.computablefacts.jupiter.storage.termstore.TermCount;
+import com.computablefacts.jupiter.storage.termstore.TermDistinctBuckets;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.Codecs;
@@ -672,7 +672,7 @@ final public class DataStore {
   }
 
   /**
-   * Estimate the number of occurrences of a given term.
+   * Estimate the number of buckets with at least one of occurrence of a given term.
    *
    * @param scanners scanners.
    * @param dataset dataset (optional).
@@ -680,7 +680,8 @@ final public class DataStore {
    * @param term searched term. Might contain wildcard characters.
    * @return the estimated number of occurrences of the given term.
    */
-  public long count(Scanners scanners, String dataset, Set<String> fields, String term) {
+  public long termCardinalityEstimationForBuckets(Scanners scanners, String dataset,
+      Set<String> fields, String term) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
@@ -691,17 +692,19 @@ final public class DataStore {
     @Var
     long count = 0;
 
-    Iterator<TermCount> iter = termStore_.counts(scanners.index(), dataset, fields, term);
+    Iterator<TermDistinctBuckets> iter =
+        termStore_.termCardinalityEstimationForBuckets(scanners.index(), dataset, fields, term);
 
     while (iter.hasNext()) {
-      TermCount termCount = iter.next();
+      TermDistinctBuckets termCount = iter.next();
       count += termCount.count();
     }
     return count;
   }
 
   /**
-   * Estimate the number of occurrences of all terms in [minTerm, maxTerm].
+   * Estimate the number of buckets with at least one of occurrence of all terms in [minTerm,
+   * maxTerm].
    *
    * @param scanners scanners.
    * @param dataset dataset (optional).
@@ -710,8 +713,8 @@ final public class DataStore {
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @return the estimated number of terms in [minTerm, maxTerm].
    */
-  public long count(Scanners scanners, String dataset, Set<String> fields, Object minTerm,
-      Object maxTerm) {
+  public long termCardinalityEstimationForBuckets(Scanners scanners, String dataset,
+      Set<String> fields, Object minTerm, Object maxTerm) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
@@ -723,11 +726,11 @@ final public class DataStore {
     @Var
     long count = 0;
 
-    Iterator<TermCount> iter =
-        termStore_.counts(scanners.index(), dataset, fields, minTerm, maxTerm);
+    Iterator<TermDistinctBuckets> iter = termStore_
+        .termCardinalityEstimationForBuckets(scanners.index(), dataset, fields, minTerm, maxTerm);
 
     while (iter.hasNext()) {
-      TermCount termCount = iter.next();
+      TermDistinctBuckets termCount = iter.next();
       count += termCount.count();
     }
     return count;

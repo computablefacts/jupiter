@@ -23,7 +23,7 @@ import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-final public class TermCount implements HasTerm {
+final public class TermDistinctBuckets implements HasTerm {
 
   private final String dataset_;
   private final String field_;
@@ -32,7 +32,8 @@ final public class TermCount implements HasTerm {
   private final Set<String> labels_;
   private final long count_;
 
-  TermCount(String dataset, String field, int type, String term, Set<String> labels, long count) {
+  TermDistinctBuckets(String dataset, String field, int type, String term, Set<String> labels,
+      long count) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
@@ -57,7 +58,7 @@ final public class TermCount implements HasTerm {
     return newMutation(TermStore.backwardCount(dataset), field, type, reverse(term), count, labels);
   }
 
-  public static TermCount fromKeyValue(Key key, Value value) {
+  public static TermDistinctBuckets fromKeyValue(Key key, Value value) {
 
     Preconditions.checkNotNull(key, "key should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
@@ -92,7 +93,7 @@ final public class TermCount implements HasTerm {
     Set<String> labels =
         Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
-    return new TermCount(datazet, field, type, term, labels, Long.parseLong(val, 10));
+    return new TermDistinctBuckets(datazet, field, type, term, labels, Long.parseLong(val, 10));
   }
 
   private static Mutation newMutation(String dataset, String field, int type, String term,
@@ -128,10 +129,10 @@ final public class TermCount implements HasTerm {
     if (obj == this) {
       return true;
     }
-    if (!(obj instanceof TermCount)) {
+    if (!(obj instanceof TermDistinctBuckets)) {
       return false;
     }
-    TermCount term = (TermCount) obj;
+    TermDistinctBuckets term = (TermDistinctBuckets) obj;
     return Objects.equal(dataset_, term.dataset_) && Objects.equal(field_, term.field_)
         && Objects.equal(term_, term.term_) && Objects.equal(type_, term.type_)
         && Objects.equal(labels_, term.labels_) && Objects.equal(count_, term.count_);

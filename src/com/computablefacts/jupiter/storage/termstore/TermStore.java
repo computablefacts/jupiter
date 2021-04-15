@@ -66,10 +66,10 @@ import com.google.errorprone.annotations.Var;
  *  <field>\0<term_type>    | <dataset>_DT    | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms
  *  <field>\0<term_type>    | <dataset>_LU    | (empty)                           | ADM|<dataset>_LU                            | utc_date
  *  <field>\0<term_type>    | <dataset>_VIZ   | (empty)                           | ADM|<dataset>_VIZ                           | viz1\0viz2\0
- *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_occurrence
- *  <mret>                  | <dataset>_BIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_in_bucket
- *  <term>                  | <dataset>_FCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_occurrence
- *  <term>                  | <dataset>_FIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_in_bucket
+ *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
+ *  <mret>                  | <dataset>_BIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_of_term_in_bucket
+ *  <term>                  | <dataset>_FCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
+ *  <term>                  | <dataset>_FIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_of_term_in_bucket
  * </pre>
  *
  * <p>
@@ -120,7 +120,7 @@ final public class TermStore extends AbstractStorage {
     return dataset + "_BIDX";
   }
 
-  private static Iterator<TermCount> scanCounts(ScannerBase scanner, String dataset,
+  private static Iterator<TermDistinctBuckets> scanCounts(ScannerBase scanner, String dataset,
       Set<String> fields, Range range, boolean hitsBackwardIndex) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -147,8 +147,8 @@ final public class TermStore extends AbstractStorage {
     }
     return Iterators.transform(
         Iterators.transform(scanner.iterator(),
-            entry -> TermCount.fromKeyValue(entry.getKey(), entry.getValue())),
-        tc -> new TermCount(tc.dataset(), tc.field(), tc.type(),
+            entry -> TermDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue())),
+        tc -> new TermDistinctBuckets(tc.dataset(), tc.field(), tc.type(),
             tc.isNumber() ? BigDecimalCodec.decode(tc.term()) : tc.term(), tc.labels(),
             tc.count()));
   }
@@ -496,18 +496,16 @@ final public class TermStore extends AbstractStorage {
         add(writer, FieldLabels.newMutation(dataset, field, newType, fieldSpecificLabels)) && isOk;
 
     // Forward index
-    isOk = add(writer,
-        TermCount.newForwardMutation(dataset, field, newType, newTerm, 1, fieldSpecificLabels))
-        && isOk;
+    isOk = add(writer, TermDistinctBuckets.newForwardMutation(dataset, field, newType, newTerm, 1,
+        fieldSpecificLabels)) && isOk;
     isOk = add(writer, Term.newForwardMutation(dataset, bucketId, field, newType, newTerm,
         nbOccurrences, Sets.union(bucketSpecificLabels, fieldSpecificLabels))) && isOk;
 
     if (!writeInForwardIndexOnly) {
 
       // Backward index
-      isOk = add(writer,
-          TermCount.newBackwardMutation(dataset, field, newType, newTerm, 1, fieldSpecificLabels))
-          && isOk;
+      isOk = add(writer, TermDistinctBuckets.newBackwardMutation(dataset, field, newType, newTerm,
+          1, fieldSpecificLabels)) && isOk;
       isOk = add(writer, Term.newBackwardMutation(dataset, bucketId, field, newType, newTerm,
           nbOccurrences, Sets.union(bucketSpecificLabels, fieldSpecificLabels))) && isOk;
     }
@@ -669,7 +667,8 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * For each field in a given dataset, get the number of occurrences of a given term.
+   * For each field in a given dataset, get the number of buckets with at least one occurrence of a
+   * given term.
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
@@ -678,13 +677,14 @@ final public class TermStore extends AbstractStorage {
    *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<TermCount> counts(ScannerBase scanner, String dataset, String term) {
-    return counts(scanner, dataset, null, term);
+  public Iterator<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
+      String dataset, String term) {
+    return termCardinalityEstimationForBuckets(scanner, dataset, null, term);
   }
 
   /**
-   * For each field of each bucket in a given dataset, get the number of occurrences of a given
-   * term.
+   * For each field of each bucket in a given dataset, get the number of buckets with at least one
+   * occurrence of a given term.
    *
    * @param scanner scanner.
    * @param dataset dataset (optional).
@@ -694,8 +694,8 @@ final public class TermStore extends AbstractStorage {
    *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<TermCount> counts(ScannerBase scanner, String dataset, Set<String> fields,
-      String term) {
+  public Iterator<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
+      String dataset, Set<String> fields, String term) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
@@ -837,8 +837,8 @@ final public class TermStore extends AbstractStorage {
    *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<TermCount> counts(ScannerBase scanner, String dataset, Set<String> fields,
-      Object minTerm, Object maxTerm) {
+  public Iterator<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
+      String dataset, Set<String> fields, Object minTerm, Object maxTerm) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,

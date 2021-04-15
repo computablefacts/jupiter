@@ -152,7 +152,7 @@ final public class TerminalNode extends AbstractNode {
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.count(scanners, dataset, fields,
+          return dataStore.termCardinalityEstimationForBuckets(scanners, dataset, fields,
               minTerm == null ? null : new BigDecimal(minTerm),
               maxTerm == null ? null : new BigDecimal(maxTerm));
         }
@@ -170,11 +170,11 @@ final public class TerminalNode extends AbstractNode {
       return 0;
     }
     if (Inflectional.equals(form_)) {
-      return terms.stream().mapToLong(term -> dataStore.count(scanners, dataset, fields(), term))
+      return terms.stream().mapToLong(term -> dataStore.termCardinalityEstimationForBuckets(scanners, dataset, fields(), term))
           .sum();
     }
     if (Literal.equals(form_)) {
-      return terms.stream().mapToLong(term -> dataStore.count(scanners, dataset, fields(), term))
+      return terms.stream().mapToLong(term -> dataStore.termCardinalityEstimationForBuckets(scanners, dataset, fields(), term))
           .max().orElse(0);
     }
     if (Thesaurus.equals(form_)) {

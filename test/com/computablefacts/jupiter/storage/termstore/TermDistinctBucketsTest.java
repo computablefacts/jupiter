@@ -14,31 +14,31 @@ import com.google.common.collect.Sets;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class TermCountTest {
+public class TermDistinctBucketsTest {
 
   @Test(expected = NullPointerException.class)
   public void testNullDataset() {
-    TermCount tc = new TermCount(null, "field", Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
+    TermDistinctBuckets tc = new TermDistinctBuckets(null, "field", Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullField() {
-    TermCount tc = new TermCount("dataset", null, Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
+    TermDistinctBuckets tc = new TermDistinctBuckets("dataset", null, Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullTerm() {
-    TermCount tc = new TermCount("dataset", "field", Term.TYPE_UNKNOWN, null, Sets.newHashSet(), 0);
+    TermDistinctBuckets tc = new TermDistinctBuckets("dataset", "field", Term.TYPE_UNKNOWN, null, Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabels() {
-    TermCount tc = new TermCount("dataset", "field", Term.TYPE_STRING, "term", null, 0);
+    TermDistinctBuckets tc = new TermDistinctBuckets("dataset", "field", Term.TYPE_STRING, "term", null, 0);
   }
 
   @Test
   public void testHashcodeAndEquals() {
-    EqualsVerifier.forClass(TermCount.class).verify();
+    EqualsVerifier.forClass(TermDistinctBuckets.class).verify();
   }
 
   @Test
@@ -53,7 +53,7 @@ public class TermCountTest {
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual = TermCount.newForwardMutation("my_dataset", "first_name", Term.TYPE_STRING,
+    Mutation actual = TermDistinctBuckets.newForwardMutation("my_dataset", "first_name", Term.TYPE_STRING,
         "john", 11, Sets.newHashSet());
 
     Assert.assertEquals(expected, actual);
@@ -71,7 +71,7 @@ public class TermCountTest {
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual = TermCount.newBackwardMutation("my_dataset", "first_name", Term.TYPE_STRING,
+    Mutation actual = TermDistinctBuckets.newBackwardMutation("my_dataset", "first_name", Term.TYPE_STRING,
         "john", 11, Sets.newHashSet());
 
     Assert.assertEquals(expected, actual);
@@ -88,7 +88,7 @@ public class TermCountTest {
 
     Key key = new Key(row, cf, cq, cv);
     Value value = new Value(val);
-    TermCount termCount = TermCount.fromKeyValue(key, value);
+    TermDistinctBuckets termCount = TermDistinctBuckets.fromKeyValue(key, value);
 
     Assert.assertTrue(termCount.isString());
     Assert.assertEquals("my_dataset", termCount.dataset());
@@ -109,7 +109,7 @@ public class TermCountTest {
 
     Key key = new Key(row, cf, cq, cv);
     Value value = new Value(val);
-    TermCount termCount = TermCount.fromKeyValue(key, value);
+    TermDistinctBuckets termCount = TermDistinctBuckets.fromKeyValue(key, value);
 
     Assert.assertTrue(termCount.isString());
     Assert.assertEquals("my_dataset", termCount.dataset());
