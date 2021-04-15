@@ -81,8 +81,8 @@ final public class TermStore extends AbstractStorage {
 
   private static final Logger logger_ = LoggerFactory.getLogger(TermStore.class);
 
-  private Map<String, MySketch> fieldsCardinalityEstimatorsForTerms_;
-  private Map<String, MySketch> fieldsCardinalityEstimatorsForBuckets_;
+  private Map<String, ThetaSketch> fieldsCardinalityEstimatorsForTerms_;
+  private Map<String, ThetaSketch> fieldsCardinalityEstimatorsForBuckets_;
 
   public TermStore(Configurations configurations, String name) {
     super(configurations, name);
@@ -383,14 +383,14 @@ final public class TermStore extends AbstractStorage {
     boolean isOk = true;
 
     if (fieldsCardinalityEstimatorsForTerms_ != null) {
-      for (Map.Entry<String, MySketch> sketch : fieldsCardinalityEstimatorsForTerms_.entrySet()) {
+      for (Map.Entry<String, ThetaSketch> sketch : fieldsCardinalityEstimatorsForTerms_.entrySet()) {
         isOk = add(writer, FieldDistinctTerms.newMutation(dataset, sketch.getKey(),
             sketch.getValue().toByteArray())) && isOk;
       }
       fieldsCardinalityEstimatorsForTerms_ = null;
     }
     if (fieldsCardinalityEstimatorsForBuckets_ != null) {
-      for (Map.Entry<String, MySketch> sketch : fieldsCardinalityEstimatorsForBuckets_.entrySet()) {
+      for (Map.Entry<String, ThetaSketch> sketch : fieldsCardinalityEstimatorsForBuckets_.entrySet()) {
         isOk = add(writer, FieldDistinctBuckets.newMutation(dataset, sketch.getKey(),
             sketch.getValue().toByteArray())) && isOk;
       }
@@ -473,7 +473,7 @@ final public class TermStore extends AbstractStorage {
       String key = field + SEPARATOR_NUL + newType;
 
       if (!fieldsCardinalityEstimatorsForTerms_.containsKey(key)) {
-        fieldsCardinalityEstimatorsForTerms_.put(key, new MySketch());
+        fieldsCardinalityEstimatorsForTerms_.put(key, new ThetaSketch());
       }
       fieldsCardinalityEstimatorsForTerms_.get(key).offer(newTerm);
     }
@@ -484,7 +484,7 @@ final public class TermStore extends AbstractStorage {
       String key = field + SEPARATOR_NUL + newType;
 
       if (!fieldsCardinalityEstimatorsForBuckets_.containsKey(key)) {
-        fieldsCardinalityEstimatorsForBuckets_.put(key, new MySketch());
+        fieldsCardinalityEstimatorsForBuckets_.put(key, new ThetaSketch());
       }
       fieldsCardinalityEstimatorsForBuckets_.get(key).offer(bucketId);
     }

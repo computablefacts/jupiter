@@ -13,11 +13,11 @@ import org.apache.datasketches.theta.UpdateSketch;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-final public class MySketch {
+final public class ThetaSketch {
 
   private final UpdateSketch thetaSketch_ = UpdateSketch.builder().build();
 
-  public MySketch() {}
+  public ThetaSketch() {}
 
   public static Sketch wrap(byte[] sketch) {
     return Sketches.wrapSketch(Memory.wrap(sketch));

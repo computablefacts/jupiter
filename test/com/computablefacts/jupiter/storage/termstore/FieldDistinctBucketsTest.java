@@ -11,19 +11,19 @@ public class FieldDistinctBucketsTest {
   @Test(expected = NullPointerException.class)
   public void testNullDataset() {
     FieldDistinctBuckets fdb = new FieldDistinctBuckets(null, "field", Term.TYPE_UNKNOWN,
-        Sets.newHashSet(), new MySketch().toByteArray());
+        Sets.newHashSet(), new ThetaSketch().toByteArray());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullField() {
     FieldDistinctBuckets fdb = new FieldDistinctBuckets("dataset", null, Term.TYPE_UNKNOWN,
-        Sets.newHashSet(), new MySketch().toByteArray());
+        Sets.newHashSet(), new ThetaSketch().toByteArray());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabels() {
     FieldDistinctBuckets fdb = new FieldDistinctBuckets("dataset", "field", Term.TYPE_UNKNOWN, null,
-        new MySketch().toByteArray());
+        new ThetaSketch().toByteArray());
   }
 
   @Test

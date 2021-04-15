@@ -44,7 +44,7 @@ final public class FieldDistinctTerms {
     field_ = field;
     type_ = type;
     labels_ = new HashSet<>(labels);
-    estimate_ = MySketch.wrap(sketch).getEstimate();
+    estimate_ = ThetaSketch.wrap(sketch).getEstimate();
   }
 
   public static Mutation newMutation(String dataset, String typedField, byte[] sketch) {

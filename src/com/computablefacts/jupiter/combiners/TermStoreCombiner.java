@@ -16,7 +16,7 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.datasketches.theta.Sketch;
 
 import com.computablefacts.jupiter.storage.Constants;
-import com.computablefacts.jupiter.storage.termstore.MySketch;
+import com.computablefacts.jupiter.storage.termstore.ThetaSketch;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -121,7 +121,7 @@ public class TermStoreCombiner extends Combiner {
     List<byte[]> sketches =
         StreamSupport.stream(Spliterators.spliteratorUnknownSize(iter, Spliterator.ORDERED), false)
             .map(Value::get).collect(Collectors.toList());
-    Sketch sketch = MySketch.union(sketches);
+    Sketch sketch = ThetaSketch.union(sketches);
 
     return new Value(sketch.toByteArray());
   }
