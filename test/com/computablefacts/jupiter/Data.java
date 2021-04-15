@@ -2,7 +2,8 @@ package com.computablefacts.jupiter;
 
 import java.io.File;
 import java.io.RandomAccessFile;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,7 +38,7 @@ final public class Data {
     json.put("first_name", "john");
     json.put("last_name", "doe");
     json.put("age", 17);
-    json.put("birthdate", new SimpleDateFormat("yyyy-MM-dd").parse("2004-04-01"));
+    json.put("birthdate", Date.from(Instant.parse("2004-04-01T00:00:00Z")));
     return json;
   }
 
@@ -47,7 +48,7 @@ final public class Data {
     json.put("first_name", "jane");
     json.put("last_name", "doe");
     json.put("age", 18);
-    json.put("birthdate", new SimpleDateFormat("yyyy-MM-dd").parse("2003-04-01"));
+    json.put("birthdate", Date.from(Instant.parse("2003-04-01T00:00:00Z")));
     return json;
   }
 

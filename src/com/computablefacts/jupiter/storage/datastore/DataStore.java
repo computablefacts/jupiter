@@ -7,6 +7,9 @@ import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -81,6 +84,7 @@ import com.google.errorprone.annotations.Var;
 final public class DataStore {
 
   private static final HashFunction hashFunction_ = Hashing.goodFastHash(128);
+  private static final Base64.Decoder b64Decoder_ = Base64.getDecoder();
   private static final Logger logger_ = LoggerFactory.getLogger(DataStore.class);
 
   private final String name_;
@@ -522,21 +526,48 @@ final public class DataStore {
       if (!(value instanceof String)) {
         fields.get(newField).add(value); // Objects other than String will be lexicoded by the
                                          // TermStore
-      } else if (Codecs.isProbablyBase64((String) value)) {
-        continue; // Base64 strings are NOT indexed
       } else {
 
-        SpanSequence spanSequence;
+        String val = ((String) value).trim();
+        @Var
+        Object newVal = val;
 
-        if (tokenizer != null) {
-          spanSequence = Objects.requireNonNull(tokenizer.apply((String) value));
-        } else {
-          String str = normalize(value.toString());
-          spanSequence = new SpanSequence();
-          spanSequence.add(new Span(str, 0, str.length()));
+        if (Codecs.isProbablyBase64(val)) {
+          try {
+            newVal = Codecs.decodeB64(b64Decoder_, val);
+            continue; // Base64 strings are NOT indexed
+          } catch (Exception e) {
+            // fall through
+          }
         }
 
-        spanSequence.forEach(span -> fields.get(newField).add(span.text()));
+        // Because JSON does not have a date format, check if val is in ISO Instant format
+        if (val.length() >= 20 && val.length() <= 24
+            && (val.charAt(10) == 'T' || val.charAt(10) == 't')
+            && (val.charAt(val.length() - 1) == 'Z' || val.charAt(val.length() - 1) == 'z')) {
+          try {
+            newVal = Date.from(Instant.parse(val));
+          } catch (Exception e) {
+            // fall through
+          }
+        }
+
+        if (!(newVal instanceof String)) {
+          fields.get(newField).add(newVal);
+        } else {
+
+          SpanSequence spanSequence;
+
+          if (tokenizer != null) {
+            spanSequence = Objects.requireNonNull(tokenizer.apply((String) newVal));
+          } else {
+            String str = normalize(value.toString());
+            spanSequence = new SpanSequence();
+            spanSequence.add(new Span(str, 0, str.length()));
+          }
+
+          spanSequence.forEach(span -> fields.get(newField).add(span.text()));
+        }
       }
     }
 

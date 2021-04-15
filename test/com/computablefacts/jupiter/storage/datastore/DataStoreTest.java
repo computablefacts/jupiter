@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -556,17 +555,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("nb_distinct_terms", 2.0);
     map.put("nb_distinct_buckets", 2.0);
     map.put("top_terms",
-        Lists.newArrayList(ImmutableMap.of("term", "1080770400000", "nb_occurrences", 1),
-            ImmutableMap.of("term", "1049148000000", "nb_occurrences", 1)));
+        Lists.newArrayList(ImmutableMap.of("term", "2004-04-01T00:00:00Z", "nb_occurrences", 1),
+            ImmutableMap.of("term", "2003-04-01T00:00:00Z", "nb_occurrences", 1)));
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_BIRTHDATE"));
-    map.put("types", Sets.newHashSet("NUMBER"));
-
-    Optional<Map<String, Object>> m =
-        jsons.stream().filter(j -> j.get("field").equals("birthdate")).findFirst();
-
-    if (m.isPresent()) {
-      System.out.println(m);
-    }
+    map.put("types", Sets.newHashSet("DATE"));
 
     Assert.assertTrue(jsons.contains(map));
 
