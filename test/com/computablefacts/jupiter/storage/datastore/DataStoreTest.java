@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -559,6 +560,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
             ImmutableMap.of("term", "1049148000000", "nb_occurrences", 1)));
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_BIRTHDATE"));
     map.put("types", Sets.newHashSet("NUMBER"));
+
+    Optional<Map<String, Object>> m =
+        jsons.stream().filter(j -> j.get("field").equals("birthdate")).findFirst();
+
+    if (m.isPresent()) {
+      System.out.println(m);
+    }
 
     Assert.assertTrue(jsons.contains(map));
 
