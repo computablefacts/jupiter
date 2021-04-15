@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -12,6 +13,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.hadoop.io.Text;
 
 import com.computablefacts.jupiter.storage.AbstractStorage;
@@ -21,20 +23,22 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @Beta
 @CheckReturnValue
-final public class FieldDistinctTerms {
+final public class FieldTopTerms {
 
   private final String dataset_;
   private final String field_;
   private final int type_;
   private final Set<String> labels_;
-  private final double estimate_;
+  private final Multiset<String> topTerms_;
 
-  FieldDistinctTerms(String dataset, String field, int type, Set<String> labels, byte[] sketch) {
+  FieldTopTerms(String dataset, String field, int type, Set<String> labels, byte[] sketch) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
@@ -45,7 +49,10 @@ final public class FieldDistinctTerms {
     field_ = field;
     type_ = type;
     labels_ = new HashSet<>(labels);
-    estimate_ = ThetaSketch.wrap(sketch).getEstimate();
+    topTerms_ = HashMultiset.create();
+
+    Arrays.stream(TopKSketch.wrap(sketch).getFrequentItems(ErrorType.NO_FALSE_POSITIVES))
+        .forEach(item -> topTerms_.add(item.getItem(), Math.toIntExact(item.getEstimate())));
   }
 
   public static Mutation newMutation(String dataset, String typedField, byte[] sketch) {
@@ -59,10 +66,10 @@ final public class FieldDistinctTerms {
 
     Text row = new Text(typedField);
 
-    Text cf = new Text(TermStore.distinctTerms(dataset));
+    Text cf = new Text(TermStore.topTerms(dataset));
 
     ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
-        + AbstractStorage.toVisibilityLabel(TermStore.distinctTerms(dataset)));
+        + AbstractStorage.toVisibilityLabel(TermStore.topTerms(dataset)));
 
     Value value = new Value(sketch);
 
@@ -72,7 +79,7 @@ final public class FieldDistinctTerms {
     return mutation;
   }
 
-  public static FieldDistinctTerms fromKeyValue(Key key, Value value) {
+  public static FieldTopTerms fromKeyValue(Key key, Value value) {
 
     Preconditions.checkNotNull(key, "key should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
@@ -106,14 +113,14 @@ final public class FieldDistinctTerms {
     // Extract sketch from VALUE
     byte[] sketch = value.get();
 
-    return new FieldDistinctTerms(datazet, field, type, labels, sketch);
+    return new FieldTopTerms(datazet, field, type, labels, sketch);
   }
 
   @Generated
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("field", field_)
-        .add("type", type_).add("labels", labels_).add("estimate", estimate_).toString();
+        .add("type", type_).add("labels", labels_).add("top_terms", topTerms_).toString();
   }
 
   @Override
@@ -121,18 +128,18 @@ final public class FieldDistinctTerms {
     if (obj == this) {
       return true;
     }
-    if (!(obj instanceof FieldDistinctTerms)) {
+    if (!(obj instanceof FieldTopTerms)) {
       return false;
     }
-    FieldDistinctTerms term = (FieldDistinctTerms) obj;
+    FieldTopTerms term = (FieldTopTerms) obj;
     return Objects.equal(dataset_, term.dataset_) && Objects.equal(field_, term.field_)
         && Objects.equal(type_, term.type_) && Objects.equal(labels_, term.labels_)
-        && Objects.equal(estimate_, term.estimate_);
+        && Objects.equal(topTerms_, term.topTerms_);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(dataset_, field_, type_, labels_, estimate_);
+    return Objects.hashCode(dataset_, field_, type_, labels_, topTerms_);
   }
 
   @Generated
@@ -176,7 +183,7 @@ final public class FieldDistinctTerms {
   }
 
   @Generated
-  public double estimate() {
-    return estimate_;
+  public Multiset<String> topTerms() {
+    return topTerms_;
   }
 }

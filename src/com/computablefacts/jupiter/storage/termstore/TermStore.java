@@ -65,6 +65,7 @@ import com.google.errorprone.annotations.Var;
  *  <field>\0<term_type>    | <dataset>_DB    | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
  *  <field>\0<term_type>    | <dataset>_DT    | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms
  *  <field>\0<term_type>    | <dataset>_LU    | (empty)                           | ADM|<dataset>_LU                            | utc_date
+ *  <field>\0<term_type>    | <dataset>_TT    | (empty)                           | ADM|<dataset>_TT                            | top_k_terms
  *  <field>\0<term_type>    | <dataset>_VIZ   | (empty)                           | ADM|<dataset>_VIZ                           | viz1\0viz2\0
  *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
  *  <mret>                  | <dataset>_BIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_of_term_in_bucket
@@ -83,6 +84,7 @@ final public class TermStore extends AbstractStorage {
 
   private Map<String, ThetaSketch> fieldsCardinalityEstimatorsForTerms_;
   private Map<String, ThetaSketch> fieldsCardinalityEstimatorsForBuckets_;
+  private Map<String, TopKSketch> fieldsTopTerms_;
 
   public TermStore(Configurations configurations, String name) {
     super(configurations, name);
@@ -94,6 +96,10 @@ final public class TermStore extends AbstractStorage {
 
   static String distinctBuckets(String dataset) {
     return dataset + "_DB";
+  }
+
+  static String topTerms(String dataset) {
+    return dataset + "_TT";
   }
 
   static String visibility(String dataset) {
@@ -302,9 +308,9 @@ final public class TermStore extends AbstractStorage {
           .add("dataset", dataset).formatInfo());
     }
 
-    Set<String> cfs = Sets.newHashSet(distinctTerms(dataset), distinctBuckets(dataset),
-        lastUpdate(dataset), visibility(dataset), forwardCount(dataset), forwardIndex(dataset),
-        backwardCount(dataset), backwardIndex(dataset));
+    Set<String> cfs = Sets.newHashSet(topTerms(dataset), distinctTerms(dataset),
+        distinctBuckets(dataset), lastUpdate(dataset), visibility(dataset), forwardCount(dataset),
+        forwardIndex(dataset), backwardCount(dataset), backwardIndex(dataset));
 
     return remove(deleter, cfs);
   }
@@ -333,6 +339,7 @@ final public class TermStore extends AbstractStorage {
     String lastUpdate = lastUpdate(dataset);
     String distinctTerms = distinctTerms(dataset);
     String distinctBuckets = distinctBuckets(dataset);
+    String topKTerms = topTerms(dataset);
     String forwardCount = forwardCount(dataset);
     String forwardIndex = forwardIndex(dataset);
     String backwardCount = backwardCount(dataset);
@@ -349,6 +356,9 @@ final public class TermStore extends AbstractStorage {
     }
     if (!groups.containsKey(distinctBuckets)) {
       groups.put(distinctBuckets, Sets.newHashSet(new Text(distinctBuckets)));
+    }
+    if (!groups.containsKey(topKTerms)) {
+      groups.put(topKTerms, Sets.newHashSet(new Text(topKTerms)));
     }
     if (!groups.containsKey(forwardCount)) {
       groups.put(forwardCount, Sets.newHashSet(new Text(forwardCount)));
@@ -370,6 +380,7 @@ final public class TermStore extends AbstractStorage {
   public void beginIngest() {
     fieldsCardinalityEstimatorsForTerms_ = new HashMap<>();
     fieldsCardinalityEstimatorsForBuckets_ = new HashMap<>();
+    fieldsTopTerms_ = new HashMap<>();
   }
 
   @Beta
@@ -383,18 +394,28 @@ final public class TermStore extends AbstractStorage {
     boolean isOk = true;
 
     if (fieldsCardinalityEstimatorsForTerms_ != null) {
-      for (Map.Entry<String, ThetaSketch> sketch : fieldsCardinalityEstimatorsForTerms_.entrySet()) {
+      for (Map.Entry<String, ThetaSketch> sketch : fieldsCardinalityEstimatorsForTerms_
+          .entrySet()) {
         isOk = add(writer, FieldDistinctTerms.newMutation(dataset, sketch.getKey(),
             sketch.getValue().toByteArray())) && isOk;
       }
       fieldsCardinalityEstimatorsForTerms_ = null;
     }
     if (fieldsCardinalityEstimatorsForBuckets_ != null) {
-      for (Map.Entry<String, ThetaSketch> sketch : fieldsCardinalityEstimatorsForBuckets_.entrySet()) {
+      for (Map.Entry<String, ThetaSketch> sketch : fieldsCardinalityEstimatorsForBuckets_
+          .entrySet()) {
         isOk = add(writer, FieldDistinctBuckets.newMutation(dataset, sketch.getKey(),
             sketch.getValue().toByteArray())) && isOk;
       }
       fieldsCardinalityEstimatorsForBuckets_ = null;
+    }
+    if (fieldsTopTerms_ != null) {
+      for (Map.Entry<String, TopKSketch> sketch : fieldsTopTerms_.entrySet()) {
+        isOk = add(writer,
+            FieldTopTerms.newMutation(dataset, sketch.getKey(), sketch.getValue().toByteArray()))
+            && isOk;
+      }
+      fieldsTopTerms_ = null;
     }
     return isOk;
   }
@@ -487,6 +508,17 @@ final public class TermStore extends AbstractStorage {
         fieldsCardinalityEstimatorsForBuckets_.put(key, new ThetaSketch());
       }
       fieldsCardinalityEstimatorsForBuckets_.get(key).offer(bucketId);
+    }
+
+    // Compute the top k terms
+    if (fieldsTopTerms_ != null) {
+
+      String key = field + SEPARATOR_NUL + newType;
+
+      if (!fieldsTopTerms_.containsKey(key)) {
+        fieldsTopTerms_.put(key, new TopKSketch());
+      }
+      fieldsTopTerms_.get(key).offer(term instanceof Number ? term.toString() : newTerm);
     }
 
     // Ingest stats
@@ -664,6 +696,45 @@ final public class TermStore extends AbstractStorage {
     }
     return Iterators.transform(scanner.iterator(),
         entry -> FieldDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue()));
+  }
+
+  /**
+   * Get the most frequent terms in each field.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset.
+   * @param fields fields (optional).
+   * @return the number of distinct buckets.
+   */
+  @Beta
+  public Iterator<FieldTopTerms> fieldTopTerms(ScannerBase scanner, String dataset,
+      Set<String> fields) {
+
+    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
+          .add("dataset", dataset).add("fields", fields).formatInfo());
+    }
+
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+    scanner.fetchColumnFamily(new Text(topTerms(dataset)));
+
+    List<Range> ranges;
+
+    if (fields != null && !fields.isEmpty()) {
+      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
+          .collect(Collectors.toList());
+    } else {
+      ranges = Lists.newArrayList(new Range());
+    }
+    if (!setRanges(scanner, ranges)) {
+      return ITERATOR_EMPTY;
+    }
+    return Iterators.transform(scanner.iterator(),
+        entry -> FieldTopTerms.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**

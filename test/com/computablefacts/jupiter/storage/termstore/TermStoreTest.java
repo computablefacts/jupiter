@@ -20,6 +20,8 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.Tables;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
 public class TermStoreTest extends MiniAccumuloClusterTest {
@@ -51,13 +53,15 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Map<String, Set<Text>> groupsAfter = Tables
         .getLocalityGroups(termStore.configurations().tableOperations(), termStore.tableName());
 
-    Assert.assertEquals(8, groupsAfter.size());
+    Assert.assertEquals(9, groupsAfter.size());
     Assert.assertEquals(Sets.newHashSet(new Text(dataset + "_DB")),
         groupsAfter.get(dataset + "_DB"));
     Assert.assertEquals(Sets.newHashSet(new Text(dataset + "_DT")),
         groupsAfter.get(dataset + "_DT"));
     Assert.assertEquals(Sets.newHashSet(new Text(dataset + "_LU")),
         groupsAfter.get(dataset + "_LU"));
+    Assert.assertEquals(Sets.newHashSet(new Text(dataset + "_TT")),
+        groupsAfter.get(dataset + "_TT"));
     Assert.assertEquals(Sets.newHashSet(new Text(dataset + "_VIZ")),
         groupsAfter.get(dataset + "_VIZ"));
     Assert.assertEquals(Sets.newHashSet(new Text(dataset + "_FCNT")),
@@ -103,7 +107,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, fieldLastUpdates.size());
 
       List<TermDistinctBuckets> termsCounts = new ArrayList<>();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "john").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "john")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
 
@@ -132,7 +137,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(fieldLastUpdates.isEmpty());
 
       List<TermDistinctBuckets> termsCounts = new ArrayList<>();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "john").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "john")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertTrue(termsCounts.isEmpty());
 
@@ -183,7 +189,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, fieldLastUpdates.size());
 
       List<TermDistinctBuckets> termsCounts = new ArrayList<>();
-      termStore.termCardinalityEstimationForBuckets(scanner, "dataset_1", "john").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, "dataset_1", "john")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
 
@@ -206,7 +213,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, fieldLastUpdates.size());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, "dataset_2", "john").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, "dataset_2", "john")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
 
@@ -238,7 +246,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(fieldLastUpdates.isEmpty());
 
       List<TermDistinctBuckets> termsCounts = new ArrayList<>();
-      termStore.termCardinalityEstimationForBuckets(scanner, "dataset_1", "john").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, "dataset_1", "john")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertTrue(termsCounts.isEmpty());
 
@@ -261,7 +270,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, fieldLastUpdates.size());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, "dataset_2", "john").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, "dataset_2", "john")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
 
@@ -297,7 +307,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // Check counts
       List<TermDistinctBuckets> termsCounts = new ArrayList<>();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "jo*").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "jo*")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -305,7 +316,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(0).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, null, "jo*").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, null, "jo*")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -313,7 +325,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(0).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "ja*").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "ja*")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -321,7 +334,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(0).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, null, "ja*").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, null, "ja*")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -329,7 +343,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(0).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "j???").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "j???")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(2, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -340,7 +355,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(1).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, null, "j???").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, null, "j???")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(2, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -351,7 +367,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(1).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "d?e").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "d?e")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("last_name", termsCounts.get(0).field());
@@ -359,7 +376,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(2, termsCounts.get(0).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, null, "d?e").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, null, "d?e")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("last_name", termsCounts.get(0).field());
@@ -482,7 +500,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // Check counts
       List<TermDistinctBuckets> termsCounts = new ArrayList<>();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "*hn").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "*hn")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -490,7 +509,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(0).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, null, "*hn").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, null, "*hn")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -498,7 +518,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(0).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "*ne").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "*ne")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -506,7 +527,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(0).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, null, "*ne").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, null, "*ne")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -514,7 +536,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(0).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "?oe").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, "?oe")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("last_name", termsCounts.get(0).field());
@@ -522,7 +545,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(2, termsCounts.get(0).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, null, "?oe").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, null, "?oe")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("last_name", termsCounts.get(0).field());
@@ -612,8 +636,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       // Throws an exception
-      Iterator<TermDistinctBuckets> iterator =
-          termStore.termCardinalityEstimationForBuckets(scanner, dataset, Sets.newHashSet("age"), null, null);
+      Iterator<TermDistinctBuckets> iterator = termStore.termCardinalityEstimationForBuckets(
+          scanner, dataset, Sets.newHashSet("age"), null, null);
     }
   }
 
@@ -658,8 +682,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       // Throws an exception
-      Iterator<TermDistinctBuckets> iterator =
-          termStore.termCardinalityEstimationForBuckets(scanner, dataset, Sets.newHashSet("last_name"), "do*", null);
+      Iterator<TermDistinctBuckets> iterator = termStore.termCardinalityEstimationForBuckets(
+          scanner, dataset, Sets.newHashSet("last_name"), "do*", null);
     }
   }
 
@@ -704,7 +728,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     try (Scanner scanner = termStore.scanner(auths)) {
 
       // Throws an exception
-      Iterator<TermDistinctBuckets> iterator = termStore.termCardinalityEstimationForBuckets(scanner, dataset, null, "do*", 37);
+      Iterator<TermDistinctBuckets> iterator =
+          termStore.termCardinalityEstimationForBuckets(scanner, dataset, null, "do*", 37);
     }
   }
 
@@ -757,7 +782,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // [-inf, 30]
       List<TermDistinctBuckets> termsCounts = new ArrayList<>();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, null, 30).forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, null, 30)
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("age", termsCounts.get(0).field());
@@ -776,7 +802,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // [20, 30]
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, 20, 30).forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, 20, 30)
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("age", termsCounts.get(0).field());
@@ -795,7 +822,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // [20, 40]
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, 20, 40).forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, 20, 40)
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(2, termsCounts.size());
       Assert.assertEquals("age", termsCounts.get(0).field());
@@ -821,7 +849,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // [30, +inf]
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, 30, null).forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, 30, null)
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("age", termsCounts.get(0).field());
@@ -840,7 +869,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // [30, +inf] without filter on fields
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, null, 30, null).forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, null, 30, null)
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(4, termsCounts.size());
 
@@ -920,7 +950,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       // Check counts
       List<TermDistinctBuckets> termsCounts = new ArrayList<>();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, "ja", "jp").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, "ja", "jp")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(2, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -931,7 +962,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(1, termsCounts.get(1).count());
 
       termsCounts.clear();
-      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, "ja", "jo").forEachRemaining(termsCounts::add);
+      termStore.termCardinalityEstimationForBuckets(scanner, dataset, fields, "ja", "jo")
+          .forEachRemaining(termsCounts::add);
 
       Assert.assertEquals(1, termsCounts.size());
       Assert.assertEquals("first_name", termsCounts.get(0).field());
@@ -1041,9 +1073,42 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(Term.TYPE_STRING, distinctBuckets.get(2).type());
       Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(2).labels());
       Assert.assertEquals(5.0, distinctBuckets.get(2).estimate(), 0.0000001);
+
+      // Test top terms
+      List<FieldTopTerms> topTerms = new ArrayList<>();
+      termStore.fieldTopTerms(scanner, dataset, null).forEachRemaining(topTerms::add);
+
+      Assert.assertEquals(3, topTerms.size());
+
+      Multiset<String> multiset = HashMultiset.create();
+      multiset.add("37", 5);
+
+      Assert.assertEquals(dataset, topTerms.get(0).dataset());
+      Assert.assertEquals("age", topTerms.get(0).field());
+      Assert.assertEquals(Term.TYPE_NUMBER, topTerms.get(0).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(0).labels());
+      Assert.assertEquals(multiset, topTerms.get(0).topTerms());
+
+      multiset.clear();
+      multiset.add("john", 5);
+
+      Assert.assertEquals(dataset, topTerms.get(1).dataset());
+      Assert.assertEquals("first_name", topTerms.get(1).field());
+      Assert.assertEquals(Term.TYPE_STRING, topTerms.get(1).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(1).labels());
+      Assert.assertEquals(multiset, topTerms.get(1).topTerms());
+
+      multiset.clear();
+      multiset.add("doe", 5);
+
+      Assert.assertEquals(dataset, topTerms.get(2).dataset());
+      Assert.assertEquals("last_name", topTerms.get(2).field());
+      Assert.assertEquals(Term.TYPE_STRING, topTerms.get(2).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(2).labels());
+      Assert.assertEquals(multiset, topTerms.get(2).topTerms());
     }
 
-    // Add more entries to the store and ensure distinct counts are updated
+    // Add more entries to the store and ensure distinct counts and top terms are updated
     try (BatchWriter writer = termStore.writer()) {
 
       termStore.beginIngest();
@@ -1113,6 +1178,41 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(Term.TYPE_STRING, distinctBuckets.get(2).type());
       Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(2).labels());
       Assert.assertEquals(10.0, distinctBuckets.get(2).estimate(), 0.0000001);
+
+      // Check top terms
+      List<FieldTopTerms> topTerms = new ArrayList<>();
+      termStore.fieldTopTerms(scanner, dataset, null).forEachRemaining(topTerms::add);
+
+      Assert.assertEquals(3, topTerms.size());
+
+      Multiset<String> multiset = HashMultiset.create();
+      multiset.add("37", 5);
+      multiset.add("27", 5);
+
+      Assert.assertEquals(dataset, topTerms.get(0).dataset());
+      Assert.assertEquals("age", topTerms.get(0).field());
+      Assert.assertEquals(Term.TYPE_NUMBER, topTerms.get(0).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(0).labels());
+      Assert.assertEquals(multiset, topTerms.get(0).topTerms());
+
+      multiset.clear();
+      multiset.add("john", 5);
+      multiset.add("jane", 5);
+
+      Assert.assertEquals(dataset, topTerms.get(1).dataset());
+      Assert.assertEquals("first_name", topTerms.get(1).field());
+      Assert.assertEquals(Term.TYPE_STRING, topTerms.get(1).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(1).labels());
+      Assert.assertEquals(multiset, topTerms.get(1).topTerms());
+
+      multiset.clear();
+      multiset.add("doe", 10);
+
+      Assert.assertEquals(dataset, topTerms.get(2).dataset());
+      Assert.assertEquals("last_name", topTerms.get(2).field());
+      Assert.assertEquals(Term.TYPE_STRING, topTerms.get(2).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(2).labels());
+      Assert.assertEquals(multiset, topTerms.get(2).topTerms());
     }
   }
 

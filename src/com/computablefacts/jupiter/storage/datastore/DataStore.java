@@ -39,6 +39,7 @@ import com.computablefacts.jupiter.storage.termstore.FieldDistinctBuckets;
 import com.computablefacts.jupiter.storage.termstore.FieldDistinctTerms;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
 import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
+import com.computablefacts.jupiter.storage.termstore.FieldTopTerms;
 import com.computablefacts.jupiter.storage.termstore.TermDistinctBuckets;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.nona.Generated;
@@ -630,6 +631,24 @@ final public class DataStore {
   }
 
   /**
+   * Get the number of distinct buckets for a given field.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset.
+   * @param field field.
+   * @return count.
+   */
+  @Beta
+  public Iterator<FieldTopTerms> fieldTopTerms(Scanners scanners, String dataset, String field) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return termStore_.fieldTopTerms(scanners.index(), dataset,
+        field == null ? null : Sets.newHashSet(field));
+  }
+
+  /**
    * Get all JSON from the blob storage layer. Note that using a BatchScanner improves performances
    * a lot.
    *
@@ -865,34 +884,40 @@ final public class DataStore {
             fieldCardinalityEstimationForTerms(scanners, dataset, null);
 
         while (cardEstForTermsIterator.hasNext()) {
-          FieldDistinctTerms fieldDistinctTerms = cardEstForTermsIterator.next();
-          infos.addCardinalityEstimationForTerms(dataset, fieldDistinctTerms.field(),
-              fieldDistinctTerms.type(), fieldDistinctTerms.estimate());
+          FieldDistinctTerms distinctTerms = cardEstForTermsIterator.next();
+          infos.addCardinalityEstimationForTerms(dataset, distinctTerms.field(),
+              distinctTerms.type(), distinctTerms.estimate());
         }
 
         Iterator<FieldDistinctBuckets> cardEstForBucketsIterator =
             fieldCardinalityEstimationForBuckets(scanners, dataset, null);
 
         while (cardEstForBucketsIterator.hasNext()) {
-          FieldDistinctBuckets fieldfieldDistinctBuckets = cardEstForBucketsIterator.next();
-          infos.addCardinalityEstimationForBuckets(dataset, fieldfieldDistinctBuckets.field(),
-              fieldfieldDistinctBuckets.type(), fieldfieldDistinctBuckets.estimate());
+          FieldDistinctBuckets distinctBuckets = cardEstForBucketsIterator.next();
+          infos.addCardinalityEstimationForBuckets(dataset, distinctBuckets.field(),
+              distinctBuckets.type(), distinctBuckets.estimate());
+        }
+
+        Iterator<FieldTopTerms> topTermsIterator = fieldTopTerms(scanners, dataset, null);
+
+        while (topTermsIterator.hasNext()) {
+          FieldTopTerms topTerms = topTermsIterator.next();
+          infos.addTopTerms(dataset, topTerms.field(), topTerms.type(), topTerms.topTerms());
         }
 
         Iterator<FieldLabels> labelsIterator = fieldVisibilityLabels(scanners, dataset, null);
 
         while (labelsIterator.hasNext()) {
-          FieldLabels fieldLabels = labelsIterator.next();
-          infos.addVisibilityLabels(dataset, fieldLabels.field(), fieldLabels.type(),
-              fieldLabels.termLabels());
+          FieldLabels labels = labelsIterator.next();
+          infos.addVisibilityLabels(dataset, labels.field(), labels.type(), labels.termLabels());
         }
 
         Iterator<FieldLastUpdate> lastUpdateIterator = fieldLastUpdate(scanners, dataset, null);
 
         while (lastUpdateIterator.hasNext()) {
-          FieldLastUpdate fieldLastUpdate = lastUpdateIterator.next();
-          infos.addLastUpdate(dataset, fieldLastUpdate.field(), fieldLastUpdate.type(),
-              fieldLastUpdate.lastUpdate());
+          FieldLastUpdate lastUpdate = lastUpdateIterator.next();
+          infos.addLastUpdate(dataset, lastUpdate.field(), lastUpdate.type(),
+              lastUpdate.lastUpdate());
         }
       });
     }

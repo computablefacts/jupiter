@@ -11,8 +11,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.computablefacts.jupiter.storage.termstore.Term;
+import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -26,11 +28,13 @@ final public class DataStoreInfos {
   private final Table<String, String, Set<String>> visibilityLabels_ = HashBasedTable.create();
   private final Table<String, String, String> lastUpdates_ = HashBasedTable.create();
   private final Table<String, String, Set<String>> types_ = HashBasedTable.create();
+  private final Table<String, String, Multiset<String>> topTerms_ = HashBasedTable.create();
 
   public DataStoreInfos(String name) {
     name_ = name;
   }
 
+  @Beta
   public void addCardinalityEstimationForTerms(String dataset, String field, int type,
       double estimate) {
 
@@ -48,6 +52,7 @@ final public class DataStoreInfos {
     addType(dataset, field, type);
   }
 
+  @Beta
   public void addCardinalityEstimationForBuckets(String dataset, String field, int type,
       double estimate) {
 
@@ -60,6 +65,22 @@ final public class DataStoreInfos {
       cardEstForBuckets_.put(dataset, field, oldEstimate + estimate);
     } else {
       cardEstForBuckets_.put(dataset, field, estimate);
+    }
+
+    addType(dataset, field, type);
+  }
+
+  @Beta
+  public void addTopTerms(String dataset, String field, int type, Multiset<String> topTerms) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(topTerms, "topTerms should not be null");
+
+    if (topTerms_.contains(dataset, field)) {
+      topTerms_.get(dataset, field).addAll(topTerms);
+    } else {
+      topTerms_.put(dataset, field, topTerms);
     }
 
     addType(dataset, field, type);
@@ -108,6 +129,9 @@ final public class DataStoreInfos {
     set.addAll(cardEstForTerms_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
+    set.addAll(topTerms_.cellSet().stream()
+        .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+        .collect(Collectors.toSet()));
     set.addAll(visibilityLabels_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
@@ -129,6 +153,16 @@ final public class DataStoreInfos {
           cardEstForTerms_.contains(dataset, field) ? cardEstForTerms_.get(dataset, field) : 0);
       map.put("nb_distinct_buckets",
           cardEstForBuckets_.contains(dataset, field) ? cardEstForBuckets_.get(dataset, field) : 0);
+      map.put("top_terms", topTerms_.contains(dataset, field)
+          ? topTerms_.get(dataset, field).entrySet().stream().map(entry -> {
+
+            HashMap<String, Object> pair = new HashMap<>();
+            pair.put("term", entry.getElement());
+            pair.put("nb_occurrences", entry.getCount());
+
+            return pair;
+          }).collect(Collectors.toList())
+          : 0);
       map.put("visibility_labels",
           visibilityLabels_.contains(dataset, field) ? visibilityLabels_.get(dataset, field)
               : Sets.newHashSet());

@@ -13,10 +13,13 @@ import java.util.stream.StreamSupport;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.datasketches.ArrayOfStringsSerDe;
+import org.apache.datasketches.frequencies.ItemsSketch;
 import org.apache.datasketches.theta.Sketch;
 
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.termstore.ThetaSketch;
+import com.computablefacts.jupiter.storage.termstore.TopKSketch;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -48,7 +51,10 @@ public class TermStoreCombiner extends Combiner {
       return reduceFieldLastUpdate(iter);
     }
     if (cf.endsWith("_DB") || cf.endsWith("_DT")) {
-      return reduceSketches(iter);
+      return reduceThetaSketches(iter);
+    }
+    if (cf.endsWith("_TT")) {
+      return reduceTopKSketches(iter);
     }
     return new Value();
   }
@@ -116,7 +122,7 @@ public class TermStoreCombiner extends Combiner {
     return new Value(Long.toString(sum, 10) + Constants.SEPARATOR_NUL + builder.toString());
   }
 
-  private Value reduceSketches(Iterator<Value> iter) {
+  private Value reduceThetaSketches(Iterator<Value> iter) {
 
     List<byte[]> sketches =
         StreamSupport.stream(Spliterators.spliteratorUnknownSize(iter, Spliterator.ORDERED), false)
@@ -124,5 +130,15 @@ public class TermStoreCombiner extends Combiner {
     Sketch sketch = ThetaSketch.union(sketches);
 
     return new Value(sketch.toByteArray());
+  }
+
+  private Value reduceTopKSketches(Iterator<Value> iter) {
+
+    List<byte[]> sketches =
+        StreamSupport.stream(Spliterators.spliteratorUnknownSize(iter, Spliterator.ORDERED), false)
+            .map(Value::get).collect(Collectors.toList());
+    ItemsSketch<String> sketch = TopKSketch.union(sketches);
+
+    return new Value(sketch.toByteArray(new ArrayOfStringsSerDe()));
   }
 }
