@@ -62,15 +62,14 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                     | Column Family   | Column Qualifier                  | Visibility                                  | Value
  * =========================+=================+===================================+=============================================+=================================
- *  <field>\0<term_type>    | <dataset>_CNT   | (empty)                           | ADM|<dataset>_CNT                           | <#occurrences>
- *  <field>\0<term_type>    | <dataset>_DB    | (empty)                           | ADM|<dataset>_DB                            | <#distinct_buckets>
- *  <field>\0<term_type>    | <dataset>_DT    | (empty)                           | ADM|<dataset>_DT                            | <#distinct_terms>
- *  <field>\0<term_type>    | <dataset>_LU    | (empty)                           | ADM|<dataset>_LU                            | <utc_date>
+ *  <field>\0<term_type>    | <dataset>_DB    | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
+ *  <field>\0<term_type>    | <dataset>_DT    | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms
+ *  <field>\0<term_type>    | <dataset>_LU    | (empty)                           | ADM|<dataset>_LU                            | utc_date
  *  <field>\0<term_type>    | <dataset>_VIZ   | (empty)                           | ADM|<dataset>_VIZ                           | viz1\0viz2\0
- *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | <#occurrences>
- *  <mret>                  | <dataset>_BIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | <#occurrences>
- *  <term>                  | <dataset>_FCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | <#occurrences>
- *  <term>                  | <dataset>_FIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | <#occurrences>
+ *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_occurrence
+ *  <mret>                  | <dataset>_BIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_in_bucket
+ *  <term>                  | <dataset>_FCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_occurrence
+ *  <term>                  | <dataset>_FIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_in_bucket
  * </pre>
  *
  * <p>
@@ -95,10 +94,6 @@ final public class TermStore extends AbstractStorage {
 
   static String distinctBuckets(String dataset) {
     return dataset + "_DB";
-  }
-
-  static String count(String dataset) {
-    return dataset + "_CNT";
   }
 
   static String visibility(String dataset) {
@@ -308,8 +303,8 @@ final public class TermStore extends AbstractStorage {
     }
 
     Set<String> cfs = Sets.newHashSet(distinctTerms(dataset), distinctBuckets(dataset),
-        count(dataset), lastUpdate(dataset), visibility(dataset), forwardCount(dataset),
-        forwardIndex(dataset), backwardCount(dataset), backwardIndex(dataset));
+        lastUpdate(dataset), visibility(dataset), forwardCount(dataset), forwardIndex(dataset),
+        backwardCount(dataset), backwardIndex(dataset));
 
     return remove(deleter, cfs);
   }
@@ -334,7 +329,6 @@ final public class TermStore extends AbstractStorage {
 
     int size = groups.size();
 
-    String count = count(dataset);
     String visibility = visibility(dataset);
     String lastUpdate = lastUpdate(dataset);
     String distinctTerms = distinctTerms(dataset);
@@ -344,9 +338,6 @@ final public class TermStore extends AbstractStorage {
     String backwardCount = backwardCount(dataset);
     String backwardIndex = backwardIndex(dataset);
 
-    if (!groups.containsKey(count)) {
-      groups.put(count, Sets.newHashSet(new Text(count)));
-    }
     if (!groups.containsKey(visibility)) {
       groups.put(visibility, Sets.newHashSet(new Text(visibility)));
     }
@@ -417,29 +408,27 @@ final public class TermStore extends AbstractStorage {
    * @param bucketId the bucket id.
    * @param field the field name.
    * @param term the term to index.
-   * @param nbOccurrencesInBucket the number of occurrences of the term in the bucket.
+   * @param nbOccurrences the number of occurrences of the term in the bucket.
    * @param bucketSpecificLabels the visibility labels specific to a given bucket.
    * @param fieldSpecificLabels the visibility labels specific to a given field.
    * @return true if the write operation succeeded, false otherwise.
    */
   public boolean put(BatchWriter writer, String dataset, String bucketId, String field, Object term,
-      int nbOccurrencesInBucket, Set<String> bucketSpecificLabels,
-      Set<String> fieldSpecificLabels) {
+      int nbOccurrences, Set<String> bucketSpecificLabels, Set<String> fieldSpecificLabels) {
 
     Preconditions.checkNotNull(writer, "writer should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(bucketId, "bucketId should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkArgument(nbOccurrencesInBucket > 0, "nbOccurrencesInBucket must be > 0");
+    Preconditions.checkArgument(nbOccurrences > 0, "nbOccurrences must be > 0");
     Preconditions.checkNotNull(bucketSpecificLabels, "bucketSpecificLabels should not be null");
     Preconditions.checkNotNull(fieldSpecificLabels, "fieldSpecificLabels should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatterManager.logFormatter().add("table_name", tableName())
           .add("dataset", dataset).add("bucket_id", bucketId).add("field", field).add("term", term)
-          .add("nb_occurrences_in_bucket", nbOccurrencesInBucket)
-          .add("bucket_specific_labels", bucketSpecificLabels)
+          .add("nb_occurrences", nbOccurrences).add("bucket_specific_labels", bucketSpecificLabels)
           .add("field_specific_labels", fieldSpecificLabels).formatDebug());
     }
 
@@ -502,64 +491,27 @@ final public class TermStore extends AbstractStorage {
 
     // Ingest stats
     @Var
-    boolean isOk =
-        add(writer, FieldCount.newMutation(dataset, field, newType, nbOccurrencesInBucket));
-    isOk = isOk && add(writer, FieldLastUpdate.newMutation(dataset, field, newType));
+    boolean isOk = add(writer, FieldLastUpdate.newMutation(dataset, field, newType));
     isOk =
-        isOk && add(writer, FieldLabels.newMutation(dataset, field, newType, fieldSpecificLabels));
+        add(writer, FieldLabels.newMutation(dataset, field, newType, fieldSpecificLabels)) && isOk;
 
     // Forward index
-    isOk = isOk && add(writer, TermCount.newForwardMutation(dataset, field, newType, newTerm,
-        nbOccurrencesInBucket, fieldSpecificLabels));
-    isOk = isOk && add(writer, Term.newForwardMutation(dataset, bucketId, field, newType, newTerm,
-        nbOccurrencesInBucket, Sets.union(bucketSpecificLabels, fieldSpecificLabels)));
+    isOk = add(writer,
+        TermCount.newForwardMutation(dataset, field, newType, newTerm, 1, fieldSpecificLabels))
+        && isOk;
+    isOk = add(writer, Term.newForwardMutation(dataset, bucketId, field, newType, newTerm,
+        nbOccurrences, Sets.union(bucketSpecificLabels, fieldSpecificLabels))) && isOk;
 
     if (!writeInForwardIndexOnly) {
 
       // Backward index
-      isOk = isOk && add(writer, TermCount.newBackwardMutation(dataset, field, newType, newTerm,
-          nbOccurrencesInBucket, fieldSpecificLabels));
-      isOk = isOk && add(writer, Term.newBackwardMutation(dataset, bucketId, field, newType,
-          newTerm, nbOccurrencesInBucket, Sets.union(bucketSpecificLabels, fieldSpecificLabels)));
+      isOk = add(writer,
+          TermCount.newBackwardMutation(dataset, field, newType, newTerm, 1, fieldSpecificLabels))
+          && isOk;
+      isOk = add(writer, Term.newBackwardMutation(dataset, bucketId, field, newType, newTerm,
+          nbOccurrences, Sets.union(bucketSpecificLabels, fieldSpecificLabels))) && isOk;
     }
     return isOk;
-  }
-
-  /**
-   * Get the number of terms indexed for each field.
-   *
-   * @param scanner scanner.
-   * @param dataset dataset.
-   * @param fields fields (optional).
-   * @return count.
-   */
-  public Iterator<FieldCount> fieldCount(ScannerBase scanner, String dataset, Set<String> fields) {
-
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("fields", fields).formatInfo());
-    }
-
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(count(dataset)));
-
-    List<Range> ranges;
-
-    if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
-          .collect(Collectors.toList());
-    } else {
-      ranges = Lists.newArrayList(new Range());
-    }
-    if (!setRanges(scanner, ranges)) {
-      return ITERATOR_EMPTY;
-    }
-    return Iterators.transform(scanner.iterator(),
-        entry -> FieldCount.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**

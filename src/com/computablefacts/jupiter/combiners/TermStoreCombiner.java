@@ -35,10 +35,10 @@ public class TermStoreCombiner extends Combiner {
 
     String cf = key.getColumnFamily().toString();
 
-    if (cf.endsWith("IDX")) { // matches _FIDX and _BIDX
+    if (cf.endsWith("_FIDX") || cf.endsWith("_BIDX")) {
       return reduceIndex(iter);
     }
-    if (cf.endsWith("CNT")) { // matches _FCNT and _BCNT
+    if (cf.endsWith("_FCNT") || cf.endsWith("_BCNT")) {
       return reduceCount(iter);
     }
     if (cf.endsWith("_VIZ")) {

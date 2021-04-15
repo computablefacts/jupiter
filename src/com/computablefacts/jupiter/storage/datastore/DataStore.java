@@ -35,7 +35,6 @@ import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
-import com.computablefacts.jupiter.storage.termstore.FieldCount;
 import com.computablefacts.jupiter.storage.termstore.FieldDistinctBuckets;
 import com.computablefacts.jupiter.storage.termstore.FieldDistinctTerms;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
@@ -574,23 +573,6 @@ final public class DataStore {
   }
 
   /**
-   * Get the number of indexed terms for a given field.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset.
-   * @param field field.
-   * @return count.
-   */
-  public Iterator<FieldCount> fieldCount(Scanners scanners, String dataset, String field) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return termStore_.fieldCount(scanners.index(), dataset,
-        field == null ? null : Sets.newHashSet(field));
-  }
-
-  /**
    * Get the date of last of a given field.
    *
    * @param scanners scanners.
@@ -875,44 +857,36 @@ final public class DataStore {
 
       datasets.forEach(dataset -> {
 
-        Iterator<FieldCount> fieldCountIterator = fieldCount(scanners, dataset, null);
-
-        while (fieldCountIterator.hasNext()) {
-          FieldCount fieldCount = fieldCountIterator.next();
-          infos.addCount(dataset, fieldCount.field(), fieldCount.type(), fieldCount.count());
-        }
-
-        Iterator<FieldDistinctTerms> fieldCardEstForTermsIterator =
+        Iterator<FieldDistinctTerms> cardEstForTermsIterator =
             fieldCardinalityEstimationForTerms(scanners, dataset, null);
 
-        while (fieldCardEstForTermsIterator.hasNext()) {
-          FieldDistinctTerms fieldDistinctTerms = fieldCardEstForTermsIterator.next();
+        while (cardEstForTermsIterator.hasNext()) {
+          FieldDistinctTerms fieldDistinctTerms = cardEstForTermsIterator.next();
           infos.addCardinalityEstimationForTerms(dataset, fieldDistinctTerms.field(),
               fieldDistinctTerms.type(), fieldDistinctTerms.estimate());
         }
 
-        Iterator<FieldDistinctBuckets> fieldCardEstForBucketsIterator =
+        Iterator<FieldDistinctBuckets> cardEstForBucketsIterator =
             fieldCardinalityEstimationForBuckets(scanners, dataset, null);
 
-        while (fieldCardEstForBucketsIterator.hasNext()) {
-          FieldDistinctBuckets fieldfieldDistinctBuckets = fieldCardEstForBucketsIterator.next();
+        while (cardEstForBucketsIterator.hasNext()) {
+          FieldDistinctBuckets fieldfieldDistinctBuckets = cardEstForBucketsIterator.next();
           infos.addCardinalityEstimationForBuckets(dataset, fieldfieldDistinctBuckets.field(),
               fieldfieldDistinctBuckets.type(), fieldfieldDistinctBuckets.estimate());
         }
 
-        Iterator<FieldLabels> fieldLabelsIterator = fieldLabels(scanners, dataset, null);
+        Iterator<FieldLabels> labelsIterator = fieldLabels(scanners, dataset, null);
 
-        while (fieldLabelsIterator.hasNext()) {
-          FieldLabels fieldLabels = fieldLabelsIterator.next();
+        while (labelsIterator.hasNext()) {
+          FieldLabels fieldLabels = labelsIterator.next();
           infos.addVisibilityLabels(dataset, fieldLabels.field(), fieldLabels.type(),
               fieldLabels.termLabels());
         }
 
-        Iterator<FieldLastUpdate> fieldLastUpdateIterator =
-            fieldLastUpdate(scanners, dataset, null);
+        Iterator<FieldLastUpdate> lastUpdateIterator = fieldLastUpdate(scanners, dataset, null);
 
-        while (fieldLastUpdateIterator.hasNext()) {
-          FieldLastUpdate fieldLastUpdate = fieldLastUpdateIterator.next();
+        while (lastUpdateIterator.hasNext()) {
+          FieldLastUpdate fieldLastUpdate = lastUpdateIterator.next();
           infos.addLastUpdate(dataset, fieldLastUpdate.field(), fieldLastUpdate.type(),
               fieldLastUpdate.lastUpdate());
         }

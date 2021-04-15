@@ -21,32 +21,14 @@ import com.google.errorprone.annotations.CheckReturnValue;
 final public class DataStoreInfos {
 
   private final String name_;
-  private final Table<String, String, Long> fieldsCounts_ = HashBasedTable.create();
-  private final Table<String, String, Double> fieldsCardEstForBuckets_ = HashBasedTable.create();
-  private final Table<String, String, Double> fieldsCardEstForTerms_ = HashBasedTable.create();
-  private final Table<String, String, Set<String>> fieldsVisibilityLabels_ =
-      HashBasedTable.create();
-  private final Table<String, String, String> fieldsLastUpdates_ = HashBasedTable.create();
-  private final Table<String, String, Set<String>> fieldsTypes_ = HashBasedTable.create();
+  private final Table<String, String, Double> cardEstForBuckets_ = HashBasedTable.create();
+  private final Table<String, String, Double> cardEstForTerms_ = HashBasedTable.create();
+  private final Table<String, String, Set<String>> visibilityLabels_ = HashBasedTable.create();
+  private final Table<String, String, String> lastUpdates_ = HashBasedTable.create();
+  private final Table<String, String, Set<String>> types_ = HashBasedTable.create();
 
   public DataStoreInfos(String name) {
     name_ = name;
-  }
-
-  public void addCount(String dataset, String field, int type, long count) {
-
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(field, "field should not be null");
-
-    if (fieldsCounts_.contains(dataset, field)) {
-      long oldCount = fieldsCounts_.get(dataset, field);
-      fieldsCounts_.remove(dataset, field);
-      fieldsCounts_.put(dataset, field, oldCount + count);
-    } else {
-      fieldsCounts_.put(dataset, field, count);
-    }
-
-    addType(dataset, field, type);
   }
 
   public void addCardinalityEstimationForTerms(String dataset, String field, int type,
@@ -55,12 +37,12 @@ final public class DataStoreInfos {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
 
-    if (fieldsCardEstForTerms_.contains(dataset, field)) {
-      double oldEstimate = fieldsCardEstForTerms_.get(dataset, field);
-      fieldsCardEstForTerms_.remove(dataset, field);
-      fieldsCardEstForTerms_.put(dataset, field, oldEstimate + estimate);
+    if (cardEstForTerms_.contains(dataset, field)) {
+      double oldEstimate = cardEstForTerms_.get(dataset, field);
+      cardEstForTerms_.remove(dataset, field);
+      cardEstForTerms_.put(dataset, field, oldEstimate + estimate);
     } else {
-      fieldsCardEstForTerms_.put(dataset, field, estimate);
+      cardEstForTerms_.put(dataset, field, estimate);
     }
 
     addType(dataset, field, type);
@@ -72,12 +54,12 @@ final public class DataStoreInfos {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
 
-    if (fieldsCardEstForBuckets_.contains(dataset, field)) {
-      double oldEstimate = fieldsCardEstForBuckets_.get(dataset, field);
-      fieldsCardEstForBuckets_.remove(dataset, field);
-      fieldsCardEstForBuckets_.put(dataset, field, oldEstimate + estimate);
+    if (cardEstForBuckets_.contains(dataset, field)) {
+      double oldEstimate = cardEstForBuckets_.get(dataset, field);
+      cardEstForBuckets_.remove(dataset, field);
+      cardEstForBuckets_.put(dataset, field, oldEstimate + estimate);
     } else {
-      fieldsCardEstForBuckets_.put(dataset, field, estimate);
+      cardEstForBuckets_.put(dataset, field, estimate);
     }
 
     addType(dataset, field, type);
@@ -89,10 +71,10 @@ final public class DataStoreInfos {
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");
 
-    if (fieldsVisibilityLabels_.contains(dataset, field)) {
-      fieldsVisibilityLabels_.get(dataset, field).addAll(labels);
+    if (visibilityLabels_.contains(dataset, field)) {
+      visibilityLabels_.get(dataset, field).addAll(labels);
     } else {
-      fieldsVisibilityLabels_.put(dataset, field, new HashSet<>(labels));
+      visibilityLabels_.put(dataset, field, new HashSet<>(labels));
     }
 
     addType(dataset, field, type);
@@ -103,15 +85,15 @@ final public class DataStoreInfos {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
 
-    if (fieldsLastUpdates_.contains(dataset, field)) {
-      String oldLastUpdate = fieldsLastUpdates_.get(dataset, field);
+    if (lastUpdates_.contains(dataset, field)) {
+      String oldLastUpdate = lastUpdates_.get(dataset, field);
       int cmp = oldLastUpdate.compareTo(lastUpdate);
       if (cmp < 0) {
-        fieldsLastUpdates_.remove(dataset, field);
-        fieldsLastUpdates_.put(dataset, field, lastUpdate);
+        lastUpdates_.remove(dataset, field);
+        lastUpdates_.put(dataset, field, lastUpdate);
       }
     } else {
-      fieldsLastUpdates_.put(dataset, field, lastUpdate);
+      lastUpdates_.put(dataset, field, lastUpdate);
     }
 
     addType(dataset, field, type);
@@ -120,19 +102,16 @@ final public class DataStoreInfos {
   public Map<String, Object> json() {
 
     Set<Map.Entry<String, String>> set = new HashSet<>();
-    set.addAll(fieldsCounts_.cellSet().stream()
+    set.addAll(cardEstForBuckets_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
-    set.addAll(fieldsCardEstForBuckets_.cellSet().stream()
+    set.addAll(cardEstForTerms_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
-    set.addAll(fieldsCardEstForTerms_.cellSet().stream()
+    set.addAll(visibilityLabels_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
-    set.addAll(fieldsVisibilityLabels_.cellSet().stream()
-        .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
-        .collect(Collectors.toSet()));
-    set.addAll(fieldsLastUpdates_.cellSet().stream()
+    set.addAll(lastUpdates_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
 
@@ -145,24 +124,16 @@ final public class DataStoreInfos {
       map.put("dataset", dataset);
       map.put("field", field.replace(SEPARATOR_CURRENCY_SIGN, '.'));
       map.put("last_update",
-          fieldsLastUpdates_.contains(dataset, field) ? fieldsLastUpdates_.get(dataset, field)
-              : null);
-      map.put("nb_index_entries",
-          fieldsCounts_.contains(dataset, field) ? fieldsCounts_.get(dataset, field) : 0);
+          lastUpdates_.contains(dataset, field) ? lastUpdates_.get(dataset, field) : null);
       map.put("nb_distinct_terms",
-          fieldsCardEstForTerms_.contains(dataset, field)
-              ? fieldsCardEstForTerms_.get(dataset, field)
-              : 0);
+          cardEstForTerms_.contains(dataset, field) ? cardEstForTerms_.get(dataset, field) : 0);
       map.put("nb_distinct_buckets",
-          fieldsCardEstForBuckets_.contains(dataset, field)
-              ? fieldsCardEstForBuckets_.get(dataset, field)
-              : 0);
+          cardEstForBuckets_.contains(dataset, field) ? cardEstForBuckets_.get(dataset, field) : 0);
       map.put("visibility_labels",
-          fieldsVisibilityLabels_.contains(dataset, field)
-              ? fieldsVisibilityLabels_.get(dataset, field)
+          visibilityLabels_.contains(dataset, field) ? visibilityLabels_.get(dataset, field)
               : Sets.newHashSet());
-      map.put("types", fieldsTypes_.contains(dataset, field) ? fieldsTypes_.get(dataset, field)
-          : Sets.newHashSet());
+      map.put("types",
+          types_.contains(dataset, field) ? types_.get(dataset, field) : Sets.newHashSet());
 
       return map;
     }).collect(Collectors.toList());
@@ -184,10 +155,10 @@ final public class DataStoreInfos {
             : type == Term.TYPE_NUMBER ? "NUMBER"
                 : type == Term.TYPE_BOOLEAN ? "BOOLEAN" : "UNKNOWN";
 
-    if (fieldsTypes_.contains(dataset, field)) {
-      fieldsTypes_.get(dataset, field).add(newType);
+    if (types_.contains(dataset, field)) {
+      types_.get(dataset, field).add(newType);
     } else {
-      fieldsTypes_.put(dataset, field, Sets.newHashSet(newType));
+      types_.put(dataset, field, Sets.newHashSet(newType));
     }
   }
 }
