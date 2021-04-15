@@ -39,7 +39,7 @@
     </developers>
 
     <properties>
-        <nona.version>1.23</nona.version>
+        <nona.version>1.24</nona.version>
         <datasketches.version>2.0.0</datasketches.version>
         <guava.version>28.0-jre</guava.version>
         <accumulo.version>1.9.2</accumulo.version>
