@@ -1,5 +1,6 @@
 package com.computablefacts.jupiter.storage.datastore;
 
+import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
@@ -160,16 +161,6 @@ final public class DataStore {
   @Deprecated
   public Scanners scanners(Authorizations authorizations) {
     return new Scanners(configurations(), name(), authorizations);
-  }
-
-  /**
-   * Get batch scanners.
-   *
-   * @return scanners.
-   */
-  @Deprecated
-  public Scanners batchScanners(Authorizations authorizations) {
-    return new Scanners(configurations(), name(), authorizations, 5);
   }
 
   /**
@@ -593,7 +584,7 @@ final public class DataStore {
    * @param scanners scanners.
    * @param dataset dataset.
    * @param field field.
-   * @return visibility labels.
+   * @return visibility labels. No particular order should be expected from the returned iterator.
    */
   public Iterator<FieldLabels> fieldVisibilityLabels(Scanners scanners, String dataset,
       String field) {
@@ -601,7 +592,7 @@ final public class DataStore {
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldVisibilityLabels(scanners.index(), dataset,
+    return termStore_.fieldVisibilityLabels(scanners.index(NB_QUERY_THREADS), dataset,
         field == null ? null : Sets.newHashSet(field));
   }
 
@@ -611,7 +602,8 @@ final public class DataStore {
    * @param scanners scanners.
    * @param dataset dataset.
    * @param field field.
-   * @return last update as an UTC timestamp.
+   * @return last update as an UTC timestamp. No particular order should be expected from the
+   *         returned iterator.
    */
   public Iterator<FieldLastUpdate> fieldLastUpdate(Scanners scanners, String dataset,
       String field) {
@@ -619,7 +611,7 @@ final public class DataStore {
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldLastUpdate(scanners.index(), dataset,
+    return termStore_.fieldLastUpdate(scanners.index(NB_QUERY_THREADS), dataset,
         field == null ? null : Sets.newHashSet(field));
   }
 
@@ -629,7 +621,8 @@ final public class DataStore {
    * @param scanners scanners.
    * @param dataset dataset.
    * @param field field.
-   * @return count.
+   * @return cardinality estimation. No particular order should be expected from the returned
+   *         iterator.
    */
   @Beta
   public Iterator<FieldDistinctTerms> fieldCardinalityEstimationForTerms(Scanners scanners,
@@ -638,7 +631,7 @@ final public class DataStore {
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldCardinalityEstimationForTerms(scanners.index(), dataset,
+    return termStore_.fieldCardinalityEstimationForTerms(scanners.index(NB_QUERY_THREADS), dataset,
         field == null ? null : Sets.newHashSet(field));
   }
 
@@ -648,7 +641,8 @@ final public class DataStore {
    * @param scanners scanners.
    * @param dataset dataset.
    * @param field field.
-   * @return count.
+   * @return cardinality estimation. No particular order should be expected from the returned
+   *         iterator.
    */
   @Beta
   public Iterator<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(Scanners scanners,
@@ -657,8 +651,8 @@ final public class DataStore {
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldCardinalityEstimationForBuckets(scanners.index(), dataset,
-        field == null ? null : Sets.newHashSet(field));
+    return termStore_.fieldCardinalityEstimationForBuckets(scanners.index(NB_QUERY_THREADS),
+        dataset, field == null ? null : Sets.newHashSet(field));
   }
 
   /**
@@ -667,7 +661,7 @@ final public class DataStore {
    * @param scanners scanners.
    * @param dataset dataset.
    * @param field field.
-   * @return count.
+   * @return top terms. No particular order should be expected from the returned iterator.
    */
   @Beta
   public Iterator<FieldTopTerms> fieldTopTerms(Scanners scanners, String dataset, String field) {
@@ -675,7 +669,7 @@ final public class DataStore {
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldTopTerms(scanners.index(), dataset,
+    return termStore_.fieldTopTerms(scanners.index(NB_QUERY_THREADS), dataset,
         field == null ? null : Sets.newHashSet(field));
   }
 
@@ -689,14 +683,17 @@ final public class DataStore {
    * @param scanners scanners.
    * @param dataset dataset.
    * @param fields JSON fields to keep (optional).
-   * @return list of documents.
+   * @param nbQueryThreads JSON fields to keep (optional).
+   * @return list of documents. No particular order should be expected from the returned iterator if
+   *         {@code nbQueryThreads} is set to a value above 1.
    */
-  public Iterator<Blob<Value>> jsonScan(Scanners scanners, String dataset, Set<String> fields) {
+  public Iterator<Blob<Value>> jsonScan(Scanners scanners, String dataset, Set<String> fields,
+      int nbQueryThreads) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return blobStore_.get(scanners.blob(), dataset, null, fields);
+    return blobStore_.get(scanners.blob(nbQueryThreads), dataset, null, fields);
   }
 
   /**
@@ -709,16 +706,18 @@ final public class DataStore {
    * @param dataset dataset.
    * @param fields JSON fields to keep (optional).
    * @param docsIds documents unique identifiers.
-   * @return list of documents.
+   * @param nbQueryThreads JSON fields to keep (optional).
+   * @return list of documents. No particular order should be expected from the returned iterator if
+   *         {@code nbQueryThreads} is set to a value above 1.
    */
   public Iterator<Blob<Value>> jsonScan(Scanners scanners, String dataset, Set<String> fields,
-      Set<String> docsIds) {
+      Set<String> docsIds, int nbQueryThreads) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docsIds, "docsIds should not be null");
 
-    return blobStore_.get(scanners.blob(), dataset, docsIds, fields);
+    return blobStore_.get(scanners.blob(nbQueryThreads), dataset, docsIds, fields);
   }
 
   /**
@@ -742,8 +741,8 @@ final public class DataStore {
     @Var
     long count = 0;
 
-    Iterator<TermDistinctBuckets> iter =
-        termStore_.termCardinalityEstimationForBuckets(scanners.index(), dataset, fields, term);
+    Iterator<TermDistinctBuckets> iter = termStore_.termCardinalityEstimationForBuckets(
+        scanners.index(NB_QUERY_THREADS), dataset, fields, term);
 
     while (iter.hasNext()) {
       TermDistinctBuckets termCount = iter.next();
@@ -776,8 +775,8 @@ final public class DataStore {
     @Var
     long count = 0;
 
-    Iterator<TermDistinctBuckets> iter = termStore_
-        .termCardinalityEstimationForBuckets(scanners.index(), dataset, fields, minTerm, maxTerm);
+    Iterator<TermDistinctBuckets> iter = termStore_.termCardinalityEstimationForBuckets(
+        scanners.index(NB_QUERY_THREADS), dataset, fields, minTerm, maxTerm);
 
     while (iter.hasNext()) {
       TermDistinctBuckets termCount = iter.next();
@@ -825,7 +824,7 @@ final public class DataStore {
 
       // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
       Iterator<String> bucketsIds = Iterators.transform(
-          termStore_.bucketsIds(scanners.index(), dataset, fields, term, docsIds),
+          termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset, fields, term, docsIds),
           t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
       DataStoreCache.write(writers, cacheId, bucketsIds);
@@ -884,9 +883,9 @@ final public class DataStore {
     if (!DataStoreCache.hasData(scanners, cacheId)) {
 
       // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
-      Iterator<String> bucketsIds = Iterators.transform(
-          termStore_.bucketsIds(scanners.index(), dataset, fields, minTerm, maxTerm, docsIds),
-          t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
+      Iterator<String> bucketsIds =
+          Iterators.transform(termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset,
+              fields, minTerm, maxTerm, docsIds), t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
       DataStoreCache.write(writers, cacheId, bucketsIds);
     }
@@ -907,7 +906,7 @@ final public class DataStore {
 
     DataStoreInfos infos = new DataStoreInfos(name());
 
-    try (Scanners scanners = batchScanners(auths)) {
+    try (Scanners scanners = scanners(auths)) {
 
       datasets.forEach(dataset -> {
 

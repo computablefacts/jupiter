@@ -11,37 +11,28 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CheckReturnValue;
-import com.google.errorprone.annotations.Var;
 
 @CheckReturnValue
 public class Scanners implements AutoCloseable {
 
+  private final Configurations configurations_;
+  private final Connector connector_;
+  private final String name_;
+  private final Authorizations authorizations_;
   private ScannerBase scannerBlob_;
   private ScannerBase scannerIndex_;
+  private ScannerBase batchScannerBlob_;
+  private ScannerBase batchScannerIndex_;
 
-  @Deprecated
   public Scanners(Configurations configurations, String name, Authorizations authorizations) {
-    this(configurations, name, authorizations, 1);
-  }
-
-  public Scanners(Configurations configurations, String name, @Var Authorizations authorizations,
-      int nbQueryThreads) {
 
     Preconditions.checkNotNull(configurations, "configurations should neither be null nor empty");
     Preconditions.checkNotNull(name, "name should neither be null nor empty");
 
-    Connector connector = configurations.connector();
-    authorizations = authorizations == null ? Authorizations.EMPTY : authorizations;
-
-    if (nbQueryThreads <= 1) {
-      scannerBlob_ = Tables.scanner(connector, blobStoreName(name), authorizations);
-      scannerIndex_ = Tables.scanner(connector, termStoreName(name), authorizations);
-    } else {
-      scannerBlob_ =
-          Tables.batchScanner(connector, blobStoreName(name), authorizations, nbQueryThreads);
-      scannerIndex_ =
-          Tables.batchScanner(connector, termStoreName(name), authorizations, nbQueryThreads);
-    }
+    configurations_ = configurations;
+    connector_ = configurations_.connector();
+    authorizations_ = authorizations == null ? Authorizations.EMPTY : authorizations;
+    name_ = name;
   }
 
   @Override
@@ -56,6 +47,16 @@ public class Scanners implements AutoCloseable {
 
     scannerBlob_ = null;
     scannerIndex_ = null;
+
+    if (batchScannerBlob_ != null) {
+      batchScannerBlob_.close();
+    }
+    if (batchScannerIndex_ != null) {
+      batchScannerIndex_.close();
+    }
+
+    batchScannerBlob_ = null;
+    batchScannerIndex_ = null;
   }
 
   public void clear() {
@@ -67,13 +68,49 @@ public class Scanners implements AutoCloseable {
       scannerIndex_.clearColumns();
       scannerIndex_.clearScanIterators();
     }
+    if (batchScannerBlob_ != null) {
+      batchScannerBlob_.clearColumns();
+      batchScannerBlob_.clearScanIterators();
+    }
+    if (batchScannerIndex_ != null) {
+      batchScannerIndex_.clearColumns();
+      batchScannerIndex_.clearScanIterators();
+    }
   }
 
   public ScannerBase blob() {
+    if (scannerBlob_ == null) {
+      scannerBlob_ = Tables.scanner(connector_, blobStoreName(name_), authorizations_);
+    }
     return scannerBlob_;
   }
 
   public ScannerBase index() {
+    if (scannerIndex_ == null) {
+      scannerIndex_ = Tables.scanner(connector_, termStoreName(name_), authorizations_);
+    }
     return scannerIndex_;
+  }
+
+  public ScannerBase blob(int nbQueryThreads) {
+    if (nbQueryThreads <= 1) {
+      return blob();
+    }
+    if (batchScannerBlob_ == null) {
+      batchScannerBlob_ =
+          Tables.batchScanner(connector_, blobStoreName(name_), authorizations_, nbQueryThreads);
+    }
+    return batchScannerBlob_;
+  }
+
+  public ScannerBase index(int nbQueryThreads) {
+    if (nbQueryThreads <= 1) {
+      return index();
+    }
+    if (batchScannerIndex_ == null) {
+      batchScannerIndex_ =
+          Tables.batchScanner(connector_, termStoreName(name_), authorizations_, nbQueryThreads);
+    }
+    return batchScannerIndex_;
   }
 }

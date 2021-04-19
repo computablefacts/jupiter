@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.shell;
 
 import static com.computablefacts.jupiter.Users.authorizations;
+import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -275,12 +276,13 @@ public class Shell {
 
     DataStore ds = new DataStore(configurations, datastore);
 
-    try (Scanners scanners = ds.batchScanners(authorizations(auths))) {
+    try (Scanners scanners = ds.scanners(authorizations(auths))) {
       try (FileOutputStream fos = new FileOutputStream(f)) {
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos))) {
 
           AtomicInteger count = new AtomicInteger(0);
-          Iterator<Blob<Value>> iterator = ds.blobStore().get(scanners.blob(), dataset);
+          Iterator<Blob<Value>> iterator =
+              ds.blobStore().get(scanners.blob(NB_QUERY_THREADS), dataset);
 
           while (iterator.hasNext()) {
 
