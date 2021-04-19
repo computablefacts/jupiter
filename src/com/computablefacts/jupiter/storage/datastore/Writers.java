@@ -56,9 +56,7 @@ public class Writers implements AutoCloseable {
     Preconditions.checkState(writer_ != null && !writer_.isClosed(), "writer is null or closed");
 
     try {
-      if (writer_ != null && !writer_.isClosed()) {
-        writer_.close();
-      }
+      writer_.close();
     } catch (MutationsRejectedException e) {
       logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
     } finally {
@@ -74,9 +72,7 @@ public class Writers implements AutoCloseable {
     Preconditions.checkState(writer_ != null && !writer_.isClosed(), "writer is null or closed");
 
     try {
-      if (writer_ != null && !writer_.isClosed()) {
-        writer_.flush();
-      }
+      writer_.flush();
       return true;
     } catch (MutationsRejectedException e) {
       logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
