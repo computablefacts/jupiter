@@ -820,7 +820,17 @@ final public class DataStore {
     String cacheId = hashFunction_.newHasher()
         .putString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).hash().toString();
 
-    if (!DataStoreCache.hasData(scanners, cacheId)) {
+    if (DataStoreCache.hasData(scanners, cacheId)) {
+      if (logger_.isDebugEnabled()) {
+        logger_.debug(LogFormatterManager.logFormatter().add("namespace", name())
+            .add("dataset", dataset).add("cache_hit", true).add("cache_id", cacheId).formatDebug());
+      }
+    } else {
+      if (logger_.isDebugEnabled()) {
+        logger_.debug(
+            LogFormatterManager.logFormatter().add("namespace", name()).add("dataset", dataset)
+                .add("cache_miss", true).add("cache_id", cacheId).formatDebug());
+      }
 
       // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
       Iterator<String> bucketsIds = Iterators.transform(
@@ -880,7 +890,17 @@ final public class DataStore {
     String cacheId = hashFunction_.newHasher()
         .putString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).hash().toString();
 
-    if (!DataStoreCache.hasData(scanners, cacheId)) {
+    if (DataStoreCache.hasData(scanners, cacheId)) {
+      if (logger_.isDebugEnabled()) {
+        logger_.debug(LogFormatterManager.logFormatter().add("namespace", name())
+            .add("dataset", dataset).add("cache_hit", true).add("cache_id", cacheId).formatDebug());
+      }
+    } else {
+      if (logger_.isDebugEnabled()) {
+        logger_.debug(
+            LogFormatterManager.logFormatter().add("namespace", name()).add("dataset", dataset)
+                .add("cache_miss", true).add("cache_id", cacheId).formatDebug());
+      }
 
       // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
       Iterator<String> bucketsIds =
