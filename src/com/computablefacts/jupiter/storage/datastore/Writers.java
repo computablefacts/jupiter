@@ -52,8 +52,11 @@ public class Writers implements AutoCloseable {
 
   @Override
   public void close() {
+
+    Preconditions.checkState(writer_ != null && !writer_.isClosed(), "writer is null or closed");
+
     try {
-      if (writer_ != null) {
+      if (writer_ != null && !writer_.isClosed()) {
         writer_.close();
       }
     } catch (MutationsRejectedException e) {
@@ -67,8 +70,13 @@ public class Writers implements AutoCloseable {
 
   @CanIgnoreReturnValue
   public boolean flush() {
+
+    Preconditions.checkState(writer_ != null && !writer_.isClosed(), "writer is null or closed");
+
     try {
-      writer_.flush();
+      if (writer_ != null && !writer_.isClosed()) {
+        writer_.flush();
+      }
       return true;
     } catch (MutationsRejectedException e) {
       logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
