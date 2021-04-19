@@ -837,7 +837,7 @@ final public class DataStore {
           termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset, fields, term, docsIds),
           t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
-      DataStoreCache.write(writers, cacheId, bucketsIds);
+      DataStoreCache.write(scanners, writers, cacheId, bucketsIds);
     }
 
     // Returns an iterator over the documents ids
@@ -907,7 +907,7 @@ final public class DataStore {
           Iterators.transform(termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset,
               fields, minTerm, maxTerm, docsIds), t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
-      DataStoreCache.write(writers, cacheId, bucketsIds);
+      DataStoreCache.write(scanners, writers, cacheId, bucketsIds);
     }
 
     // Returns an iterator over the documents ids

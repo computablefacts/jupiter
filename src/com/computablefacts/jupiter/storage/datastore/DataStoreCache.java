@@ -92,17 +92,20 @@ final public class DataStoreCache {
   /**
    * Cache values.
    *
+   * @param scanners scanners (optional).
    * @param writers writers.
    * @param cacheId the cache id.
    * @param iterator the values to cache.
    */
-  public static void write(Writers writers, String cacheId, Iterator<String> iterator) {
-    write(writers, cacheId, iterator, -1);
+  public static void write(Scanners scanners, Writers writers, String cacheId,
+      Iterator<String> iterator) {
+    write(scanners, writers, cacheId, iterator, -1);
   }
 
   /**
    * Cache values.
    *
+   * @param scanners scanners (optional).
    * @param writers writers.
    * @param cacheId the cache id.
    * @param iterator the values to cache.
@@ -111,27 +114,30 @@ final public class DataStoreCache {
    *        If this number is less than or equals to zero, performs the whole operation
    *        synchronously.
    */
-  public static void write(Writers writers, String cacheId, Iterator<String> iterator,
-      @Var int delegateToBackgroundThreadAfter) {
+  public static void write(Scanners scanners, Writers writers, String cacheId,
+      Iterator<String> iterator, @Var int delegateToBackgroundThreadAfter) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(cacheId, "cacheId should not be null");
     Preconditions.checkNotNull(iterator, "iterator should not be null");
 
     if (delegateToBackgroundThreadAfter <= 0) {
-      writeCache(writers, cacheId, iterator, -1);
+      writeCache(scanners, writers, cacheId, iterator, -1);
     } else {
-      writeCache(writers, cacheId, iterator, delegateToBackgroundThreadAfter);
-      executorService_.execute(() -> writeCache(writers, cacheId, iterator, -1));
+      writeCache(scanners, writers, cacheId, iterator, delegateToBackgroundThreadAfter);
+      executorService_.execute(() -> writeCache(scanners, writers, cacheId, iterator, -1));
     }
   }
 
-  private static void writeCache(Writers writers, String cacheId, Iterator<String> iterator,
-      @Var int maxElementsToWrite) {
+  private static void writeCache(Scanners scanners, Writers writers, String cacheId,
+      Iterator<String> iterator, @Var int maxElementsToWrite) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(cacheId, "cacheId should not be null");
     Preconditions.checkNotNull(iterator, "iterator should not be null");
+
+    @Var
+    long nbElementsWritten = 0L;
 
     try {
       if (maxElementsToWrite < 0) {
@@ -143,6 +149,7 @@ final public class DataStoreCache {
           mutation.put(TEXT_CACHE, new Text(Strings.nullToEmpty(value)), VALUE_EMPTY);
 
           writers.blob().addMutation(mutation);
+          nbElementsWritten++;
         }
       } else if (maxElementsToWrite > 0) {
         while (iterator.hasNext()) {
@@ -153,6 +160,7 @@ final public class DataStoreCache {
           mutation.put(TEXT_CACHE, new Text(Strings.nullToEmpty(value)), VALUE_EMPTY);
 
           writers.blob().addMutation(mutation);
+          nbElementsWritten++;
 
           if (--maxElementsToWrite <= 0) {
             break;
@@ -164,8 +172,29 @@ final public class DataStoreCache {
                 .add("max_elements_to_write", maxElementsToWrite).formatWarn());
       }
 
-      // flush otherwise mutations might not have been written when read() is called
-      writers.flush();
+      if (logger_.isDebugEnabled()) {
+        logger_.debug(LogFormatterManager.logFormatter().add("cache_id", cacheId)
+            .add("max_elements_to_write", maxElementsToWrite)
+            .add("nb_elements_written", nbElementsWritten).formatDebug());
+      }
+
+      // Flush otherwise mutations might not have been written when read() is called. However,
+      // sometimes, the first call to flush() returns but the data won't be available until a few
+      // seconds later. Not OK for this particular use case!
+      @Var
+      int maxTries = 5;
+
+      do {
+        if (!writers.flush()) {
+          logger_.error(LogFormatterManager.logFormatter().message("flush failed")
+              .add("cache_id", cacheId).add("max_elements_to_write", maxElementsToWrite)
+              .add("nb_elements_written", nbElementsWritten).formatError());
+          break;
+        }
+        maxTries--;
+      } while (scanners != null && maxTries > 0 && nbElementsWritten > 0
+          && !hasData(scanners, cacheId));
+
     } catch (MutationsRejectedException e) {
       logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
     }

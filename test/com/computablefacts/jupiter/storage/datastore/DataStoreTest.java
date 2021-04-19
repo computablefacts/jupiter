@@ -288,6 +288,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
+  public void testRunRowLevelAuthorizationsOneHundredTimes() throws Exception {
+    for (int i = 0; i < 100; i++) {
+      testRowLevelAuthorizations();
+    }
+  }
+
+  @Test
   public void testRowLevelAuthorizations() throws Exception {
 
     DataStore dataStore =
