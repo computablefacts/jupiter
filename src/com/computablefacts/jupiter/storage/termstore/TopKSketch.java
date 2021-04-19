@@ -29,9 +29,9 @@ final public class TopKSketch {
     return union;
   }
 
-  public void offer(String value) {
+  public void offer(String value, long count) {
     if (itemSketch_ != null && value != null) {
-      itemSketch_.update(value);
+      itemSketch_.update(value, count);
     }
   }
 

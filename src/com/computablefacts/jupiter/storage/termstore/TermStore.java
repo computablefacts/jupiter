@@ -518,7 +518,7 @@ final public class TermStore extends AbstractStorage {
       if (!fieldsTopTerms_.containsKey(key)) {
         fieldsTopTerms_.put(key, new TopKSketch());
       }
-      fieldsTopTerms_.get(key).offer(term instanceof Number ? term.toString() : newTerm);
+      fieldsTopTerms_.get(key).offer(term instanceof Number ? term.toString() : newTerm, nbOccurrences);
     }
 
     // Ingest stats
