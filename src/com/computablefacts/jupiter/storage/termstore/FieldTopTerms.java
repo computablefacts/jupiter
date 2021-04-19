@@ -87,7 +87,6 @@ final public class FieldTopTerms {
     String row = key.getRow().toString();
     String cf = key.getColumnFamily().toString();
     String cv = key.getColumnVisibility().toString();
-    String val = value.toString();
 
     // Extract term and term's type from ROW
     int index = row.indexOf(SEPARATOR_NUL);
