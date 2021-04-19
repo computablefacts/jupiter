@@ -84,7 +84,7 @@ import com.google.errorprone.annotations.Var;
 @CheckReturnValue
 final public class DataStore {
 
-  private static final HashFunction hashFunction_ = Hashing.goodFastHash(128);
+  private static final HashFunction hashFunction_ = Hashing.murmur3_128();
   private static final Base64.Decoder b64Decoder_ = Base64.getDecoder();
   private static final Logger logger_ = LoggerFactory.getLogger(DataStore.class);
 
