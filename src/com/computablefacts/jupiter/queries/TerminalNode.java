@@ -20,11 +20,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.BloomFilters;
-import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.DedupIterator;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
 import com.computablefacts.jupiter.storage.datastore.Writers;
+import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
@@ -117,13 +117,13 @@ final public class TerminalNode extends AbstractNode {
 
   @Override
   public long cardinality(DataStore dataStore, Scanners scanners, String dataset,
-                          Function<String, SpanSequence> tokenizer) {
+      Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(scanners, "scanners should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset).add("key", key_)
+      logger_.info(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
           .add("value", value_).formatInfo());
     }
 
@@ -164,17 +164,19 @@ final public class TerminalNode extends AbstractNode {
 
     if (terms.isEmpty()) {
       if (logger_.isWarnEnabled()) {
-        logger_.warn(LogFormatterManager.logFormatter().add("dataset", dataset).add("key", key_)
+        logger_.warn(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
             .add("value", value_).message("all terms have been discarded").formatWarn());
       }
       return 0;
     }
     if (Inflectional.equals(form_)) {
-      return terms.stream().mapToLong(term -> dataStore.termCardinalityEstimationForBuckets(scanners, dataset, fields(), term))
+      return terms.stream().mapToLong(
+          term -> dataStore.termCardinalityEstimationForBuckets(scanners, dataset, fields(), term))
           .sum();
     }
     if (Literal.equals(form_)) {
-      return terms.stream().mapToLong(term -> dataStore.termCardinalityEstimationForBuckets(scanners, dataset, fields(), term))
+      return terms.stream().mapToLong(
+          term -> dataStore.termCardinalityEstimationForBuckets(scanners, dataset, fields(), term))
           .max().orElse(0);
     }
     if (Thesaurus.equals(form_)) {
@@ -192,9 +194,9 @@ final public class TerminalNode extends AbstractNode {
     Preconditions.checkNotNull(writers, "writers should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset).add("key", key_)
-          .add("value", value_).add("has_docs_ids", docsIds != null).add("form", form_.toString())
-          .formatInfo());
+      logger_.info(
+          LogFormatter.create(true).add("dataset", dataset).add("key", key_).add("value", value_)
+              .add("has_docs_ids", docsIds != null).add("form", form_.toString()).formatInfo());
     }
 
     if (Range.equals(form_)) {
@@ -234,7 +236,7 @@ final public class TerminalNode extends AbstractNode {
 
     if (terms.isEmpty()) {
       if (logger_.isWarnEnabled()) {
-        logger_.warn(LogFormatterManager.logFormatter().add("dataset", dataset).add("key", key_)
+        logger_.warn(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
             .add("value", value_).message("all terms have been discarded").formatWarn());
       }
       return ITERATOR_EMPTY;

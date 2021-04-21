@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
-import com.computablefacts.jupiter.logs.LogFormatterManager;
+import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -45,7 +45,7 @@ public class Writers implements AutoCloseable {
       writerBlob_ = writer_.getBatchWriter(blobStoreName(name));
       writerIndex_ = writer_.getBatchWriter(termStoreName(name));
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
       close();
     }
   }
@@ -58,7 +58,7 @@ public class Writers implements AutoCloseable {
     try {
       writer_.close();
     } catch (MutationsRejectedException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     } finally {
       writer_ = null;
       writerBlob_ = null;
@@ -75,7 +75,7 @@ public class Writers implements AutoCloseable {
       writer_.flush();
       return true;
     } catch (MutationsRejectedException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }

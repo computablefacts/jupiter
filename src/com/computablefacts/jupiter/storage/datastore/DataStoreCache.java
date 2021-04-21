@@ -17,8 +17,8 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
+import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
@@ -167,13 +167,12 @@ final public class DataStoreCache {
           }
         }
       } else {
-        logger_.warn(
-            LogFormatterManager.logFormatter().message("write ignored").add("cache_id", cacheId)
-                .add("max_elements_to_write", maxElementsToWrite).formatWarn());
+        logger_.warn(LogFormatter.create(true).message("write ignored").add("cache_id", cacheId)
+            .add("max_elements_to_write", maxElementsToWrite).formatWarn());
       }
 
       if (logger_.isDebugEnabled()) {
-        logger_.debug(LogFormatterManager.logFormatter().add("cache_id", cacheId)
+        logger_.debug(LogFormatter.create(true).add("cache_id", cacheId)
             .add("max_elements_to_write", maxElementsToWrite)
             .add("nb_elements_written", nbElementsWritten).formatDebug());
       }
@@ -186,8 +185,8 @@ final public class DataStoreCache {
 
       do {
         if (!writers.flush()) {
-          logger_.error(LogFormatterManager.logFormatter().message("flush failed")
-              .add("cache_id", cacheId).add("max_elements_to_write", maxElementsToWrite)
+          logger_.error(LogFormatter.create(true).message("flush failed").add("cache_id", cacheId)
+              .add("max_elements_to_write", maxElementsToWrite)
               .add("nb_elements_written", nbElementsWritten).formatError());
           break;
         }
@@ -196,7 +195,7 @@ final public class DataStoreCache {
           && !hasData(scanners, cacheId));
 
     } catch (MutationsRejectedException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
   }
 }

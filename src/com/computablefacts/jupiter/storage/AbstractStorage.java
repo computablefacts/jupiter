@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
-import com.computablefacts.jupiter.logs.LogFormatterManager;
+import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.Generated;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -136,14 +136,13 @@ public abstract class AbstractStorage {
       if (ranges.size() == 1) {
         ((Scanner) scanner).setRange((Range) ranges.toArray()[0]);
       } else {
-        logger_.error(LogFormatterManager.logFormatter()
+        logger_.error(LogFormatter.create(true)
             .message("\"using a BatchScanner is mandatory : the number of ranges is > 1\"")
             .formatError());
         return false;
       }
     } else {
-      logger_.error(
-          LogFormatterManager.logFormatter().message("\"invalid scanner type\"").formatError());
+      logger_.error(LogFormatter.create(true).message("\"invalid scanner type\"").formatError());
       return false;
     }
     return true;
@@ -177,7 +176,7 @@ public abstract class AbstractStorage {
   public boolean isReady() {
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("table_name", tableName()).formatInfo());
     }
 
     return Tables.exists(configurations().tableOperations(), tableName());
@@ -192,7 +191,7 @@ public abstract class AbstractStorage {
   public boolean create() {
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("table_name", tableName()).formatInfo());
     }
 
     if (!isReady()) {
@@ -216,7 +215,7 @@ public abstract class AbstractStorage {
   public boolean destroy() {
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("table_name", tableName()).formatInfo());
     }
 
     if (isReady()) {
@@ -233,7 +232,7 @@ public abstract class AbstractStorage {
   public boolean truncate() {
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("table_name", tableName()).formatInfo());
     }
 
     SortedSet<Text> splits = Tables.splits(configurations().tableOperations(), tableName());
@@ -257,8 +256,8 @@ public abstract class AbstractStorage {
     Preconditions.checkNotNull(cfs, "cfs should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName()).add("cfs", cfs)
-          .formatInfo());
+      logger_.info(
+          LogFormatter.create(true).add("table_name", tableName()).add("cfs", cfs).formatInfo());
     }
 
     deleter.clearColumns();
@@ -271,7 +270,7 @@ public abstract class AbstractStorage {
       }
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
       return false;
     }
     return true;
@@ -293,7 +292,7 @@ public abstract class AbstractStorage {
     Preconditions.checkNotNull(deleter, "deleter should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName()).add("row", row)
+      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("row", row)
           .add("cf", cf).add("cq", cq).formatInfo());
     }
 
@@ -309,7 +308,7 @@ public abstract class AbstractStorage {
       }
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
       return false;
     }
     return true;
@@ -330,7 +329,7 @@ public abstract class AbstractStorage {
     try {
       writer.addMutation(mutation);
     } catch (MutationsRejectedException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
       return false;
     }
     return true;

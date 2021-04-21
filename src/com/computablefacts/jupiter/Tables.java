@@ -26,7 +26,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.jupiter.logs.LogFormatterManager;
+import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -59,7 +59,7 @@ final public class Tables {
       }
       return true;
     } catch (TableExistsException | AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -76,7 +76,7 @@ final public class Tables {
       }
       return true;
     } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -95,7 +95,7 @@ final public class Tables {
       return false;
     } catch (TableNotFoundException | TableExistsException | AccumuloSecurityException
         | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -114,7 +114,7 @@ final public class Tables {
       return false;
     } catch (TableNotFoundException | TableExistsException | AccumuloSecurityException
         | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -133,7 +133,7 @@ final public class Tables {
       }
       return true;
     } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -149,7 +149,7 @@ final public class Tables {
         return new TreeSet<>(tableOperations.listSplits(tableName));
       }
     } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return new TreeSet<>();
   }
@@ -165,7 +165,7 @@ final public class Tables {
       tableOperations.setProperty(tableName, "table.bloom.enabled", enable ? "true" : "false");
       return true;
     } catch (AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -181,7 +181,7 @@ final public class Tables {
       tableOperations.setProperty(tableName, "table.cache.block.enable", enable ? "true" : "false");
       return true;
     } catch (AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -197,7 +197,7 @@ final public class Tables {
       tableOperations.setProperty(tableName, "table.cache.index.enable", enable ? "true" : "false");
       return true;
     } catch (AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -217,7 +217,7 @@ final public class Tables {
       }
       return true;
     } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -232,7 +232,7 @@ final public class Tables {
     try {
       return tableOperations.getLocalityGroups(tableName);
     } catch (AccumuloException | TableNotFoundException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return new HashMap<>();
   }
@@ -247,7 +247,7 @@ final public class Tables {
       tableOperations.deleteRows(tableName, null, null);
       return true;
     } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -264,7 +264,7 @@ final public class Tables {
       tableOperations.deleteRows(tableName, new Text(from), null);
       return true;
     } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -280,7 +280,7 @@ final public class Tables {
       tableOperations.deleteRows(tableName, null, new Text(to));
       return true;
     } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -303,7 +303,7 @@ final public class Tables {
           new Text(to));
       return true;
     } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
@@ -342,7 +342,7 @@ final public class Tables {
     try {
       return connector.createScanner(tableName, authorizations);
     } catch (TableNotFoundException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return null;
   }
@@ -359,7 +359,7 @@ final public class Tables {
     try {
       return connector.createBatchScanner(tableName, authorizations, nbQueryThreads);
     } catch (TableNotFoundException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return null;
   }
@@ -378,7 +378,7 @@ final public class Tables {
       return connector.createBatchDeleter(tableName, authorizations, nbQueryThreads,
           batchWriterConfig);
     } catch (TableNotFoundException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return null;
   }
@@ -403,7 +403,7 @@ final public class Tables {
     try {
       return connector.createBatchWriter(tableName, batchWriterConfig);
     } catch (TableNotFoundException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return null;
   }

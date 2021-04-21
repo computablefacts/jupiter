@@ -19,11 +19,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
-import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
 import com.computablefacts.jupiter.storage.datastore.Writers;
+import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.Document;
 import com.computablefacts.nona.helpers.Files;
@@ -228,19 +228,19 @@ public class Shell {
 
         if (!document.fileExists()) { // do not reindex missing files
           if (logger_.isInfoEnabled()) {
-            logger_.info(LogFormatterManager.logFormatter().message(
+            logger_.info(LogFormatter.create(true).message(
                 "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " + document.path())
                 .formatInfo());
           }
         } else {
 
           if (!ds.persist(writers, dataset, document.docId(), row)) {
-            logger_.error(LogFormatterManager.logFormatter()
+            logger_.error(LogFormatter.create(true)
                 .message("Persistence of " + document.docId() + " failed").formatError());
           }
 
           if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
-            logger_.info(LogFormatterManager.logFormatter()
+            logger_.info(LogFormatter.create(true)
                 .message("Number of JSON processed : " + count.get()).formatInfo());
           }
         }
@@ -252,11 +252,11 @@ public class Shell {
     stopwatch.stop();
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter()
+      logger_.info(LogFormatter.create(true)
           .message("Total number of JSON processed : " + count.get()).formatInfo());
-      logger_.info(LogFormatterManager.logFormatter()
+      logger_.info(LogFormatter.create(true)
           .message("Total number of JSON ignored : " + ignored.get()).formatInfo());
-      logger_.info(LogFormatterManager.logFormatter()
+      logger_.info(LogFormatter.create(true)
           .message("Elapsed time : " + stopwatch.elapsed(TimeUnit.SECONDS)).formatInfo());
     }
     return true;
@@ -293,20 +293,20 @@ public class Shell {
             bw.newLine();
 
             if (cnt >= 1000 && logger_.isInfoEnabled()) {
-              logger_.info(LogFormatterManager.logFormatter()
-                  .message("Number of JSON written : " + cnt).formatInfo());
+              logger_.info(LogFormatter.create(true).message("Number of JSON written : " + cnt)
+                  .formatInfo());
             }
           }
 
           if (logger_.isInfoEnabled()) {
-            logger_.info(LogFormatterManager.logFormatter()
+            logger_.info(LogFormatter.create(true)
                 .message("Number of JSON written : " + count.get()).formatInfo());
           }
         } catch (IOException e) {
-          logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+          logger_.error(LogFormatter.create(true).message(e).formatError());
         }
       } catch (IOException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return true;

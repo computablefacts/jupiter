@@ -10,7 +10,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.jupiter.logs.LogFormatterManager;
+import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -82,7 +82,7 @@ final public class Configurations {
       try {
         connector_ = instance().getConnector(username_, new PasswordToken(password_));
       } catch (AccumuloException | AccumuloSecurityException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return connector_;

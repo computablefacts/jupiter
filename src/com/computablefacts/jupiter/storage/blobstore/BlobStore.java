@@ -20,9 +20,9 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.iterators.BlobStoreAnonymizingIterator;
 import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterator;
-import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
+import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
@@ -74,8 +74,8 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).formatInfo());
+      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .formatInfo());
     }
 
     Map<String, Set<Text>> groups =
@@ -116,8 +116,8 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(deleter, "deleter should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("table_name", tableName())
-          .add("dataset", dataset).add("keys", keys).formatInfo());
+      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("keys", keys).formatInfo());
     }
 
     @Var
@@ -234,9 +234,8 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(
-          LogFormatterManager.logFormatter().add("table_name", tableName()).add("dataset", dataset)
-              .add("has_fields", fields != null).add("has_keys", keys != null).formatInfo());
+      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("has_fields", fields != null).add("has_keys", keys != null).formatInfo());
     }
 
     scanner.clearColumns();

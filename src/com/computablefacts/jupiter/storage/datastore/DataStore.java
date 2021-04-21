@@ -35,7 +35,6 @@ import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
-import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
@@ -46,6 +45,7 @@ import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
 import com.computablefacts.jupiter.storage.termstore.FieldTopTerms;
 import com.computablefacts.jupiter.storage.termstore.TermDistinctBuckets;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
+import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.StringIterator;
@@ -179,7 +179,7 @@ final public class DataStore {
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return Users.grantPermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.WRITE);
@@ -191,7 +191,7 @@ final public class DataStore {
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return Users.grantPermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.READ);
@@ -203,7 +203,7 @@ final public class DataStore {
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return Users.grantPermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.WRITE);
@@ -215,7 +215,7 @@ final public class DataStore {
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return Users.grantPermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.READ);
@@ -227,7 +227,7 @@ final public class DataStore {
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return Users.revokePermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.WRITE);
@@ -239,7 +239,7 @@ final public class DataStore {
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return Users.revokePermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.READ);
@@ -251,7 +251,7 @@ final public class DataStore {
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return Users.revokePermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.WRITE);
@@ -263,7 +263,7 @@ final public class DataStore {
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return Users.revokePermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.READ);
@@ -280,7 +280,7 @@ final public class DataStore {
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return grantReadPermissionOnBlobStore(username) && grantReadPermissionOnTermStore(username);
   }
@@ -296,7 +296,7 @@ final public class DataStore {
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return revokeReadPermissionOnBlobStore(username) && revokeReadPermissionOnTermStore(username);
   }
@@ -308,7 +308,7 @@ final public class DataStore {
    */
   public boolean isReady() {
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
     return blobStore_.isReady() && termStore_.isReady();
   }
@@ -322,7 +322,7 @@ final public class DataStore {
   public boolean create() {
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name()).formatInfo());
+      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
 
     boolean isReady = blobStore_.isReady() && termStore_.isReady();
@@ -339,7 +339,7 @@ final public class DataStore {
         configurations().tableOperations().attachIterator(blobStore_.tableName(), settings);
 
       } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return true;
@@ -376,8 +376,8 @@ final public class DataStore {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
-          .add("dataset", dataset).formatInfo());
+      logger_.info(
+          LogFormatter.create(true).add("namespace", name()).add("dataset", dataset).formatInfo());
     }
 
     @Var
@@ -404,8 +404,8 @@ final public class DataStore {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("namespace", name())
-          .add("dataset", dataset).formatInfo());
+      logger_.info(
+          LogFormatter.create(true).add("namespace", name()).add("dataset", dataset).formatInfo());
     }
 
     boolean isOk1 = blobStore_.addLocalityGroup(dataset);
@@ -477,10 +477,9 @@ final public class DataStore {
     Preconditions.checkNotNull(json, "json should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_
-          .debug(LogFormatterManager.logFormatter().add("namespace", name()).add("dataset", dataset)
-              .add("docId", docId).add("json", json).add("has_keep_field", keepField != null)
-              .add("has_tokenizer", tokenizer != null).formatDebug());
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+          .add("docId", docId).add("json", json).add("has_keep_field", keepField != null)
+          .add("has_tokenizer", tokenizer != null).formatDebug());
     }
 
     if (!persistBlob(writers, dataset, docId, json)) {
@@ -822,14 +821,13 @@ final public class DataStore {
 
     if (DataStoreCache.hasData(scanners, cacheId)) {
       if (logger_.isDebugEnabled()) {
-        logger_.debug(LogFormatterManager.logFormatter().add("namespace", name())
-            .add("dataset", dataset).add("cache_hit", true).add("cache_id", cacheId).formatDebug());
+        logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+            .add("cache_hit", true).add("cache_id", cacheId).formatDebug());
       }
     } else {
       if (logger_.isDebugEnabled()) {
-        logger_.debug(
-            LogFormatterManager.logFormatter().add("namespace", name()).add("dataset", dataset)
-                .add("cache_miss", true).add("cache_id", cacheId).formatDebug());
+        logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+            .add("cache_miss", true).add("cache_id", cacheId).formatDebug());
       }
 
       // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
@@ -892,14 +890,13 @@ final public class DataStore {
 
     if (DataStoreCache.hasData(scanners, cacheId)) {
       if (logger_.isDebugEnabled()) {
-        logger_.debug(LogFormatterManager.logFormatter().add("namespace", name())
-            .add("dataset", dataset).add("cache_hit", true).add("cache_id", cacheId).formatDebug());
+        logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+            .add("cache_hit", true).add("cache_id", cacheId).formatDebug());
       }
     } else {
       if (logger_.isDebugEnabled()) {
-        logger_.debug(
-            LogFormatterManager.logFormatter().add("namespace", name()).add("dataset", dataset)
-                .add("cache_miss", true).add("cache_id", cacheId).formatDebug());
+        logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+            .add("cache_miss", true).add("cache_id", cacheId).formatDebug());
       }
 
       // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
@@ -991,8 +988,8 @@ final public class DataStore {
     Preconditions.checkNotNull(blob, "blob should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("namespace", name())
-          .add("dataset", dataset).add("doc_id", docId).add("blob", blob).formatDebug());
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+          .add("doc_id", docId).add("blob", blob).formatDebug());
     }
 
     String vizAdm = STRING_ADM; // for backward compatibility
@@ -1003,8 +1000,8 @@ final public class DataStore {
     if (!blobStore_.putJson(writers.blob(), dataset, docId,
         Sets.newHashSet(vizAdm, vizUuid, vizRawData), blob)) {
 
-      logger_.error(LogFormatterManager.logFormatter().message("write failed")
-          .add("dataset", dataset).add("docId", docId).add("blob", blob).formatError());
+      logger_.error(LogFormatter.create(true).message("write failed").add("dataset", dataset)
+          .add("docId", docId).add("blob", blob).formatError());
 
       return false;
     }
@@ -1033,8 +1030,8 @@ final public class DataStore {
     Preconditions.checkArgument(nbOccurrencesInDoc > 0, "nbOccurrencesInDoc must be > 0");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatterManager.logFormatter().add("namespace", name())
-          .add("dataset", dataset).add("doc_id", docId).add("field", field).add("term", term)
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+          .add("doc_id", docId).add("field", field).add("term", term)
           .add("nb_occurrences_in_doc", nbOccurrencesInDoc).formatDebug());
     }
 
@@ -1055,9 +1052,8 @@ final public class DataStore {
         vizDocSpecific, vizFieldSpecific);
 
     if (!isOk) {
-      logger_
-          .error(LogFormatterManager.logFormatter().message("write failed").add("dataset", dataset)
-              .add("docId", docId).add("field", field).add("term", term).formatError());
+      logger_.error(LogFormatter.create(true).message("write failed").add("dataset", dataset)
+          .add("docId", docId).add("field", field).add("term", term).formatError());
     }
     return isOk;
   }

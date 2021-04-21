@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.BloomFilters;
-import com.computablefacts.jupiter.logs.LogFormatterManager;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.DedupIterator;
 import com.computablefacts.jupiter.storage.DifferenceIterator;
@@ -15,6 +14,7 @@ import com.computablefacts.jupiter.storage.SynchronousIterator;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
 import com.computablefacts.jupiter.storage.datastore.Writers;
+import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.types.SpanSequence;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -67,15 +67,15 @@ final public class InternalNode extends AbstractNode {
 
   @Override
   public long cardinality(DataStore dataStore, Scanners scanners, String dataset,
-                          Function<String, SpanSequence> tokenizer) {
+      Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(scanners, "scanners should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset)
-          .add("conjunction", conjunction_).add("child1", child1_).add("child2", child2_)
-          .formatInfo());
+      logger_
+          .info(LogFormatter.create(true).add("dataset", dataset).add("conjunction", conjunction_)
+              .add("child1", child1_).add("child2", child2_).formatInfo());
     }
 
     long cardChild1;
@@ -137,9 +137,9 @@ final public class InternalNode extends AbstractNode {
     Preconditions.checkNotNull(writers, "writers should not be null");
 
     if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatterManager.logFormatter().add("dataset", dataset)
-          .add("conjunction", conjunction_).add("child1", child1_).add("child2", child2_)
-          .formatInfo());
+      logger_
+          .info(LogFormatter.create(true).add("dataset", dataset).add("conjunction", conjunction_)
+              .add("child1", child1_).add("child2", child2_).formatInfo());
     }
 
     if (child1_ == null) {
@@ -148,9 +148,8 @@ final public class InternalNode extends AbstractNode {
       }
       if (child2_.exclude()) { // (NULL AND/OR NOT B) is not a valid construct
         if (logger_.isErrorEnabled()) {
-          logger_.error(
-              LogFormatterManager.logFormatter().add("dataset", dataset).add("query", toString())
-                  .message("ill-formed query : (NULL AND/OR NOT B)").formatError());
+          logger_.error(LogFormatter.create(true).add("dataset", dataset).add("query", toString())
+              .message("ill-formed query : (NULL AND/OR NOT B)").formatError());
         }
         return Constants.ITERATOR_EMPTY;
       }
@@ -161,9 +160,8 @@ final public class InternalNode extends AbstractNode {
     if (child2_ == null) {
       if (child1_.exclude()) { // (NOT A AND/OR NULL) is not a valid construct
         if (logger_.isErrorEnabled()) {
-          logger_.error(
-              LogFormatterManager.logFormatter().add("dataset", dataset).add("query", toString())
-                  .message("ill-formed query : (NOT A AND/OR NULL)").formatError());
+          logger_.error(LogFormatter.create(true).add("dataset", dataset).add("query", toString())
+              .message("ill-formed query : (NOT A AND/OR NULL)").formatError());
         }
         return Constants.ITERATOR_EMPTY;
       }
@@ -176,9 +174,8 @@ final public class InternalNode extends AbstractNode {
     // A AND NOT B, NOT A OR NOT B}
     if (child1_.exclude() && child2_.exclude()) {
       if (logger_.isErrorEnabled()) {
-        logger_.error(
-            LogFormatterManager.logFormatter().add("dataset", dataset).add("query", toString())
-                .message("ill-formed query : (NOT A AND/OR NOT B)").formatError());
+        logger_.error(LogFormatter.create(true).add("dataset", dataset).add("query", toString())
+            .message("ill-formed query : (NOT A AND/OR NOT B)").formatError());
       }
       return Constants.ITERATOR_EMPTY; // (NOT A AND NOT B) or (NOT A OR NOT B)
     }
@@ -186,9 +183,8 @@ final public class InternalNode extends AbstractNode {
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B, NOT A OR B, A OR NOT B}
     if (eConjunctionTypes.Or.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {
       if (logger_.isErrorEnabled()) {
-        logger_.error(
-            LogFormatterManager.logFormatter().add("dataset", dataset).add("query", toString())
-                .message("ill-formed query : (A OR NOT B) or (NOT A OR B)").formatError());
+        logger_.error(LogFormatter.create(true).add("dataset", dataset).add("query", toString())
+            .message("ill-formed query : (A OR NOT B) or (NOT A OR B)").formatError());
       }
       if (child1_.exclude()) {
         return child2_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer); // NOT A

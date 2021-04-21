@@ -14,7 +14,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.jupiter.logs.LogFormatterManager;
+import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -42,7 +42,7 @@ final public class Users {
       try {
         return securityOperations.listLocalUsers();
       } catch (AccumuloSecurityException | AccumuloException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return new HashSet<>();
@@ -74,7 +74,7 @@ final public class Users {
         }
         return true;
       } catch (AccumuloSecurityException | AccumuloException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return false;
@@ -95,7 +95,7 @@ final public class Users {
         }
         return true;
       } catch (AccumuloSecurityException | AccumuloException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return false;
@@ -128,7 +128,7 @@ final public class Users {
       try {
         return securityOperations.getUserAuthorizations(username);
       } catch (AccumuloSecurityException | AccumuloException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return null;
@@ -151,7 +151,7 @@ final public class Users {
         securityOperations.changeUserAuthorizations(username, userAuthorizations);
         return true;
       } catch (AccumuloSecurityException | AccumuloException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return false;
@@ -184,7 +184,7 @@ final public class Users {
         securityOperations.grantTablePermission(username, table, permission);
         return true;
       } catch (AccumuloSecurityException | AccumuloException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return false;
@@ -217,7 +217,7 @@ final public class Users {
         }
         return true;
       } catch (AccumuloSecurityException | AccumuloException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return false;
@@ -239,7 +239,7 @@ final public class Users {
       try {
         return securityOperations.hasTablePermission(username, table, permission);
       } catch (AccumuloSecurityException | AccumuloException e) {
-        logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
     return false;

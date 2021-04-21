@@ -19,7 +19,7 @@ import org.apache.accumulo.core.data.TabletId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.jupiter.logs.LogFormatterManager;
+import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -47,7 +47,7 @@ final public class Mutations {
     try (DataOutputStream dataOutputStream = new DataOutputStream(bytes)) {
       mutation.write(dataOutputStream);
     } catch (IOException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return bytes.toByteArray();
   }
@@ -68,7 +68,7 @@ final public class Mutations {
     try (DataInputStream dataInputStream = new DataInputStream(new ByteArrayInputStream(bytes))) {
       mutation.readFields(dataInputStream);
     } catch (IOException e) {
-      logger_.error(LogFormatterManager.logFormatter().message(e).formatError());
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return mutation;
   }
@@ -92,16 +92,16 @@ final public class Mutations {
 
       for (Map.Entry<TabletId, Set<SecurityErrorCode>> entry : securityErrors.entrySet()) {
         for (SecurityErrorCode err : entry.getValue()) {
-          logger_.error(LogFormatterManager.logFormatter()
-              .message("Permanent error: " + err.toString()).formatError());
+          logger_.error(LogFormatter.create(true).message("Permanent error: " + err.toString())
+              .formatError());
         }
       }
 
       List<ConstraintViolationSummary> constraintViolations = ex.getConstraintViolationSummaries();
 
       if (!securityErrors.isEmpty() || !constraintViolations.isEmpty()) {
-        logger_.error(LogFormatterManager.logFormatter()
-            .message("Have permanent errors. Exiting...").formatError());
+        logger_.error(
+            LogFormatter.create(true).message("Have permanent errors. Exiting...").formatError());
         return false;
       }
 
@@ -109,14 +109,14 @@ final public class Mutations {
       Collection<String> errorServers = ex.getErrorServers();
 
       for (String errorServer : errorServers) {
-        logger_.warn(LogFormatterManager.logFormatter()
-            .message("Problem with server: " + errorServer).formatWarn());
+        logger_.warn(
+            LogFormatter.create(true).message("Problem with server: " + errorServer).formatWarn());
       }
 
       int numUnknownExceptions = ex.getUnknownExceptions();
 
       if (numUnknownExceptions > 0) {
-        logger_.warn(LogFormatterManager.logFormatter()
+        logger_.warn(LogFormatter.create(true)
             .message(numUnknownExceptions + " unknown exceptions.").formatWarn());
       }
       return true;
@@ -127,7 +127,7 @@ final public class Mutations {
       Collection<String> errorServers = ex.getTimedOutSevers();
 
       for (String errorServer : errorServers) {
-        logger_.warn(LogFormatterManager.logFormatter()
+        logger_.warn(LogFormatter.create(true)
             .message("Problem with server: " + errorServer + " (timeout)").formatWarn());
       }
       return true;
