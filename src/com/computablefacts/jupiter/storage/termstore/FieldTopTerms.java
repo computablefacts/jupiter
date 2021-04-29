@@ -36,7 +36,8 @@ final public class FieldTopTerms {
   private final String field_;
   private final int type_;
   private final Set<String> labels_;
-  private final Multiset<String> topTerms_;
+  private final Multiset<String> topTermsNoFalsePositives_;
+  private final Multiset<String> topTermsNoFalseNegatives_;
 
   FieldTopTerms(String dataset, String field, int type, Set<String> labels, byte[] sketch) {
 
@@ -49,10 +50,14 @@ final public class FieldTopTerms {
     field_ = field;
     type_ = type;
     labels_ = new HashSet<>(labels);
-    topTerms_ = HashMultiset.create();
+    topTermsNoFalsePositives_ = HashMultiset.create();
+    topTermsNoFalseNegatives_ = HashMultiset.create();
 
-    Arrays.stream(TopKSketch.wrap(sketch).getFrequentItems(ErrorType.NO_FALSE_POSITIVES))
-        .forEach(item -> topTerms_.add(item.getItem(), Math.toIntExact(item.getEstimate())));
+    Arrays.stream(TopKSketch.wrap(sketch).getFrequentItems(ErrorType.NO_FALSE_POSITIVES)).forEach(
+        item -> topTermsNoFalsePositives_.add(item.getItem(), Math.toIntExact(item.getEstimate())));
+
+    Arrays.stream(TopKSketch.wrap(sketch).getFrequentItems(ErrorType.NO_FALSE_NEGATIVES)).forEach(
+        item -> topTermsNoFalseNegatives_.add(item.getItem(), Math.toIntExact(item.getEstimate())));
   }
 
   public static Mutation newMutation(String dataset, String typedField, byte[] sketch) {
@@ -119,7 +124,9 @@ final public class FieldTopTerms {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("field", field_)
-        .add("type", type_).add("labels", labels_).add("top_terms", topTerms_).toString();
+        .add("type", type_).add("labels", labels_)
+        .add("top_terms_no_false_positives", topTermsNoFalsePositives_)
+        .add("top_terms_no_false_negatives", topTermsNoFalseNegatives_).toString();
   }
 
   @Override
@@ -133,12 +140,14 @@ final public class FieldTopTerms {
     FieldTopTerms term = (FieldTopTerms) obj;
     return Objects.equal(dataset_, term.dataset_) && Objects.equal(field_, term.field_)
         && Objects.equal(type_, term.type_) && Objects.equal(labels_, term.labels_)
-        && Objects.equal(topTerms_, term.topTerms_);
+        && Objects.equal(topTermsNoFalsePositives_, term.topTermsNoFalsePositives_)
+        && Objects.equal(topTermsNoFalseNegatives_, term.topTermsNoFalseNegatives_);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(dataset_, field_, type_, labels_, topTerms_);
+    return Objects.hashCode(dataset_, field_, type_, labels_, topTermsNoFalsePositives_,
+        topTermsNoFalseNegatives_);
   }
 
   @Generated
@@ -182,7 +191,12 @@ final public class FieldTopTerms {
   }
 
   @Generated
-  public Multiset<String> topTerms() {
-    return topTerms_;
+  public Multiset<String> topTermsNoFalsePositives() {
+    return topTermsNoFalsePositives_;
+  }
+
+  @Generated
+  public Multiset<String> topTermsNoFalseNegatives() {
+    return topTermsNoFalseNegatives_;
   }
 }

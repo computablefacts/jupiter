@@ -28,7 +28,10 @@ final public class DataStoreInfos {
   private final Table<String, String, Set<String>> visibilityLabels_ = HashBasedTable.create();
   private final Table<String, String, String> lastUpdates_ = HashBasedTable.create();
   private final Table<String, String, Set<String>> types_ = HashBasedTable.create();
-  private final Table<String, String, Multiset<String>> topTerms_ = HashBasedTable.create();
+  private final Table<String, String, Multiset<String>> topTermsNoFalsePositives_ =
+      HashBasedTable.create();
+  private final Table<String, String, Multiset<String>> topTermsNoFalseNegatives_ =
+      HashBasedTable.create();
 
   public DataStoreInfos(String name) {
     name_ = name;
@@ -71,16 +74,34 @@ final public class DataStoreInfos {
   }
 
   @Beta
-  public void addTopTerms(String dataset, String field, int type, Multiset<String> topTerms) {
+  public void addTopTermsNoFalsePositives(String dataset, String field, int type,
+      Multiset<String> topTerms) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(topTerms, "topTerms should not be null");
 
-    if (topTerms_.contains(dataset, field)) {
-      topTerms_.get(dataset, field).addAll(topTerms);
+    if (topTermsNoFalsePositives_.contains(dataset, field)) {
+      topTermsNoFalsePositives_.get(dataset, field).addAll(topTerms);
     } else {
-      topTerms_.put(dataset, field, topTerms);
+      topTermsNoFalsePositives_.put(dataset, field, topTerms);
+    }
+
+    addType(dataset, field, type);
+  }
+
+  @Beta
+  public void addTopTermsNoFalseNegatives(String dataset, String field, int type,
+      Multiset<String> topTerms) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(topTerms, "topTerms should not be null");
+
+    if (topTermsNoFalseNegatives_.contains(dataset, field)) {
+      topTermsNoFalseNegatives_.get(dataset, field).addAll(topTerms);
+    } else {
+      topTermsNoFalseNegatives_.put(dataset, field, topTerms);
     }
 
     addType(dataset, field, type);
@@ -129,9 +150,12 @@ final public class DataStoreInfos {
     set.addAll(cardEstForTerms_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
-    set.addAll(topTerms_.cellSet().stream()
+    set.addAll(topTermsNoFalsePositives_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
+    set.addAll(topTermsNoFalseNegatives_.cellSet().stream()
+            .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+            .collect(Collectors.toSet()));
     set.addAll(visibilityLabels_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
@@ -153,8 +177,18 @@ final public class DataStoreInfos {
           cardEstForTerms_.contains(dataset, field) ? cardEstForTerms_.get(dataset, field) : 0);
       map.put("nb_distinct_buckets",
           cardEstForBuckets_.contains(dataset, field) ? cardEstForBuckets_.get(dataset, field) : 0);
-      map.put("top_terms", topTerms_.contains(dataset, field)
-          ? topTerms_.get(dataset, field).entrySet().stream().map(entry -> {
+      map.put("top_terms_no_false_positives", topTermsNoFalsePositives_.contains(dataset, field)
+          ? topTermsNoFalsePositives_.get(dataset, field).entrySet().stream().map(entry -> {
+
+            HashMap<String, Object> pair = new HashMap<>();
+            pair.put("term", entry.getElement());
+            pair.put("nb_occurrences", entry.getCount());
+
+            return pair;
+          }).collect(Collectors.toList())
+          : 0);
+      map.put("top_terms_no_false_negatives", topTermsNoFalseNegatives_.contains(dataset, field)
+          ? topTermsNoFalseNegatives_.get(dataset, field).entrySet().stream().map(entry -> {
 
             HashMap<String, Object> pair = new HashMap<>();
             pair.put("term", entry.getElement());

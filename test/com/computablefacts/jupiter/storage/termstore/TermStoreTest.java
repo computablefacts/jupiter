@@ -1087,7 +1087,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("age", topTerms.get(0).field());
       Assert.assertEquals(Term.TYPE_NUMBER, topTerms.get(0).type());
       Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(0).labels());
-      Assert.assertEquals(multiset, topTerms.get(0).topTerms());
+      Assert.assertEquals(multiset, topTerms.get(0).topTermsNoFalsePositives());
+      Assert.assertEquals(multiset, topTerms.get(0).topTermsNoFalseNegatives());
 
       multiset.clear();
       multiset.add("john", 5);
@@ -1096,7 +1097,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("first_name", topTerms.get(1).field());
       Assert.assertEquals(Term.TYPE_STRING, topTerms.get(1).type());
       Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(1).labels());
-      Assert.assertEquals(multiset, topTerms.get(1).topTerms());
+      Assert.assertEquals(multiset, topTerms.get(1).topTermsNoFalsePositives());
+      Assert.assertEquals(multiset, topTerms.get(1).topTermsNoFalseNegatives());
 
       multiset.clear();
       multiset.add("doe", 5);
@@ -1105,7 +1107,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("last_name", topTerms.get(2).field());
       Assert.assertEquals(Term.TYPE_STRING, topTerms.get(2).type());
       Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(2).labels());
-      Assert.assertEquals(multiset, topTerms.get(2).topTerms());
+      Assert.assertEquals(multiset, topTerms.get(2).topTermsNoFalsePositives());
+      Assert.assertEquals(multiset, topTerms.get(2).topTermsNoFalseNegatives());
     }
 
     // Add more entries to the store and ensure distinct counts and top terms are updated
@@ -1193,7 +1196,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("age", topTerms.get(0).field());
       Assert.assertEquals(Term.TYPE_NUMBER, topTerms.get(0).type());
       Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(0).labels());
-      Assert.assertEquals(multiset, topTerms.get(0).topTerms());
+      Assert.assertEquals(multiset, topTerms.get(0).topTermsNoFalsePositives());
+      Assert.assertEquals(multiset, topTerms.get(0).topTermsNoFalseNegatives());
 
       multiset.clear();
       multiset.add("john", 5);
@@ -1203,7 +1207,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("first_name", topTerms.get(1).field());
       Assert.assertEquals(Term.TYPE_STRING, topTerms.get(1).type());
       Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(1).labels());
-      Assert.assertEquals(multiset, topTerms.get(1).topTerms());
+      Assert.assertEquals(multiset, topTerms.get(1).topTermsNoFalsePositives());
+      Assert.assertEquals(multiset, topTerms.get(1).topTermsNoFalseNegatives());
 
       multiset.clear();
       multiset.add("doe", 10);
@@ -1212,7 +1217,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals("last_name", topTerms.get(2).field());
       Assert.assertEquals(Term.TYPE_STRING, topTerms.get(2).type());
       Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(2).labels());
-      Assert.assertEquals(multiset, topTerms.get(2).topTerms());
+      Assert.assertEquals(multiset, topTerms.get(2).topTermsNoFalsePositives());
+      Assert.assertEquals(multiset, topTerms.get(2).topTermsNoFalseNegatives());
     }
   }
 

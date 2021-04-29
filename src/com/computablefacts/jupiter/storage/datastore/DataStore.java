@@ -949,7 +949,10 @@ final public class DataStore {
 
         while (topTermsIterator.hasNext()) {
           FieldTopTerms topTerms = topTermsIterator.next();
-          infos.addTopTerms(dataset, topTerms.field(), topTerms.type(), topTerms.topTerms());
+          infos.addTopTermsNoFalsePositives(dataset, topTerms.field(), topTerms.type(),
+              topTerms.topTermsNoFalsePositives());
+          infos.addTopTermsNoFalseNegatives(dataset, topTerms.field(), topTerms.type(),
+              topTerms.topTermsNoFalseNegatives());
         }
 
         Iterator<FieldLabels> labelsIterator = fieldVisibilityLabels(scanners, dataset, null);
