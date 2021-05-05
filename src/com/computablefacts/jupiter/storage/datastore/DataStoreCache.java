@@ -4,6 +4,7 @@ import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -13,6 +14,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,8 @@ import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -30,6 +34,7 @@ final public class DataStoreCache {
 
   private static final Logger logger_ = LoggerFactory.getLogger(DataStoreCache.class);
   private static final ExecutorService executorService_ = Executors.newFixedThreadPool(3);
+  private static final HashFunction MURMUR3_128 = Hashing.murmur3_128();
 
   private DataStoreCache() {}
 
@@ -55,6 +60,7 @@ final public class DataStoreCache {
     return read(scanners, cacheId, null);
   }
 
+
   /**
    * Get cached values.
    *
@@ -64,6 +70,21 @@ final public class DataStoreCache {
    * @return a list of values.
    */
   public static Iterator<String> read(Scanners scanners, String cacheId, String nextValue) {
+    return read(scanners, cacheId, nextValue, false);
+  }
+
+  /**
+   * Get cached values.
+   *
+   * @param scanners scanners.
+   * @param cacheId the cache id.
+   * @param nextValue where to start iterating.
+   * @param isHashed if true, returns the value stored in the row value. If false, returns the value
+   *        stored in the row column qualifier.
+   * @return a list of values.
+   */
+  public static Iterator<String> read(Scanners scanners, String cacheId, String nextValue,
+      boolean isHashed) {
 
     Preconditions.checkNotNull(scanners, "scanners should neither be null nor empty");
     Preconditions.checkNotNull(cacheId, "cacheId should neither be null nor empty");
@@ -86,7 +107,8 @@ final public class DataStoreCache {
       return ITERATOR_EMPTY;
     }
     return Iterators.transform(scanners.blob().iterator(),
-        entry -> entry.getKey().getColumnQualifier().toString());
+        entry -> isHashed ? entry.getValue().toString()
+            : entry.getKey().getColumnQualifier().toString());
   }
 
   /**
@@ -116,21 +138,41 @@ final public class DataStoreCache {
    */
   public static void write(Scanners scanners, Writers writers, String cacheId,
       Iterator<String> iterator, @Var int delegateToBackgroundThreadAfter) {
+    write(scanners, writers, cacheId, iterator, delegateToBackgroundThreadAfter, false);
+  }
+
+  /**
+   * Cache values.
+   *
+   * @param scanners scanners (optional).
+   * @param writers writers.
+   * @param cacheId the cache id.
+   * @param iterator the values to cache.
+   * @param delegateToBackgroundThreadAfter synchronously write to cache until this number of
+   *        elements is reached. After that, delegate the remaining writes to a background thread.
+   *        If this number is less than or equals to zero, performs the whole operation
+   *        synchronously.
+   * @param hash if hash is true, the hash of the value to cache will be set in the row column
+   *        qualifier and the raw value to cache will be set in the row value. If hash is false, the
+   *        value to cache will be stored as-is in the row column qualifier.
+   */
+  public static void write(Scanners scanners, Writers writers, String cacheId,
+      Iterator<String> iterator, @Var int delegateToBackgroundThreadAfter, boolean hash) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(cacheId, "cacheId should not be null");
     Preconditions.checkNotNull(iterator, "iterator should not be null");
 
     if (delegateToBackgroundThreadAfter <= 0) {
-      writeCache(scanners, writers, cacheId, iterator, -1);
+      writeCache(scanners, writers, cacheId, iterator, -1, hash);
     } else {
-      writeCache(scanners, writers, cacheId, iterator, delegateToBackgroundThreadAfter);
-      executorService_.execute(() -> writeCache(scanners, writers, cacheId, iterator, -1));
+      writeCache(scanners, writers, cacheId, iterator, delegateToBackgroundThreadAfter, hash);
+      executorService_.execute(() -> writeCache(scanners, writers, cacheId, iterator, -1, hash));
     }
   }
 
   private static void writeCache(Scanners scanners, Writers writers, String cacheId,
-      Iterator<String> iterator, @Var int maxElementsToWrite) {
+      Iterator<String> iterator, @Var int maxElementsToWrite, boolean hash) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(cacheId, "cacheId should not be null");
@@ -143,10 +185,15 @@ final public class DataStoreCache {
       if (maxElementsToWrite < 0) {
         while (iterator.hasNext()) {
 
-          String value = iterator.next();
-
+          String value = Strings.nullToEmpty(iterator.next());
           Mutation mutation = new Mutation(cacheId);
-          mutation.put(TEXT_CACHE, new Text(Strings.nullToEmpty(value)), VALUE_EMPTY);
+
+          if (!hash) {
+            mutation.put(TEXT_CACHE, new Text(value), VALUE_EMPTY);
+          } else {
+            String hashedValue = MURMUR3_128.hashString(value, StandardCharsets.UTF_8).toString();
+            mutation.put(TEXT_CACHE, new Text(hashedValue), new Value(value));
+          }
 
           writers.blob().addMutation(mutation);
           nbElementsWritten++;
@@ -154,10 +201,15 @@ final public class DataStoreCache {
       } else if (maxElementsToWrite > 0) {
         while (iterator.hasNext()) {
 
-          String value = iterator.next();
-
+          String value = Strings.nullToEmpty(iterator.next());
           Mutation mutation = new Mutation(cacheId);
-          mutation.put(TEXT_CACHE, new Text(Strings.nullToEmpty(value)), VALUE_EMPTY);
+
+          if (!hash) {
+            mutation.put(TEXT_CACHE, new Text(value), VALUE_EMPTY);
+          } else {
+            String hashedValue = MURMUR3_128.hashString(value, StandardCharsets.UTF_8).toString();
+            mutation.put(TEXT_CACHE, new Text(hashedValue), new Value(value));
+          }
 
           writers.blob().addMutation(mutation);
           nbElementsWritten++;
