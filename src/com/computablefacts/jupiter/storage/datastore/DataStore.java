@@ -816,8 +816,8 @@ final public class DataStore {
 
     Collections.sort(params);
 
-    String cacheId = hashFunction_.newHasher()
-        .putString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).hash().toString();
+    String cacheId = hashFunction_
+        .hashString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).toString();
 
     if (DataStoreCache.hasData(scanners, cacheId)) {
       if (logger_.isDebugEnabled()) {
@@ -885,8 +885,8 @@ final public class DataStore {
 
     Collections.sort(params);
 
-    String cacheId = hashFunction_.newHasher()
-        .putString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).hash().toString();
+    String cacheId = hashFunction_
+        .hashString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).toString();
 
     if (DataStoreCache.hasData(scanners, cacheId)) {
       if (logger_.isDebugEnabled()) {

@@ -34,7 +34,7 @@ final public class DataStoreCache {
 
   private static final Logger logger_ = LoggerFactory.getLogger(DataStoreCache.class);
   private static final ExecutorService executorService_ = Executors.newFixedThreadPool(3);
-  private static final HashFunction MURMUR3_128 = Hashing.murmur3_128();
+  private static final HashFunction hashFunction_ = Hashing.murmur3_128();
 
   private DataStoreCache() {}
 
@@ -191,7 +191,7 @@ final public class DataStoreCache {
           if (!hash) {
             mutation.put(TEXT_CACHE, new Text(value), VALUE_EMPTY);
           } else {
-            String hashedValue = MURMUR3_128.hashString(value, StandardCharsets.UTF_8).toString();
+            String hashedValue = hashFunction_.hashString(value, StandardCharsets.UTF_8).toString();
             mutation.put(TEXT_CACHE, new Text(hashedValue), new Value(value));
           }
 
@@ -207,7 +207,7 @@ final public class DataStoreCache {
           if (!hash) {
             mutation.put(TEXT_CACHE, new Text(value), VALUE_EMPTY);
           } else {
-            String hashedValue = MURMUR3_128.hashString(value, StandardCharsets.UTF_8).toString();
+            String hashedValue = hashFunction_.hashString(value, StandardCharsets.UTF_8).toString();
             mutation.put(TEXT_CACHE, new Text(hashedValue), new Value(value));
           }
 
