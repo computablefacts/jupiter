@@ -8,10 +8,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
-import com.computablefacts.nona.helpers.Codecs;
-import com.computablefacts.nona.types.Span;
-import com.computablefacts.nona.types.SpanSequence;
-
 final public class Constants {
 
   public static final char SEPARATOR_NUL = '\0';
@@ -25,8 +21,6 @@ final public class Constants {
   public static final Value VALUE_ANONYMIZED = new Value("{\"is_anonymized\":\"true\"}");
   public static final ColumnVisibility VIZ_EMPTY = new ColumnVisibility();
   public static final Iterator ITERATOR_EMPTY = Collections.EMPTY_LIST.iterator();
-  public static final Span SPAN_EMPTY = Codecs.SPAN_EMPTY;
-  public static final SpanSequence SPAN_SEQUENCE_EMPTY = Codecs.SPAN_SEQUENCE_EMPTY;
   public static final String STRING_ADM = "ADM";
   public static final String STRING_RAW_DATA = "RAW_DATA";
   public static final String STRING_RAW_FILE = "RAW_FILE";
