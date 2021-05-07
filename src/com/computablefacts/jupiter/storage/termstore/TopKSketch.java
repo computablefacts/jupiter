@@ -11,6 +11,7 @@ import com.google.errorprone.annotations.CheckReturnValue;
 @CheckReturnValue
 final public class TopKSketch {
 
+  // See https://datasketches.apache.org/docs/Frequency/FrequentItemsErrorTable.html for details
   private static final int MAP_MAX_SIZE = 512;
 
   private final ItemsSketch<String> itemSketch_ = new ItemsSketch<>(MAP_MAX_SIZE);
