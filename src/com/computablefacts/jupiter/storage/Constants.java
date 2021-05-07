@@ -26,4 +26,5 @@ final public class Constants {
   public static final String STRING_RAW_FILE = "RAW_FILE";
   public static final Authorizations AUTH_ADM = new Authorizations(STRING_ADM);
   public static final int NB_QUERY_THREADS = 3;
+  public static final int PREFIX_LENGTH = 512;
 }

@@ -1004,7 +1004,7 @@ final public class DataStore {
         Sets.newHashSet(vizAdm, vizUuid, vizRawData), blob)) {
 
       logger_.error(LogFormatter.create(true).message("write failed").add("dataset", dataset)
-          .add("docId", docId).add("blob", blob).formatError());
+          .add("doc_id", docId).add("blob", blob).formatError());
 
       return false;
     }
@@ -1056,7 +1056,7 @@ final public class DataStore {
 
     if (!isOk) {
       logger_.error(LogFormatter.create(true).message("write failed").add("dataset", dataset)
-          .add("docId", docId).add("field", field).add("term", term).formatError());
+          .add("doc_id", docId).add("field", field).add("term", term).formatError());
     }
     return isOk;
   }
