@@ -29,6 +29,34 @@ import com.google.common.hash.Hashing;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
+/**
+ * <p>
+ * This class acts a helper to read/write values to the {@link DataStore} cache.
+ * </p>
+ *
+ * <p>
+ * The underlying {@link com.computablefacts.jupiter.storage.blobstore.BlobStore} utilizes the
+ * <a href="https://accumulo.apache.org">Accumulo</a> table schemas described below as the basis for
+ * its ingest and query components.
+ * </p>
+ *
+ * <pre>
+ *  Row               | Column Family          | Column Qualifier       | Visibility             | Value
+ * ===================+========================+========================+========================+========================
+ *  <uuid>            | cache                  | <cached_string>        | (empty)                | (empty)
+ * </pre>
+ *
+ * <p>
+ * And / or :
+ * </p>
+ *
+ * <pre>
+ *  Row               | Column Family          | Column Qualifier       | Visibility             | Value
+ * ===================+========================+========================+========================+========================
+ *  <uuid>            | cache                  | <hashed_string>        | (empty)                | <cached_string>
+ * </pre>
+ * 
+ */
 @CheckReturnValue
 final public class DataStoreCache {
 

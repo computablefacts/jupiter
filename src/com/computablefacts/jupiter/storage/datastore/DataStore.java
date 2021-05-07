@@ -273,7 +273,7 @@ final public class DataStore {
    * Grant the READ permission on the underlying tables for a given user.
    *
    * @param username user.
-   * @return tru iif the READ permission has been granted, false otherwise.
+   * @return true iif the READ permission has been granted, false otherwise.
    */
   public boolean grantReadPermissions(String username) {
 
@@ -289,7 +289,7 @@ final public class DataStore {
    * Revoke the READ permission on the underlying tables for a given user.
    *
    * @param username user.
-   * @return tru iif the READ permission has been revoked, false otherwise.
+   * @return true iif the READ permission has been revoked, false otherwise.
    */
   public boolean revokeReadPermissions(String username) {
 
