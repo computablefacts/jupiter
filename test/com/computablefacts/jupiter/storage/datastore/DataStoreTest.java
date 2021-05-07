@@ -10,6 +10,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
@@ -565,8 +569,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Lists.newArrayList(ImmutableMap.of("term", "2004-04-01T00:00:00Z", "nb_occurrences", 1),
             ImmutableMap.of("term", "2003-04-01T00:00:00Z", "nb_occurrences", 1)));
     map.put("top_terms_no_false_negatives",
-            Lists.newArrayList(ImmutableMap.of("term", "2004-04-01T00:00:00Z", "nb_occurrences", 1),
-                    ImmutableMap.of("term", "2003-04-01T00:00:00Z", "nb_occurrences", 1)));
+        Lists.newArrayList(ImmutableMap.of("term", "2004-04-01T00:00:00Z", "nb_occurrences", 1),
+            ImmutableMap.of("term", "2003-04-01T00:00:00Z", "nb_occurrences", 1)));
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_BIRTHDATE"));
     map.put("types", Sets.newHashSet("DATE"));
 
@@ -577,8 +581,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("field", "last_name");
     map.put("nb_distinct_terms", 1.0);
     map.put("nb_distinct_buckets", 2.0);
-    map.put("top_terms_no_false_positives", Lists.newArrayList(ImmutableMap.of("term", "doe", "nb_occurrences", 2)));
-    map.put("top_terms_no_false_negatives", Lists.newArrayList(ImmutableMap.of("term", "doe", "nb_occurrences", 2)));
+    map.put("top_terms_no_false_positives",
+        Lists.newArrayList(ImmutableMap.of("term", "doe", "nb_occurrences", 2)));
+    map.put("top_terms_no_false_negatives",
+        Lists.newArrayList(ImmutableMap.of("term", "doe", "nb_occurrences", 2)));
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_LAST_NAME"));
     map.put("types", Sets.newHashSet("TEXT"));
 
@@ -589,8 +595,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("field", "id");
     map.put("nb_distinct_terms", 1.0);
     map.put("nb_distinct_buckets", 2.0);
-    map.put("top_terms_no_false_positives", Lists.newArrayList(ImmutableMap.of("term", "1", "nb_occurrences", 2)));
-    map.put("top_terms_no_false_negatives", Lists.newArrayList(ImmutableMap.of("term", "1", "nb_occurrences", 2)));
+    map.put("top_terms_no_false_positives",
+        Lists.newArrayList(ImmutableMap.of("term", "1", "nb_occurrences", 2)));
+    map.put("top_terms_no_false_negatives",
+        Lists.newArrayList(ImmutableMap.of("term", "1", "nb_occurrences", 2)));
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_ID"));
     map.put("types", Sets.newHashSet("TEXT"));
 
@@ -601,9 +609,11 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("field", "first_name");
     map.put("nb_distinct_terms", 2.0);
     map.put("nb_distinct_buckets", 2.0);
-    map.put("top_terms_no_false_positives", Lists.newArrayList(ImmutableMap.of("term", "john", "nb_occurrences", 1),
-        ImmutableMap.of("term", "jane", "nb_occurrences", 1)));
-    map.put("top_terms_no_false_negatives", Lists.newArrayList(ImmutableMap.of("term", "john", "nb_occurrences", 1),
+    map.put("top_terms_no_false_positives",
+        Lists.newArrayList(ImmutableMap.of("term", "john", "nb_occurrences", 1),
+            ImmutableMap.of("term", "jane", "nb_occurrences", 1)));
+    map.put("top_terms_no_false_negatives",
+        Lists.newArrayList(ImmutableMap.of("term", "john", "nb_occurrences", 1),
             ImmutableMap.of("term", "jane", "nb_occurrences", 1)));
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_FIRST_NAME"));
     map.put("types", Sets.newHashSet("TEXT"));
@@ -615,14 +625,126 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("field", "age");
     map.put("nb_distinct_terms", 2.0);
     map.put("nb_distinct_buckets", 2.0);
-    map.put("top_terms_no_false_positives", Lists.newArrayList(ImmutableMap.of("term", "17", "nb_occurrences", 1),
-        ImmutableMap.of("term", "18", "nb_occurrences", 1)));
-    map.put("top_terms_no_false_negatives", Lists.newArrayList(ImmutableMap.of("term", "17", "nb_occurrences", 1),
+    map.put("top_terms_no_false_positives",
+        Lists.newArrayList(ImmutableMap.of("term", "17", "nb_occurrences", 1),
+            ImmutableMap.of("term", "18", "nb_occurrences", 1)));
+    map.put("top_terms_no_false_negatives",
+        Lists.newArrayList(ImmutableMap.of("term", "17", "nb_occurrences", 1),
             ImmutableMap.of("term", "18", "nb_occurrences", 1)));
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_AGE"));
     map.put("types", Sets.newHashSet("NUMBER"));
 
     Assert.assertTrue(jsons.contains(map));
+  }
+
+  @Test
+  public void testReindex() throws Exception {
+
+    Authorizations auths = new Authorizations("ADM");
+    DataStore dataStore = newDataStore(auths);
+
+    // Index
+    try (Writers writers = dataStore.writers()) {
+      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
+    }
+
+    try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
+
+      List<Map.Entry<Key, Value>> terms = new ArrayList<>();
+      scanner.iterator().forEachRemaining(terms::add);
+
+      Assert.assertEquals(1, terms.size());
+    }
+
+    try (Scanner scanner = dataStore.termStore().scanner(auths)) {
+
+      List<Map.Entry<Key, Value>> terms = new ArrayList<>();
+      scanner.iterator().forEachRemaining(terms::add);
+
+      Assert.assertEquals(26, terms.size());
+
+      List<Map.Entry<Key, Value>> bcnt =
+          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_BCNT"))
+              .collect(Collectors.toList());
+
+      Assert.assertEquals(3, bcnt.size());
+      Assert.assertEquals(3,
+          bcnt.stream().mapToInt(kv -> Integer.parseInt(kv.getValue().toString(), 10)).sum());
+
+      List<Map.Entry<Key, Value>> fcnt =
+          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_FCNT"))
+              .collect(Collectors.toList());
+
+      Assert.assertEquals(5, fcnt.size());
+      Assert.assertEquals(5,
+          fcnt.stream().mapToInt(kv -> Integer.parseInt(kv.getValue().toString(), 10)).sum());
+
+      List<Map.Entry<Key, Value>> bidx =
+          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_BIDX"))
+              .collect(Collectors.toList());
+
+      Assert.assertEquals(3, bidx.size());
+
+      List<Map.Entry<Key, Value>> fidx =
+          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_FIDX"))
+              .collect(Collectors.toList());
+
+      Assert.assertEquals(5, fidx.size());
+    }
+
+    // Remove all terms
+    try (BatchDeleter deleter = dataStore.termStore().deleter(AUTH_ADM)) {
+      Assert.assertTrue(dataStore.termStore().removeDataset(deleter, "dataset_1"));
+    }
+
+    // Reindex -> do not update blobs but rebuild the whole terms index
+    try (Writers writers = dataStore.writers()) {
+      Assert.assertTrue(dataStore.reindex(writers, "dataset_1", "row_1", Data.json2(1)));
+    }
+
+    try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
+
+      List<Map.Entry<Key, Value>> terms = new ArrayList<>();
+      scanner.iterator().forEachRemaining(terms::add);
+
+      Assert.assertEquals(1, terms.size());
+    }
+
+    try (Scanner scanner = dataStore.termStore().scanner(auths)) {
+
+      List<Map.Entry<Key, Value>> terms = new ArrayList<>();
+      scanner.iterator().forEachRemaining(terms::add);
+
+      Assert.assertEquals(26, terms.size());
+
+      List<Map.Entry<Key, Value>> bcnt =
+          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_BCNT"))
+              .collect(Collectors.toList());
+
+      Assert.assertEquals(3, bcnt.size());
+      Assert.assertEquals(3,
+          bcnt.stream().mapToInt(kv -> Integer.parseInt(kv.getValue().toString(), 10)).sum());
+
+      List<Map.Entry<Key, Value>> fcnt =
+          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_FCNT"))
+              .collect(Collectors.toList());
+
+      Assert.assertEquals(5, fcnt.size());
+      Assert.assertEquals(5,
+          fcnt.stream().mapToInt(kv -> Integer.parseInt(kv.getValue().toString(), 10)).sum());
+
+      List<Map.Entry<Key, Value>> bidx =
+          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_BIDX"))
+              .collect(Collectors.toList());
+
+      Assert.assertEquals(3, bidx.size());
+
+      List<Map.Entry<Key, Value>> fidx =
+          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_FIDX"))
+              .collect(Collectors.toList());
+
+      Assert.assertEquals(5, fidx.size());
+    }
   }
 
   private DataStore newDataStore(Authorizations auths) throws Exception {

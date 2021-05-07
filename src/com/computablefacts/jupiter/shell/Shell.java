@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.shell;
 
 import static com.computablefacts.jupiter.Users.authorizations;
+import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
 import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 
 import java.io.BufferedWriter;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.data.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,6 +107,11 @@ public class Shell {
         Preconditions.checkState(
             ingest(configurations, datastore, getArg(args, "ds"), getArg(args, "fi")),
             "INGEST failed!");
+        break;
+      case "reindex":
+        Preconditions.checkState(
+            reindex(configurations, datastore, getArg(args, "ds"), getArg(args, "auths")),
+            "REINDEX failed!");
         break;
       case "backup":
         Preconditions.checkState(backup(configurations, datastore, getArg(args, "ds"),
@@ -240,13 +247,87 @@ public class Shell {
           }
 
           if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
-            logger_.info(LogFormatter.create(true)
-                .message("Number of JSON processed : " + count.get()).formatInfo());
+            if (logger_.isInfoEnabled()) {
+              logger_.info(LogFormatter.create(true)
+                  .message("Number of JSON processed : " + count.get()).formatInfo());
+            }
           }
         }
       });
 
       ds.endIngest(writers, dataset);
+    }
+
+    stopwatch.stop();
+
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatter.create(true)
+          .message("Total number of JSON processed : " + count.get()).formatInfo());
+      logger_.info(LogFormatter.create(true)
+          .message("Total number of JSON ignored : " + ignored.get()).formatInfo());
+      logger_.info(LogFormatter.create(true)
+          .message("Elapsed time : " + stopwatch.elapsed(TimeUnit.SECONDS)).formatInfo());
+    }
+    return true;
+  }
+
+  public static boolean reindex(Configurations configurations, String datastore, String dataset,
+      String auths) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    Stopwatch stopwatch = Stopwatch.createStarted();
+    DataStore ds = new DataStore(configurations, datastore);
+
+    try (BatchDeleter deleter = ds.termStore().deleter(AUTH_ADM)) {
+      if (!ds.termStore().removeDataset(deleter, dataset)) {
+        logger_.error(LogFormatter.create(true)
+            .message(String.format("Dataset %s cannot be removed", dataset)).formatError());
+        return false;
+      }
+    }
+
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicInteger ignored = new AtomicInteger(0);
+
+    try (Scanners scanners = ds.scanners(authorizations(auths))) {
+      try (Writers writers = ds.writers()) {
+
+        ds.beginIngest();
+
+        Iterator<Blob<Value>> iterator =
+            ds.blobStore().get(scanners.blob(NB_QUERY_THREADS), dataset);
+
+        while (iterator.hasNext()) {
+
+          Blob<Value> blob = iterator.next();
+
+          if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
+            if (logger_.isInfoEnabled()) {
+              logger_.info(LogFormatter.create(true)
+                  .message("Number of JSON written : " + count.get()).formatInfo());
+            }
+          }
+          if (!blob.isJson()) {
+            logger_.warn(LogFormatter.create(true)
+                .message("Total number of JSON ignored : " + ignored.incrementAndGet())
+                .formatWarn());
+            continue;
+          }
+
+          Map<String, Object> json = Codecs.asObject(blob.value().toString());
+          Document document = new Document(json);
+
+          if (!ds.reindex(writers, dataset, document.docId(), json)) {
+            logger_.error(LogFormatter.create(true)
+                .message("Re-indexation of " + document.docId() + " failed").formatError());
+          }
+        }
+
+        ds.endIngest(writers, dataset);
+      }
     }
 
     stopwatch.stop();
@@ -286,15 +367,16 @@ public class Shell {
 
           while (iterator.hasNext()) {
 
-            int cnt = count.incrementAndGet();
             Blob<Value> blob = iterator.next();
 
             bw.write(blob.value().toString());
             bw.newLine();
 
-            if (cnt >= 1000 && logger_.isInfoEnabled()) {
-              logger_.info(LogFormatter.create(true).message("Number of JSON written : " + cnt)
-                  .formatInfo());
+            if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
+              if (logger_.isInfoEnabled()) {
+                logger_.info(LogFormatter.create(true)
+                    .message("Number of JSON written : " + count.get()).formatInfo());
+              }
             }
           }
 

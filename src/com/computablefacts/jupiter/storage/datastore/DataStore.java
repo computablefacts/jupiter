@@ -439,7 +439,7 @@ final public class DataStore {
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean persist(Writers writers, String dataset, String docId, String json) {
-    return persist(writers, dataset, docId, json, key -> true, Codecs.defaultTokenizer);
+    return persistJson(writers, dataset, docId, json, key -> true, Codecs.defaultTokenizer, true);
   }
 
   /**
@@ -452,129 +452,35 @@ final public class DataStore {
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean persist(Writers writers, String dataset, String docId, Map<String, Object> json) {
-    return persist(writers, dataset, docId, Codecs.asString(json), key -> true,
-        Codecs.defaultTokenizer);
+    return persistJson(writers, dataset, docId, Codecs.asString(json), key -> true,
+        Codecs.defaultTokenizer, true);
   }
 
   /**
-   * Persist a single JSON object.
+   * Reindex a single JSON object.
    *
    * @param writers writers.
-   * @param dataset the dataset.
-   * @param docId the document identifier
-   * @param json the JSON object as a String.
-   * @param keepField filter applied on all JSON attributes before value tokenization (optional).
-   *        This predicate should return true iif the field's value must be indexed.
-   * @param tokenizer string tokenizer (optional).
+   * @param dataset dataset.
+   * @param docId unique identifier.
+   * @param json JSON object.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean persist(Writers writers, String dataset, String docId, String json,
-      Predicate<String> keepField, Function<String, SpanSequence> tokenizer) {
+  public boolean reindex(Writers writers, String dataset, String docId, String json) {
+    return persistJson(writers, dataset, docId, json, key -> true, Codecs.defaultTokenizer, false);
+  }
 
-    Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(docId, "docId should not be null");
-    Preconditions.checkNotNull(json, "json should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-          .add("docId", docId).add("json", json).add("has_keep_field", keepField != null)
-          .add("has_tokenizer", tokenizer != null).formatDebug());
-    }
-
-    if (!persistBlob(writers, dataset, docId, json)) {
-      return false;
-    }
-
-    Map<String, Multiset<Object>> fields = new HashMap<>();
-    Map<String, Object> newJson =
-        new JsonFlattener(json).withSeparator(SEPARATOR_CURRENCY_SIGN).flattenAsMap();
-
-    for (String field : newJson.keySet()) {
-
-      // Attributes starting with an underscore should not be indexed
-      if (field.startsWith("_") || field.contains(SEPARATOR_CURRENCY_SIGN + "_")) {
-        continue;
-      }
-      if (keepField != null && !keepField.test(field)) {
-        continue;
-      }
-
-      // Serialize all values to strings and tokenize these strings to a span sequence
-      Object value = newJson.get(field);
-
-      if (value == null) { // Ignore keys with null values
-        continue;
-      }
-
-      String newField = field.replaceAll("\\[\\d+\\]", "[*]");
-
-      if (!fields.containsKey(newField)) {
-        fields.put(newField, HashMultiset.create());
-      }
-
-      if (!(value instanceof String)) {
-        fields.get(newField).add(value); // Objects other than String will be lexicoded by the
-                                         // TermStore
-      } else {
-
-        String val = ((String) value).trim();
-        @Var
-        Object newVal = val;
-
-        if (Codecs.isProbablyBase64(val)) {
-          try {
-            newVal = Codecs.decodeB64(b64Decoder_, val);
-            continue; // Base64 strings are NOT indexed
-          } catch (Exception e) {
-            // fall through
-          }
-        }
-
-        // Because JSON does not have a date format, check if val is in ISO Instant format
-        if (val.length() >= 20 && val.length() <= 24
-            && (val.charAt(10) == 'T' || val.charAt(10) == 't')
-            && (val.charAt(val.length() - 1) == 'Z' || val.charAt(val.length() - 1) == 'z')) {
-          try {
-            newVal = Date.from(Instant.parse(val));
-          } catch (Exception e) {
-            // fall through
-          }
-        }
-
-        if (!(newVal instanceof String)) {
-          fields.get(newField).add(newVal);
-        } else {
-
-          SpanSequence spanSequence;
-
-          if (tokenizer != null) {
-            spanSequence = Objects.requireNonNull(tokenizer.apply((String) newVal));
-          } else {
-            String str = normalize(value.toString());
-            spanSequence = new SpanSequence();
-            spanSequence.add(new Span(str, 0, str.length()));
-          }
-
-          spanSequence.forEach(span -> fields.get(newField).add(span.text()));
-        }
-      }
-    }
-
-    newJson.clear(); // free up memory
-
-    // Persist terms
-    @Var
-    boolean isOk = true;
-
-    for (Map.Entry<String, Multiset<Object>> field : fields.entrySet()) {
-      for (Multiset.Entry<Object> term : field.getValue().entrySet()) {
-        isOk =
-            persistTerm(writers, dataset, docId, field.getKey(), term.getElement(), term.getCount())
-                && isOk;
-      }
-    }
-    return isOk;
+  /**
+   * Reindex a single JSON object.
+   *
+   * @param writers writers.
+   * @param dataset dataset.
+   * @param docId unique identifier.
+   * @param json JSON object.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean reindex(Writers writers, String dataset, String docId, Map<String, Object> json) {
+    return persistJson(writers, dataset, docId, Codecs.asString(json), key -> true,
+        Codecs.defaultTokenizer, false);
   }
 
   /**
@@ -972,6 +878,130 @@ final public class DataStore {
       });
     }
     return infos;
+  }
+
+  /**
+   * Persist a single JSON object.
+   *
+   * @param writers writers.
+   * @param dataset the dataset.
+   * @param docId the document identifier
+   * @param json the JSON object as a String.
+   * @param keepField filter applied on all JSON attributes before value tokenization (optional).
+   *        This predicate should return true iif the field's value must be indexed.
+   * @param tokenizer string tokenizer (optional).
+   * @param jsonAsBlob the json will be persisted as a blob iif this parameter is set to true.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  private boolean persistJson(Writers writers, String dataset, String docId, String json,
+      Predicate<String> keepField, Function<String, SpanSequence> tokenizer, boolean jsonAsBlob) {
+
+    Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(docId, "docId should not be null");
+    Preconditions.checkNotNull(json, "json should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+          .add("docId", docId).add("json", json).add("has_keep_field", keepField != null)
+          .add("has_tokenizer", tokenizer != null).add("json_as_blob", jsonAsBlob).formatDebug());
+    }
+
+    if (jsonAsBlob) {
+      if (!persistBlob(writers, dataset, docId, json)) {
+        return false;
+      }
+    }
+
+    Map<String, Multiset<Object>> fields = new HashMap<>();
+    Map<String, Object> newJson =
+        new JsonFlattener(json).withSeparator(SEPARATOR_CURRENCY_SIGN).flattenAsMap();
+
+    for (String field : newJson.keySet()) {
+
+      // Attributes starting with an underscore should not be indexed
+      if (field.startsWith("_") || field.contains(SEPARATOR_CURRENCY_SIGN + "_")) {
+        continue;
+      }
+      if (keepField != null && !keepField.test(field)) {
+        continue;
+      }
+
+      // Serialize all values to strings and tokenize these strings to a span sequence
+      Object value = newJson.get(field);
+
+      if (value == null) { // Ignore keys with null values
+        continue;
+      }
+
+      String newField = field.replaceAll("\\[\\d+\\]", "[*]");
+
+      if (!fields.containsKey(newField)) {
+        fields.put(newField, HashMultiset.create());
+      }
+
+      if (!(value instanceof String)) {
+        fields.get(newField).add(value); // Objects other than String will be lexicoded by the
+        // TermStore
+      } else {
+
+        String val = ((String) value).trim();
+        @Var
+        Object newVal = val;
+
+        if (Codecs.isProbablyBase64(val)) {
+          try {
+            newVal = Codecs.decodeB64(b64Decoder_, val);
+            continue; // Base64 strings are NOT indexed
+          } catch (Exception e) {
+            // fall through
+          }
+        }
+
+        // Because JSON does not have a date format, check if val is in ISO Instant format
+        if (val.length() >= 20 && val.length() <= 24
+            && (val.charAt(10) == 'T' || val.charAt(10) == 't')
+            && (val.charAt(val.length() - 1) == 'Z' || val.charAt(val.length() - 1) == 'z')) {
+          try {
+            newVal = Date.from(Instant.parse(val));
+          } catch (Exception e) {
+            // fall through
+          }
+        }
+
+        if (!(newVal instanceof String)) {
+          fields.get(newField).add(newVal);
+        } else {
+
+          SpanSequence spanSequence;
+
+          if (tokenizer != null) {
+            spanSequence = Objects.requireNonNull(tokenizer.apply((String) newVal));
+          } else {
+            String str = normalize(value.toString());
+            spanSequence = new SpanSequence();
+            spanSequence.add(new Span(str, 0, str.length()));
+          }
+
+          spanSequence.forEach(span -> fields.get(newField).add(span.text()));
+        }
+      }
+    }
+
+    newJson.clear(); // free up memory
+
+    // Persist terms
+    @Var
+    boolean isOk = true;
+
+    for (Map.Entry<String, Multiset<Object>> field : fields.entrySet()) {
+      for (Multiset.Entry<Object> term : field.getValue().entrySet()) {
+        isOk =
+            persistTerm(writers, dataset, docId, field.getKey(), term.getElement(), term.getCount())
+                && isOk;
+      }
+    }
+    return isOk;
   }
 
   /**
