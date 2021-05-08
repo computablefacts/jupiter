@@ -1,6 +1,8 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -58,7 +60,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Tables.getLocalityGroups(dataStore.blobStore().configurations().tableOperations(),
             dataStore.blobStore().tableName());
 
-    Assert.assertEquals(0, groupsBefore.size());
+    Assert.assertEquals(2, groupsBefore.size());
+    Assert.assertTrue(groupsBefore.containsKey(TEXT_CACHE.toString()));
+    Assert.assertTrue(groupsBefore.containsKey(TEXT_HASH_INDEX.toString()));
 
     // Add new locality groups
     Assert.assertTrue(dataStore.addLocalityGroup("dataset_1"));
@@ -90,7 +94,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     groupsAfter = Tables.getLocalityGroups(dataStore.blobStore().configurations().tableOperations(),
         dataStore.blobStore().tableName());
 
-    Assert.assertEquals(1, groupsAfter.size());
+    Assert.assertEquals(3, groupsAfter.size());
+    Assert.assertTrue(groupsAfter.containsKey(TEXT_CACHE.toString()));
+    Assert.assertTrue(groupsAfter.containsKey(TEXT_HASH_INDEX.toString()));
     Assert.assertEquals(Sets.newHashSet(new Text("dataset_1")), groupsAfter.get("dataset_1"));
   }
 

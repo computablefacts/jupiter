@@ -1,17 +1,20 @@
 package com.computablefacts.jupiter.storage.datastore;
 
+import static com.computablefacts.jupiter.storage.Constants.MURMUR3_128;
 import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -26,6 +29,7 @@ import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.slf4j.Logger;
@@ -34,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Users;
+import com.computablefacts.jupiter.combiners.DataStoreHashIndexCombiner;
 import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
@@ -64,8 +69,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
@@ -78,13 +81,26 @@ import com.google.errorprone.annotations.Var;
  * </p>
  *
  * <p>
+ * Note that the {@link BlobStore} also holds cached data (temporary computations) and a hash index
+ * of all JSON values.
+ * </p>
+ *
+ * <pre>
+ *  Row                          | Column Family | Column Qualifier                                | Visibility                             | Value
+ * ==============================+===============+=================================================+========================================+========
+ *  <key>                        | <dataset>     | <blob_type>\0<property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
+ *  <uuid>\0<dataset>            | cache         | <cached_string>                                 | (empty)                                | (empty)
+ *  <uuid>\0<dataset>            | cache         | <hashed_string>                                 | (empty)                                | <cached_string>
+ *  <hash>\0<field>\0<dataset>   | hidx          | (empty)                                         | (empty)                                | <key1>\0<key2>\0...
+ * </pre>
+ *
+ * <p>
  * This data store is not meant to be efficient but is intended to be easy to use.
  * </p>
  */
 @CheckReturnValue
 final public class DataStore {
 
-  private static final HashFunction hashFunction_ = Hashing.murmur3_128();
   private static final Base64.Decoder b64Decoder_ = Base64.getDecoder();
   private static final Logger logger_ = LoggerFactory.getLogger(DataStore.class);
 
@@ -100,6 +116,13 @@ final public class DataStore {
 
   static String normalize(String str) {
     return StringIterator.removeDiacriticalMarks(StringIterator.normalize(str)).toLowerCase();
+  }
+
+  static String hash(String str) {
+    if (str == null) {
+      return "";
+    }
+    return MURMUR3_128.hashString(str, StandardCharsets.UTF_8).toString();
   }
 
   @Generated
@@ -325,10 +348,24 @@ final public class DataStore {
       logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
     }
 
-    boolean isReady = blobStore_.isReady() && termStore_.isReady();
+    if (!blobStore_.isReady()) {
+      if (!blobStore_.create()) {
+        return false;
+      }
+    }
 
-    if (!isReady && blobStore_.create() && termStore_.create()) {
-      try {
+    if (!termStore_.isReady()) {
+      if (!termStore_.create()) {
+        return false;
+      }
+    }
+
+    try {
+
+      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators =
+          configurations().tableOperations().listIterators(blobStore_.tableName());
+
+      if (!iterators.containsKey("AgeOffPeriodFilter")) {
 
         // Set a 3 hours TTL on all cached data
         IteratorSetting settings = new IteratorSetting(7, AgeOffPeriodFilter.class);
@@ -337,12 +374,27 @@ final public class DataStore {
         AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");
 
         configurations().tableOperations().attachIterator(blobStore_.tableName(), settings);
-
-      } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
+
+      if (!iterators.containsKey("DataStoreHashIndexCombiner")) {
+
+        // Set the left index combiner
+        IteratorSetting setting = new IteratorSetting(8, DataStoreHashIndexCombiner.class);
+        DataStoreHashIndexCombiner.setColumns(setting,
+            Lists.newArrayList(new IteratorSetting.Column(TEXT_HASH_INDEX)));
+        DataStoreHashIndexCombiner.setReduceOnFullCompactionOnly(setting, true);
+
+        configurations().tableOperations().attachIterator(blobStore_.tableName(), setting);
+      }
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      logger_.error(LogFormatter.create(true).message(e).formatError());
+      return false;
     }
-    return true;
+
+    boolean isOkLG1 = blobStore_.addLocalityGroup(TEXT_CACHE.toString());
+    boolean isOkLG2 = blobStore_.addLocalityGroup(TEXT_HASH_INDEX.toString());
+
+    return isOkLG1 && isOkLG2;
   }
 
   /**
@@ -389,6 +441,8 @@ final public class DataStore {
     }
     try (BatchDeleter deleter = blobStore_.deleter(auths)) {
       isOk = isOk && blobStore_.removeDataset(deleter, dataset);
+      isOk = isOk && DataStoreCache.remove(deleter, dataset);
+      isOk = isOk && DataStoreHashIndex.remove(deleter, dataset);
     }
     return isOk;
   }
@@ -708,8 +762,10 @@ final public class DataStore {
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
 
+    String newDataset = Strings.nullToEmpty(dataset);
+
     // Build a cache key
-    List<String> params = Lists.newArrayList(Strings.nullToEmpty(dataset), term);
+    List<String> params = Lists.newArrayList(newDataset, term);
     params.addAll(Splitter.on(',').trimResults().omitEmptyStrings()
         .splitToList(scanners.index().getAuthorizations().toString()));
 
@@ -722,10 +778,9 @@ final public class DataStore {
 
     Collections.sort(params);
 
-    String cacheId = hashFunction_
-        .hashString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).toString();
+    String cacheId = hash(Joiner.on(SEPARATOR_NUL).join(params));
 
-    if (DataStoreCache.hasData(scanners, cacheId)) {
+    if (DataStoreCache.hasData(scanners, newDataset, cacheId)) {
       if (logger_.isDebugEnabled()) {
         logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
             .add("cache_hit", true).add("cache_id", cacheId).formatDebug());
@@ -741,11 +796,11 @@ final public class DataStore {
           termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset, fields, term, docsIds),
           t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
-      DataStoreCache.write(scanners, writers, cacheId, bucketsIds);
+      DataStoreCache.write(scanners, writers, newDataset, cacheId, bucketsIds);
     }
 
     // Returns an iterator over the documents ids
-    return DataStoreCache.read(scanners, cacheId);
+    return DataStoreCache.read(scanners, newDataset, cacheId);
   }
 
   /**
@@ -771,8 +826,10 @@ final public class DataStore {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
+    String newDataset = Strings.nullToEmpty(dataset);
+
     // Build a cache key
-    List<String> params = Lists.newArrayList(Strings.nullToEmpty(dataset));
+    List<String> params = Lists.newArrayList(newDataset);
     params.addAll(Splitter.on(',').trimResults().omitEmptyStrings()
         .splitToList(scanners.index().getAuthorizations().toString()));
 
@@ -791,10 +848,9 @@ final public class DataStore {
 
     Collections.sort(params);
 
-    String cacheId = hashFunction_
-        .hashString(Joiner.on(SEPARATOR_NUL).join(params), StandardCharsets.UTF_8).toString();
+    String cacheId = hash(Joiner.on(SEPARATOR_NUL).join(params));
 
-    if (DataStoreCache.hasData(scanners, cacheId)) {
+    if (DataStoreCache.hasData(scanners, newDataset, cacheId)) {
       if (logger_.isDebugEnabled()) {
         logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
             .add("cache_hit", true).add("cache_id", cacheId).formatDebug());
@@ -810,11 +866,11 @@ final public class DataStore {
           Iterators.transform(termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset,
               fields, minTerm, maxTerm, docsIds), t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
-      DataStoreCache.write(scanners, writers, cacheId, bucketsIds);
+      DataStoreCache.write(scanners, writers, newDataset, cacheId, bucketsIds);
     }
 
     // Returns an iterator over the documents ids
-    return DataStoreCache.read(scanners, cacheId);
+    return DataStoreCache.read(scanners, newDataset, cacheId);
   }
 
   /**

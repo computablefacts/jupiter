@@ -1,15 +1,19 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
-import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -19,19 +23,18 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
 /**
  * <p>
- * This class acts a helper to read/write values to the {@link DataStore} cache.
+ * This class contains helper functions to read/write values to the {@link DataStore} cache.
  * </p>
  *
  * <p>
@@ -41,9 +44,9 @@ import com.google.errorprone.annotations.Var;
  * </p>
  *
  * <pre>
- *  Row               | Column Family          | Column Qualifier       | Visibility             | Value
- * ===================+========================+========================+========================+========================
- *  <uuid>            | cache                  | <cached_string>        | (empty)                | (empty)
+ *  Row                    | Column Family          | Column Qualifier       | Visibility             | Value
+ * ========================+========================+========================+========================+========================
+ *  <uuid>\0<dataset>      | cache                  | <cached_string>        | (empty)                | (empty)
  * </pre>
  *
  * <p>
@@ -51,9 +54,9 @@ import com.google.errorprone.annotations.Var;
  * </p>
  *
  * <pre>
- *  Row               | Column Family          | Column Qualifier       | Visibility             | Value
- * ===================+========================+========================+========================+========================
- *  <uuid>            | cache                  | <hashed_string>        | (empty)                | <cached_string>
+ *  Row                    | Column Family          | Column Qualifier       | Visibility             | Value
+ * ========================+========================+========================+========================+========================
+ *  <uuid>\0<dataset>      | cache                  | <hashed_string>        | (empty)                | <cached_string>
  * </pre>
  * 
  */
@@ -62,59 +65,95 @@ final public class DataStoreCache {
 
   private static final Logger logger_ = LoggerFactory.getLogger(DataStoreCache.class);
   private static final ExecutorService executorService_ = Executors.newFixedThreadPool(3);
-  private static final HashFunction hashFunction_ = Hashing.murmur3_128();
 
   private DataStoreCache() {}
+
+  /**
+   * Remove cached data for a given dataset.
+   *
+   * @param deleter deleter.
+   * @param dataset dataset.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public static boolean remove(BatchDeleter deleter, String dataset) {
+
+    Preconditions.checkNotNull(deleter, "deleter should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    deleter.clearColumns();
+    deleter.clearScanIterators();
+    deleter.fetchColumnFamily(TEXT_CACHE);
+    deleter.setRanges(Collections.singleton(new Range()));
+
+    IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
+    WildcardFilter.applyOnRow(setting);
+    WildcardFilter.addWildcard(setting, "*" + SEPARATOR_NUL + dataset);
+
+    deleter.addScanIterator(setting);
+
+    try {
+      deleter.delete();
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      logger_.error(LogFormatter.create(true).message(e).formatError());
+      return false;
+    }
+    return true;
+  }
 
   /**
    * Check if a cache id already exists.
    *
    * @param scanners scanners.
+   * @param dataset dataset.
    * @param cacheId the cache id.
    * @return true iif the cache id already exists, false otherwise.
    */
-  public static boolean hasData(Scanners scanners, String cacheId) {
-    return read(scanners, cacheId).hasNext();
+  public static boolean hasData(Scanners scanners, String dataset, String cacheId) {
+    return read(scanners, dataset, cacheId).hasNext();
   }
 
   /**
    * Get a list of values.
    *
    * @param scanners scanners.
+   * @param dataset dataset.
    * @param cacheId the cache id.
    * @return a list of values.
    */
-  public static Iterator<String> read(Scanners scanners, String cacheId) {
-    return read(scanners, cacheId, null);
+  public static Iterator<String> read(Scanners scanners, String dataset, String cacheId) {
+    return read(scanners, dataset, cacheId, null);
   }
-
 
   /**
    * Get cached values.
    *
    * @param scanners scanners.
+   * @param dataset dataset.
    * @param cacheId the cache id.
    * @param nextValue where to start iterating.
    * @return a list of values.
    */
-  public static Iterator<String> read(Scanners scanners, String cacheId, String nextValue) {
-    return read(scanners, cacheId, nextValue, false);
+  public static Iterator<String> read(Scanners scanners, String dataset, String cacheId,
+      String nextValue) {
+    return read(scanners, dataset, cacheId, nextValue, false);
   }
 
   /**
    * Get cached values.
    *
    * @param scanners scanners.
+   * @param dataset dataset.
    * @param cacheId the cache id.
    * @param nextValue where to start iterating.
    * @param isHashed if true, returns the value stored in the row value. If false, returns the value
    *        stored in the row column qualifier.
    * @return a list of values.
    */
-  public static Iterator<String> read(Scanners scanners, String cacheId, String nextValue,
-      boolean isHashed) {
+  public static Iterator<String> read(Scanners scanners, String dataset, String cacheId,
+      String nextValue, boolean isHashed) {
 
     Preconditions.checkNotNull(scanners, "scanners should neither be null nor empty");
+    Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
     Preconditions.checkNotNull(cacheId, "cacheId should neither be null nor empty");
 
     scanners.blob().clearColumns();
@@ -124,9 +163,10 @@ final public class DataStoreCache {
     Range range;
 
     if (nextValue == null) {
-      range = Range.exact(new Text(cacheId), TEXT_CACHE);
+      range = Range.exact(new Text(cacheId + SEPARATOR_NUL + dataset), TEXT_CACHE);
     } else {
-      Key begin = new Key(new Text(cacheId), TEXT_CACHE, new Text(nextValue));
+      Key begin =
+          new Key(new Text(cacheId + SEPARATOR_NUL + dataset), TEXT_CACHE, new Text(nextValue));
       Key end = begin.followingKey(PartialKey.ROW);
       range = new Range(begin, true, end, false);
     }
@@ -143,13 +183,15 @@ final public class DataStoreCache {
    * Cache values.
    *
    * @param scanners scanners (optional).
+   *
    * @param writers writers.
+   * @param dataset dataset.
    * @param cacheId the cache id.
    * @param iterator the values to cache.
    */
-  public static void write(Scanners scanners, Writers writers, String cacheId,
+  public static void write(Scanners scanners, Writers writers, String dataset, String cacheId,
       Iterator<String> iterator) {
-    write(scanners, writers, cacheId, iterator, -1);
+    write(scanners, writers, dataset, cacheId, iterator, -1);
   }
 
   /**
@@ -157,6 +199,7 @@ final public class DataStoreCache {
    *
    * @param scanners scanners (optional).
    * @param writers writers.
+   * @param dataset dataset.
    * @param cacheId the cache id.
    * @param iterator the values to cache.
    * @param delegateToBackgroundThreadAfter synchronously write to cache until this number of
@@ -164,9 +207,9 @@ final public class DataStoreCache {
    *        If this number is less than or equals to zero, performs the whole operation
    *        synchronously.
    */
-  public static void write(Scanners scanners, Writers writers, String cacheId,
+  public static void write(Scanners scanners, Writers writers, String dataset, String cacheId,
       Iterator<String> iterator, @Var int delegateToBackgroundThreadAfter) {
-    write(scanners, writers, cacheId, iterator, delegateToBackgroundThreadAfter, false);
+    write(scanners, writers, dataset, cacheId, iterator, delegateToBackgroundThreadAfter, false);
   }
 
   /**
@@ -174,6 +217,7 @@ final public class DataStoreCache {
    *
    * @param scanners scanners (optional).
    * @param writers writers.
+   * @param dataset dataset.
    * @param cacheId the cache id.
    * @param iterator the values to cache.
    * @param delegateToBackgroundThreadAfter synchronously write to cache until this number of
@@ -184,25 +228,29 @@ final public class DataStoreCache {
    *        qualifier and the raw value to cache will be set in the row value. If hash is false, the
    *        value to cache will be stored as-is in the row column qualifier.
    */
-  public static void write(Scanners scanners, Writers writers, String cacheId,
+  public static void write(Scanners scanners, Writers writers, String dataset, String cacheId,
       Iterator<String> iterator, @Var int delegateToBackgroundThreadAfter, boolean hash) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
     Preconditions.checkNotNull(cacheId, "cacheId should not be null");
     Preconditions.checkNotNull(iterator, "iterator should not be null");
 
     if (delegateToBackgroundThreadAfter <= 0) {
-      writeCache(scanners, writers, cacheId, iterator, -1, hash);
+      writeCache(scanners, writers, dataset, cacheId, iterator, -1, hash);
     } else {
-      writeCache(scanners, writers, cacheId, iterator, delegateToBackgroundThreadAfter, hash);
-      executorService_.execute(() -> writeCache(scanners, writers, cacheId, iterator, -1, hash));
+      writeCache(scanners, writers, dataset, cacheId, iterator, delegateToBackgroundThreadAfter,
+          hash);
+      executorService_
+          .execute(() -> writeCache(scanners, writers, dataset, cacheId, iterator, -1, hash));
     }
   }
 
-  private static void writeCache(Scanners scanners, Writers writers, String cacheId,
+  private static void writeCache(Scanners scanners, Writers writers, String dataset, String cacheId,
       Iterator<String> iterator, @Var int maxElementsToWrite, boolean hash) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(cacheId, "cacheId should not be null");
     Preconditions.checkNotNull(iterator, "iterator should not be null");
 
@@ -214,13 +262,12 @@ final public class DataStoreCache {
         while (iterator.hasNext()) {
 
           String value = Strings.nullToEmpty(iterator.next());
-          Mutation mutation = new Mutation(cacheId);
+          Mutation mutation = new Mutation(cacheId + SEPARATOR_NUL + dataset);
 
           if (!hash) {
             mutation.put(TEXT_CACHE, new Text(value), VALUE_EMPTY);
           } else {
-            String hashedValue = hashFunction_.hashString(value, StandardCharsets.UTF_8).toString();
-            mutation.put(TEXT_CACHE, new Text(hashedValue), new Value(value));
+            mutation.put(TEXT_CACHE, new Text(DataStore.hash(value)), new Value(value));
           }
 
           writers.blob().addMutation(mutation);
@@ -230,13 +277,12 @@ final public class DataStoreCache {
         while (iterator.hasNext()) {
 
           String value = Strings.nullToEmpty(iterator.next());
-          Mutation mutation = new Mutation(cacheId);
+          Mutation mutation = new Mutation(cacheId + SEPARATOR_NUL + dataset);
 
           if (!hash) {
             mutation.put(TEXT_CACHE, new Text(value), VALUE_EMPTY);
           } else {
-            String hashedValue = hashFunction_.hashString(value, StandardCharsets.UTF_8).toString();
-            mutation.put(TEXT_CACHE, new Text(hashedValue), new Value(value));
+            mutation.put(TEXT_CACHE, new Text(DataStore.hash(value)), new Value(value));
           }
 
           writers.blob().addMutation(mutation);
@@ -272,7 +318,7 @@ final public class DataStoreCache {
         }
         maxTries--;
       } while (scanners != null && maxTries > 0 && nbElementsWritten > 0
-          && !hasData(scanners, cacheId));
+          && !hasData(scanners, dataset, cacheId));
 
     } catch (MutationsRejectedException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
