@@ -226,7 +226,7 @@ final public class TerminalNode extends AbstractNode {
 
           return dataStore.docsIds(scanners, writers, dataset, fields,
               minTerm == null ? null : new BigDecimal(minTerm),
-              maxTerm == null ? null : new BigDecimal(maxTerm), null);
+              maxTerm == null ? null : new BigDecimal(maxTerm), docsIds);
         }
       }
       return ITERATOR_EMPTY; // Invalid range
