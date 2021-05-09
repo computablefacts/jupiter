@@ -996,9 +996,17 @@ final public class DataStore {
         fields.put(newField, HashMultiset.create());
       }
 
+      if (!persistHash(writers, dataset, docId, newField, value)) {
+        logger_
+            .error(LogFormatter.create(true)
+                .message(String.format(
+                    "Persistence of the hash for field %s failed for document %s.", field, docId))
+                .formatError());
+      }
+
       if (!(value instanceof String)) {
         fields.get(newField).add(value); // Objects other than String will be lexicoded by the
-        // TermStore
+                                         // TermStore
       } else {
 
         String val = ((String) value).trim();
@@ -1145,5 +1153,34 @@ final public class DataStore {
           .add("doc_id", docId).add("field", field).add("term", term).formatError());
     }
     return isOk;
+  }
+
+  /**
+   * Persist a field value as a hash.
+   *
+   * @param writers writers.
+   * @param dataset the dataset.
+   * @param docId the document identifier.
+   * @param field the field name.
+   * @param value the value to hash and index.
+   * @return true if the write operation succeeded, false otherwise.
+   */
+  private boolean persistHash(Writers writers, String dataset, String docId, String field,
+      Object value) {
+
+    Preconditions.checkNotNull(writers, "writers should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(docId, "docId should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(value, "value should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+          .add("doc_id", docId).add("field", field).add("value", value).formatDebug());
+    }
+
+    DataStoreHashIndex.write(writers, dataset, field, hash(value.toString()), docId);
+
+    return true;
   }
 }

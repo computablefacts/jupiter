@@ -659,7 +659,24 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(1, terms.size());
+      Assert.assertEquals(6, terms.size());
+
+      List<Map.Entry<String, String>> pairs =
+          terms.stream().map(t -> new AbstractMap.SimpleEntry<>(t.getKey().getRow().toString(),
+              t.getValue().toString())).collect(Collectors.toList());
+
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
+          "9c09c105a2815c917e0b5da667755cb8\0age\0dataset_1", "row_1")));
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
+          "b9d7020a2ea3ffd8d58182be1dd1f82a\0birthdate\0dataset_1", "row_1")));
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
+          "d63df52a68cc3c4a1a54b3037a8f1b45\0first_name\0dataset_1", "row_1")));
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
+          "d9d2bcec10eabc857daeb12c5bd338b1\0last_name\0dataset_1", "row_1")));
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
+          "e4ac9778e4ff807ec516874d58f5d2e7\0id\0dataset_1", "row_1")));
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>("row_1",
+          "{\"birthdate\":\"2004-04-01T00:00:00Z\",\"last_name\":\"doe\",\"id\":\"1\",\"first_name\":\"john\",\"age\":17}")));
     }
 
     try (Scanner scanner = dataStore.termStore().scanner(auths)) {
@@ -713,7 +730,24 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(1, terms.size());
+      Assert.assertEquals(6, terms.size());
+
+      List<Map.Entry<String, String>> pairs =
+          terms.stream().map(t -> new AbstractMap.SimpleEntry<>(t.getKey().getRow().toString(),
+              t.getValue().toString())).collect(Collectors.toList());
+
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
+          "9c09c105a2815c917e0b5da667755cb8\0age\0dataset_1", "row_1")));
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
+          "b9d7020a2ea3ffd8d58182be1dd1f82a\0birthdate\0dataset_1", "row_1")));
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
+          "d63df52a68cc3c4a1a54b3037a8f1b45\0first_name\0dataset_1", "row_1")));
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
+          "d9d2bcec10eabc857daeb12c5bd338b1\0last_name\0dataset_1", "row_1")));
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
+          "e4ac9778e4ff807ec516874d58f5d2e7\0id\0dataset_1", "row_1")));
+      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>("row_1",
+          "{\"birthdate\":\"2004-04-01T00:00:00Z\",\"last_name\":\"doe\",\"id\":\"1\",\"first_name\":\"john\",\"age\":17}")));
     }
 
     try (Scanner scanner = dataStore.termStore().scanner(auths)) {
