@@ -874,6 +874,29 @@ final public class DataStore {
   }
 
   /**
+   * Get the ids of all documents where a field value exactly matches a given value.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset.
+   * @param field which field must be considered.
+   * @param value the value to match.
+   * @return an unordered stream of documents ids.
+   */
+  public Iterator<String> match(Scanners scanners, String dataset, String field, Object value) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(value, "value should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+          .add("field", field).add("value", value).formatDebug());
+    }
+    return DataStoreHashIndex.read(scanners, dataset, field, value.toString());
+  }
+
+  /**
    * Return misc. infos about a given list of datasets.
    *
    * @param datasets a list of datasets.
@@ -1179,7 +1202,7 @@ final public class DataStore {
           .add("doc_id", docId).add("field", field).add("value", value).formatDebug());
     }
 
-    DataStoreHashIndex.write(writers, dataset, field, hash(value.toString()), docId);
+    DataStoreHashIndex.write(writers, dataset, field, value.toString(), docId);
 
     return true;
   }
