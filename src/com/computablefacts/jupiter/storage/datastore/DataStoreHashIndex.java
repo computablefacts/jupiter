@@ -100,9 +100,9 @@ final public class DataStoreHashIndex {
     Preconditions.checkNotNull(scanners, "scanners should neither be null nor empty");
     Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("dataset", dataset).add("field", field)
-          .add("value", value).add("hash", DataStore.hash(value)).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("field", field)
+          .add("value", value).add("hash", DataStore.hash(value)).formatDebug());
     }
 
     scanners.blob().clearColumns();
@@ -149,7 +149,6 @@ final public class DataStoreHashIndex {
     }
     return new FlattenIterator<>(scanners.blob().iterator(), entry -> {
       Value val = entry.getValue();
-      logger_.info(val.toString());
       return Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings()
           .splitToList(val.toString());
     });
