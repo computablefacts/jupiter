@@ -92,6 +92,16 @@ public class Scanners implements AutoCloseable {
     return scannerIndex_;
   }
 
+  /**
+   * Be aware that "A BatchScanner instance will use no more threads than provided in the
+   * construction of the BatchScanner implementation. Multiple invocations of iterator() will all
+   * share the same resources of the instance. A new BatchScanner instance should be created to use
+   * allocate additional threads."
+   * 
+   * @param nbQueryThreads the number of threads to use.
+   * @return a {@link org.apache.accumulo.core.client.Scanner} if {@code nbQueryThreads} is less
+   *         than or equals to 1. A {@link org.apache.accumulo.core.client.BatchScanner} otherwise.
+   */
   public ScannerBase blob(int nbQueryThreads) {
     if (nbQueryThreads <= 1) {
       return blob();
@@ -103,6 +113,16 @@ public class Scanners implements AutoCloseable {
     return batchScannerBlob_;
   }
 
+  /**
+   * Be aware that "A BatchScanner instance will use no more threads than provided in the
+   * construction of the BatchScanner implementation. Multiple invocations of iterator() will all
+   * share the same resources of the instance. A new BatchScanner instance should be created to use
+   * allocate additional threads."
+   *
+   * @param nbQueryThreads the number of threads to use.
+   * @return a {@link org.apache.accumulo.core.client.Scanner} if {@code nbQueryThreads} is less
+   *         than or equals to 1. A {@link org.apache.accumulo.core.client.BatchScanner} otherwise.
+   */
   public ScannerBase index(int nbQueryThreads) {
     if (nbQueryThreads <= 1) {
       return index();
