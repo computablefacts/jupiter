@@ -69,7 +69,7 @@ final public class DataStoreHashIndex {
 
     deleter.clearColumns();
     deleter.clearScanIterators();
-    deleter.fetchColumnFamily(TEXT_HASH_INDEX);
+    deleter.fetchColumn(TEXT_HASH_INDEX, TEXT_EMPTY);
     deleter.setRanges(Collections.singleton(new Range()));
 
     IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
@@ -105,12 +105,12 @@ final public class DataStoreHashIndex {
     ScannerBase scanner = scanners.blob(NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(TEXT_HASH_INDEX);
+    scanner.fetchColumn(TEXT_HASH_INDEX, TEXT_EMPTY);
 
     Range range;
 
     if (value != null && field != null) {
-      range = Range.prefix(DataStore.hash(value) + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset);
+      range = Range.exact(DataStore.hash(value) + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset);
     } else if (value != null) {
 
       range = Range.prefix(DataStore.hash(value) + SEPARATOR_NUL);
