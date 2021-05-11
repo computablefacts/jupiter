@@ -17,12 +17,12 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.storage.AbstractStorage;
-import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.FlattenIterator;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
@@ -102,6 +102,11 @@ final public class DataStoreHashIndex {
     Preconditions.checkNotNull(scanners, "scanners should neither be null nor empty");
     Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
 
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatter.create(true).add("dataset", dataset).add("field", field)
+          .add("value", value).add("hash", DataStore.hash(value)).formatInfo());
+    }
+
     ScannerBase scanner = scanners.blob(NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
@@ -110,7 +115,9 @@ final public class DataStoreHashIndex {
     Range range;
 
     if (value != null && field != null) {
-      range = Range.exact(DataStore.hash(value) + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset);
+      range = Range.exact(
+          new Text(DataStore.hash(value) + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset),
+          TEXT_HASH_INDEX, TEXT_EMPTY);
     } else if (value != null) {
 
       range = Range.prefix(DataStore.hash(value) + SEPARATOR_NUL);
@@ -145,7 +152,8 @@ final public class DataStoreHashIndex {
     }
     return new FlattenIterator<>(scanner.iterator(), entry -> {
       Value val = entry.getValue();
-      return Splitter.on(Constants.SEPARATOR_NUL).trimResults().omitEmptyStrings()
+      logger_.info(val.toString());
+      return Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings()
           .splitToList(val.toString());
     });
   }
