@@ -1,7 +1,6 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
-import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
@@ -12,7 +11,6 @@ import java.util.Iterator;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -107,10 +105,9 @@ final public class DataStoreHashIndex {
           .add("value", value).add("hash", DataStore.hash(value)).formatInfo());
     }
 
-    ScannerBase scanner = scanners.blob(NB_QUERY_THREADS);
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-    scanner.fetchColumn(TEXT_HASH_INDEX, TEXT_EMPTY);
+    scanners.blob().clearColumns();
+    scanners.blob().clearScanIterators();
+    scanners.blob().fetchColumn(TEXT_HASH_INDEX, TEXT_EMPTY);
 
     Range range;
 
@@ -126,7 +123,7 @@ final public class DataStoreHashIndex {
       WildcardFilter.applyOnRow(setting);
       WildcardFilter.addWildcard(setting, "*" + SEPARATOR_NUL + dataset);
 
-      scanner.addScanIterator(setting);
+      scanners.blob().addScanIterator(setting);
     } else if (field != null) {
 
       range = new Range();
@@ -135,7 +132,7 @@ final public class DataStoreHashIndex {
       WildcardFilter.applyOnRow(setting);
       WildcardFilter.addWildcard(setting, "*" + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset);
 
-      scanner.addScanIterator(setting);
+      scanners.blob().addScanIterator(setting);
     } else {
 
       range = new Range();
@@ -144,13 +141,13 @@ final public class DataStoreHashIndex {
       WildcardFilter.applyOnRow(setting);
       WildcardFilter.addWildcard(setting, "*" + SEPARATOR_NUL + dataset);
 
-      scanner.addScanIterator(setting);
+      scanners.blob().addScanIterator(setting);
     }
 
-    if (!AbstractStorage.setRange(scanner, range)) {
+    if (!AbstractStorage.setRange(scanners.blob(), range)) {
       return ITERATOR_EMPTY;
     }
-    return new FlattenIterator<>(scanner.iterator(), entry -> {
+    return new FlattenIterator<>(scanners.blob().iterator(), entry -> {
       Value val = entry.getValue();
       logger_.info(val.toString());
       return Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings()
