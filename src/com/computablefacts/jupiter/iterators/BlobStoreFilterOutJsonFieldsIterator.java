@@ -1,5 +1,6 @@
 package com.computablefacts.jupiter.iterators;
 
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.io.IOException;
@@ -18,7 +19,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.WildcardMatcher;
@@ -136,27 +136,22 @@ public class BlobStoreFilterOutJsonFieldsIterator
 
     setTopKey(key);
 
-    if (key.getColumnQualifier() == null || !Blob.isJson(key)
-        || Constants.VALUE_ANONYMIZED.equals(value)) {
+    if (key.getColumnQualifier() == null || !Blob.isJson(key)) {
       setTopValue(value);
     } else {
 
       Map<String, Object> json = new JsonFlattener(jsonCore_, value.toString())
-          .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
+          .withSeparator(SEPARATOR_CURRENCY_SIGN).flattenAsMap();
 
       // First, remove all fields that have not been explicitly asked for
       json.keySet().removeIf(field -> !acceptField(field));
 
       // Then, rebuild a new JSON object
-      String newJson = new JsonUnflattener(jsonCore_, json)
-          .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
+      String newJson =
+          new JsonUnflattener(jsonCore_, json).withSeparator(SEPARATOR_CURRENCY_SIGN).unflatten();
 
       // Next, set the new JSON object as the new Accumulo Value
-      if ("{}".equals(newJson)) {
-        setTopValue(Constants.VALUE_ANONYMIZED);
-      } else {
-        setTopValue(new Value(newJson.getBytes(StandardCharsets.UTF_8)));
-      }
+      setTopValue(new Value(newJson.getBytes(StandardCharsets.UTF_8)));
     }
   }
 

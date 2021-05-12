@@ -1,5 +1,9 @@
 package com.computablefacts.jupiter.iterators;
 
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
+import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
+import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
+
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -14,7 +18,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 
 import com.computablefacts.jupiter.storage.AbstractStorage;
-import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.nona.Generated;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
@@ -40,6 +43,7 @@ public class BlobStoreAnonymizingIterator extends AnonymizingIterator {
 
     Map<String, String> options = new HashMap<>();
     options.put("auths", "User authorizations.");
+    options.put("salt", "User salt.");
 
     return new IteratorOptions("BlobStoreAnonymizingIterator",
         "BlobStoreAnonymizingIterator filters out the blobs stored in the Accumulo Value for which the user does not have the right auths.",
@@ -74,9 +78,9 @@ public class BlobStoreAnonymizingIterator extends AnonymizingIterator {
       // First, ensure the user has the ADM authorization
       Set<String> auths = parsedAuths();
 
-      if (auths.contains(Constants.STRING_ADM)) {
+      if (auths.contains(STRING_ADM)) {
 
-        VisibilityEvaluator userVizEvaluator = visibilityEvaluator(Constants.STRING_ADM);
+        VisibilityEvaluator userVizEvaluator = visibilityEvaluator(STRING_ADM);
         ColumnVisibility rowViz = key.getColumnVisibilityParsed();
 
         // Then, ensure the row has the ADM authorization
@@ -84,10 +88,10 @@ public class BlobStoreAnonymizingIterator extends AnonymizingIterator {
 
           // Next, ensure the ADM label is the only label that allows the user to have access to the
           // row data
-          auths.remove(Constants.STRING_ADM);
+          auths.remove(STRING_ADM);
 
           if (!matches(visibilityEvaluator(auths), rowViz)) {
-            setTopValue(Constants.VALUE_ANONYMIZED);
+            setTopValue(new Value(hash(salt(), value)));
           }
         }
       }
@@ -95,7 +99,7 @@ public class BlobStoreAnonymizingIterator extends AnonymizingIterator {
 
       Set<String> auths = parsedAuths();
       String vizDataset = AbstractStorage.toVisibilityLabel(key.getColumnFamily().toString() + "_");
-      String vizRawData = vizDataset + Constants.STRING_RAW_DATA;
+      String vizRawData = vizDataset + STRING_RAW_DATA;
       VisibilityEvaluator userVizEvaluator = visibilityEvaluator(vizRawData);
 
       if (auths.contains(vizRawData)
@@ -106,29 +110,28 @@ public class BlobStoreAnonymizingIterator extends AnonymizingIterator {
         setTopValue(value);
       } else {
 
+        Map<String, Object> newJson = new HashMap<>();
         Map<String, Object> json = new JsonFlattener(jsonCore_, value.toString())
-            .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).flattenAsMap();
+            .withSeparator(SEPARATOR_CURRENCY_SIGN).flattenAsMap();
 
         // First, ensure the user has the right to visualize the returned fields
-        json.keySet().removeIf(field -> {
+        for (String field : json.keySet()) {
 
-          List<String> path = Lists.newArrayList(Splitter.on(Constants.SEPARATOR_CURRENCY_SIGN)
-              .trimResults().omitEmptyStrings().split(field));
+          Object object = json.get(field);
+          List<String> path = Lists.newArrayList(
+              Splitter.on(SEPARATOR_CURRENCY_SIGN).trimResults().omitEmptyStrings().split(field));
 
-          return AbstractStorage.toVisibilityLabels(path).stream().map(label -> vizDataset + label)
-              .noneMatch(auths::contains);
-        });
+          if (AbstractStorage.toVisibilityLabels(path).stream().map(label -> vizDataset + label)
+              .noneMatch(auths::contains)) {
+            newJson.put(field, hash(salt(), object == null ? (String) object : object.toString()));
+          } else {
+            newJson.put(field, object);
+          }
+        }
 
         // Then, rebuild a new JSON object
-        String newJson = new JsonUnflattener(jsonCore_, json)
-            .withSeparator(Constants.SEPARATOR_CURRENCY_SIGN).unflatten();
-
-        // Next, set the new JSON object as the new Accumulo Value
-        if ("{}".equals(newJson)) {
-          setTopValue(Constants.VALUE_ANONYMIZED);
-        } else {
-          setTopValue(new Value(newJson.getBytes(StandardCharsets.UTF_8)));
-        }
+        setTopValue(new Value(new JsonUnflattener(jsonCore_, newJson)
+            .withSeparator(SEPARATOR_CURRENCY_SIGN).unflatten().getBytes(StandardCharsets.UTF_8)));
       }
     }
   }

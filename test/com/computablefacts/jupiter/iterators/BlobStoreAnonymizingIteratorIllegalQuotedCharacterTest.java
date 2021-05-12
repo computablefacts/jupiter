@@ -16,6 +16,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.computablefacts.jupiter.storage.Constants;
+import com.computablefacts.nona.helpers.Codecs;
 import com.google.errorprone.annotations.Var;
 
 public class BlobStoreAnonymizingIteratorIllegalQuotedCharacterTest {
@@ -37,11 +38,15 @@ public class BlobStoreAnonymizingIteratorIllegalQuotedCharacterTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"name\":\"John\",\"age\":31}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"name\":\"John\",\"city\":\"ANONYMIZED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":31}"),
+            Codecs.asObject(value));
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"city\":\"ANONYMIZED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            Codecs.asObject(value));
         countDataset2++;
       }
 
@@ -69,11 +74,15 @@ public class BlobStoreAnonymizingIteratorIllegalQuotedCharacterTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"name\":\"John\",\"city\":\"New\\u0007York\"}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"name\":\"John\",\"city\":\"New\\u0007York\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            Codecs.asObject(value));
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"city\":\"ANONYMIZED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            Codecs.asObject(value));
         countDataset2++;
       }
 

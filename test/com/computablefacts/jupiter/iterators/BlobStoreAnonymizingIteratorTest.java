@@ -16,6 +16,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.computablefacts.jupiter.storage.Constants;
+import com.computablefacts.nona.helpers.Codecs;
 import com.google.errorprone.annotations.Var;
 
 public class BlobStoreAnonymizingIteratorTest {
@@ -46,11 +47,15 @@ public class BlobStoreAnonymizingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"city\":\"ANONYMIZED_78f718e55e6cbab759b3f23e689ba96f\", \"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\", \"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            Codecs.asObject(value));
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"city\":\"ANONYMIZED_78f718e55e6cbab759b3f23e689ba96f\", \"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\", \"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            Codecs.asObject(value));
         countDataset2++;
       }
 
@@ -77,11 +82,15 @@ public class BlobStoreAnonymizingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"city\":\"ANONYMIZED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            Codecs.asObject(value));
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"city\":\"ANONYMIZED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            Codecs.asObject(value));
         countDataset2++;
       }
 
@@ -112,7 +121,9 @@ public class BlobStoreAnonymizingIteratorTest {
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals(
+            "{\"city\":\"ANONYMIZED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}",
+            value);
         countDataset2++;
       }
 
@@ -140,11 +151,15 @@ public class BlobStoreAnonymizingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"age\":31,\"city\":\"New York\"}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"city\":\"New York\",\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":31}"),
+            Codecs.asObject(value));
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"city\":\"ANONYMIZED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            Codecs.asObject(value));
         countDataset2++;
       }
 
@@ -172,11 +187,15 @@ public class BlobStoreAnonymizingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"age\":31}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"city\":\"ANONYMIZED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":31}"),
+            Codecs.asObject(value));
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"city\":\"New York\"}", value);
+        Assert.assertEquals(Codecs.asObject(
+            "{\"city\":\"New York\",\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            Codecs.asObject(value));
         countDataset2++;
       }
 

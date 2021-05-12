@@ -1,6 +1,9 @@
 package com.computablefacts.jupiter.iterators;
 
+import static com.computablefacts.jupiter.storage.Constants.MURMUR3_128;
+
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +44,42 @@ public abstract class AnonymizingIterator
     if (authorizations != null) {
       setting.addOption("auths", authorizations.toString());
     }
+  }
+
+  public static void setSalt(IteratorSetting setting, String salt) {
+    if (salt != null) {
+      setting.addOption("salt", salt);
+    }
+  }
+
+  /**
+   * Hash a given {@link Value}.
+   *
+   * @param value {@link Value}
+   * @return hashed value.
+   */
+  static String hash(String salt, Value value) {
+    if (value == null) {
+      return "ANONYMIZED_" + MURMUR3_128.hashString(salt, StandardCharsets.UTF_8).toString();
+    }
+    return "ANONYMIZED_"
+        + MURMUR3_128.newHasher().putString(salt == null ? "" : salt, StandardCharsets.UTF_8)
+            .putBytes(value.get()).hash().toString();
+  }
+
+  /**
+   * Hash a given {@link String}.
+   *
+   * @param value {@link String}
+   * @return hashed value.
+   */
+  static String hash(String salt, String value) {
+    if (value == null) {
+      return "ANONYMIZED_" + MURMUR3_128.hashString(salt, StandardCharsets.UTF_8).toString();
+    }
+    return "ANONYMIZED_"
+        + MURMUR3_128.newHasher().putString(salt == null ? "" : salt, StandardCharsets.UTF_8)
+            .putString(value, StandardCharsets.UTF_8).hash().toString();
   }
 
   @Override
@@ -123,6 +162,15 @@ public abstract class AnonymizingIterator
    * @param value current Value.
    */
   protected abstract void setTopKeyValue(Key key, Value value);
+
+  /**
+   * Get the user's salt.
+   *
+   * @return the user's salt.
+   */
+  protected String salt() {
+    return options_.getOrDefault("salt", "");
+  }
 
   /**
    * Get the user's authorizations.

@@ -47,11 +47,11 @@ public class BlobStoreFilterOutJsonFieldsIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if ("DATASET_1".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals("{}", value);
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
-        Assert.assertEquals("{\"is_anonymized\":\"true\"}", value);
+        Assert.assertEquals("{}", value);
         countDataset2++;
       }
 
