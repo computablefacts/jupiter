@@ -3,6 +3,10 @@ package com.computablefacts.jupiter.storage.datastore;
 import static com.computablefacts.jupiter.storage.datastore.DataStore.blobStoreName;
 import static com.computablefacts.jupiter.storage.datastore.DataStore.termStoreName;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.security.Authorizations;
@@ -19,10 +23,10 @@ public class Scanners implements AutoCloseable {
   private final Connector connector_;
   private final String name_;
   private final Authorizations authorizations_;
+  private final List<ScannerBase> batchScannersBlob_ = new ArrayList<>();
+  private final List<ScannerBase> batchScannersIndex_ = new ArrayList<>();
   private ScannerBase scannerBlob_;
   private ScannerBase scannerIndex_;
-  private ScannerBase batchScannerBlob_;
-  private ScannerBase batchScannerIndex_;
 
   public Scanners(Configurations configurations, String name, Authorizations authorizations) {
 
@@ -48,34 +52,11 @@ public class Scanners implements AutoCloseable {
     scannerBlob_ = null;
     scannerIndex_ = null;
 
-    if (batchScannerBlob_ != null) {
-      batchScannerBlob_.close();
-    }
-    if (batchScannerIndex_ != null) {
-      batchScannerIndex_.close();
-    }
+    batchScannersBlob_.forEach(ScannerBase::close);
+    batchScannersIndex_.forEach(ScannerBase::close);
 
-    batchScannerBlob_ = null;
-    batchScannerIndex_ = null;
-  }
-
-  public void clear() {
-    if (scannerBlob_ != null) {
-      scannerBlob_.clearColumns();
-      scannerBlob_.clearScanIterators();
-    }
-    if (scannerIndex_ != null) {
-      scannerIndex_.clearColumns();
-      scannerIndex_.clearScanIterators();
-    }
-    if (batchScannerBlob_ != null) {
-      batchScannerBlob_.clearColumns();
-      batchScannerBlob_.clearScanIterators();
-    }
-    if (batchScannerIndex_ != null) {
-      batchScannerIndex_.clearColumns();
-      batchScannerIndex_.clearScanIterators();
-    }
+    batchScannersBlob_.clear();
+    batchScannersIndex_.clear();
   }
 
   public ScannerBase blob() {
@@ -106,11 +87,13 @@ public class Scanners implements AutoCloseable {
     if (nbQueryThreads <= 1) {
       return blob();
     }
-    if (batchScannerBlob_ == null) {
-      batchScannerBlob_ =
-          Tables.batchScanner(connector_, blobStoreName(name_), authorizations_, nbQueryThreads);
-    }
-    return batchScannerBlob_;
+
+    BatchScanner scanner =
+        Tables.batchScanner(connector_, blobStoreName(name_), authorizations_, nbQueryThreads);
+
+    batchScannersBlob_.add(scanner);
+
+    return scanner;
   }
 
   /**
@@ -127,10 +110,12 @@ public class Scanners implements AutoCloseable {
     if (nbQueryThreads <= 1) {
       return index();
     }
-    if (batchScannerIndex_ == null) {
-      batchScannerIndex_ =
-          Tables.batchScanner(connector_, termStoreName(name_), authorizations_, nbQueryThreads);
-    }
-    return batchScannerIndex_;
+
+    BatchScanner scanner =
+        Tables.batchScanner(connector_, termStoreName(name_), authorizations_, nbQueryThreads);
+
+    batchScannersIndex_.add(scanner);
+
+    return scanner;
   }
 }
