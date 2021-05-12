@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.filters.WildcardFilter;
+import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.FlattenIterator;
 import com.computablefacts.logfmt.LogFormatter;
@@ -96,15 +97,30 @@ final public class DataStoreHashIndex {
    * @param value the field value.
    * @return an unordered set of docs ids.
    */
-  public static Iterator<String> read(Scanners scanners, String dataset, String field,
+  public static Iterator<String> readValue(Scanners scanners, String dataset, String field,
       String value) {
+    return readHash(scanners, dataset, field,
+        value == null ? null : MaskingIterator.hash(null, value));
+  }
+
+  /**
+   * Get documents ids.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset.
+   * @param field the field.
+   * @param hash the field hashed value.
+   * @return an unordered set of docs ids.
+   */
+  public static Iterator<String> readHash(Scanners scanners, String dataset, String field,
+      String hash) {
 
     Preconditions.checkNotNull(scanners, "scanners should neither be null nor empty");
     Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("field", field)
-          .add("value", value).add("hash", DataStore.hash(value)).formatDebug());
+          .add("hash", hash).formatDebug());
     }
 
     ScannerBase scanner = scanners.blob(NB_QUERY_THREADS);
@@ -115,13 +131,12 @@ final public class DataStoreHashIndex {
 
     Range range;
 
-    if (value != null && field != null) {
-      range = Range.exact(
-          new Text(DataStore.hash(value) + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset),
+    if (hash != null && field != null) {
+      range = Range.exact(new Text(hash + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset),
           TEXT_HASH_INDEX, TEXT_EMPTY);
-    } else if (value != null) {
+    } else if (hash != null) {
 
-      range = Range.prefix(DataStore.hash(value) + SEPARATOR_NUL);
+      range = Range.prefix(hash + SEPARATOR_NUL);
 
       IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
       WildcardFilter.applyOnRow(setting);
@@ -175,8 +190,8 @@ final public class DataStoreHashIndex {
     Preconditions.checkNotNull(value, "value should neither be null nor empty");
     Preconditions.checkNotNull(docId, "docId should neither be null nor empty");
 
-    Mutation mutation =
-        new Mutation(DataStore.hash(value) + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset);
+    Mutation mutation = new Mutation(
+        MaskingIterator.hash(null, value) + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset);
     mutation.put(TEXT_HASH_INDEX, TEXT_EMPTY, new Value(docId));
 
     try {

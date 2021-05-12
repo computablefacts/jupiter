@@ -543,7 +543,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
-  public void testMatch() throws Exception {
+  public void testMatchValue() throws Exception {
 
     DataStore dataStore = newDataStore(AUTH_ADM);
 
@@ -555,7 +555,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
 
       List<String> docsIds = new ArrayList<>();
-      dataStore.match(scanners, "dataset_1", "Actors[*]¤name", "Tom Cruise")
+      dataStore.matchValue(scanners, "dataset_1", "Actors[*]¤name", "Tom Cruise")
           .forEachRemaining(docsIds::add);
 
       Assert.assertEquals(2, docsIds.size());
@@ -563,7 +563,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(docsIds.contains("row_2"));
 
       docsIds.clear();
-      dataStore.match(scanners, "dataset_1", "Actors[*]¤weight", 67.5)
+      dataStore.matchValue(scanners, "dataset_1", "Actors[*]¤weight", 67.5)
           .forEachRemaining(docsIds::add);
 
       Assert.assertEquals(2, docsIds.size());
@@ -571,14 +571,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(docsIds.contains("row_2"));
 
       docsIds.clear();
-      dataStore.match(scanners, "dataset_1", "Actors[*]¤age", 73).forEachRemaining(docsIds::add);
-
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
-
-      docsIds.clear();
-      dataStore.match(scanners, "dataset_1", "Actors[*]¤hasGreyHair", false)
+      dataStore.matchValue(scanners, "dataset_1", "Actors[*]¤age", 73)
           .forEachRemaining(docsIds::add);
 
       Assert.assertEquals(2, docsIds.size());
@@ -586,8 +579,73 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(docsIds.contains("row_2"));
 
       docsIds.clear();
-      dataStore.match(scanners, "dataset_1", "Actors[*]¤hasChildren", true)
+      dataStore.matchValue(scanners, "dataset_1", "Actors[*]¤hasGreyHair", false)
           .forEachRemaining(docsIds::add);
+
+      Assert.assertEquals(2, docsIds.size());
+      Assert.assertTrue(docsIds.contains("row_1"));
+      Assert.assertTrue(docsIds.contains("row_2"));
+
+      docsIds.clear();
+      dataStore.matchValue(scanners, "dataset_1", "Actors[*]¤hasChildren", true)
+          .forEachRemaining(docsIds::add);
+
+      Assert.assertEquals(2, docsIds.size());
+      Assert.assertTrue(docsIds.contains("row_1"));
+      Assert.assertTrue(docsIds.contains("row_2"));
+    }
+  }
+
+  @Test
+  public void testMatchHash() throws Exception {
+
+    DataStore dataStore = newDataStore(AUTH_ADM);
+
+    try (Writers writers = dataStore.writers()) {
+      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json(1)));
+      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json(2)));
+    }
+
+    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
+
+      List<String> docsIds = new ArrayList<>();
+      dataStore
+          .matchHash(scanners, "dataset_1", "Actors[*]¤name", "8f8a04ea49585975fcf1e452b988e085")
+          .forEachRemaining(docsIds::add);
+
+      Assert.assertEquals(2, docsIds.size());
+      Assert.assertTrue(docsIds.contains("row_1"));
+      Assert.assertTrue(docsIds.contains("row_2"));
+
+      docsIds.clear();
+      dataStore
+          .matchHash(scanners, "dataset_1", "Actors[*]¤weight", "4103e8509cbdf6b3372222061bbe1da6")
+          .forEachRemaining(docsIds::add);
+
+      Assert.assertEquals(2, docsIds.size());
+      Assert.assertTrue(docsIds.contains("row_1"));
+      Assert.assertTrue(docsIds.contains("row_2"));
+
+      docsIds.clear();
+      dataStore
+          .matchHash(scanners, "dataset_1", "Actors[*]¤age", "3974c437d717863985a0b5618f289b46")
+          .forEachRemaining(docsIds::add);
+
+      Assert.assertEquals(2, docsIds.size());
+      Assert.assertTrue(docsIds.contains("row_1"));
+      Assert.assertTrue(docsIds.contains("row_2"));
+
+      docsIds.clear();
+      dataStore.matchHash(scanners, "dataset_1", "Actors[*]¤hasGreyHair",
+          "e495b7e5056dbfc4e854950696d4c3cc").forEachRemaining(docsIds::add);
+
+      Assert.assertEquals(2, docsIds.size());
+      Assert.assertTrue(docsIds.contains("row_1"));
+      Assert.assertTrue(docsIds.contains("row_2"));
+
+      docsIds.clear();
+      dataStore.matchHash(scanners, "dataset_1", "Actors[*]¤hasChildren",
+          "5db32d6ecc1f5ef816ebe6268a3343c2").forEachRemaining(docsIds::add);
 
       Assert.assertEquals(2, docsIds.size());
       Assert.assertTrue(docsIds.contains("row_1"));

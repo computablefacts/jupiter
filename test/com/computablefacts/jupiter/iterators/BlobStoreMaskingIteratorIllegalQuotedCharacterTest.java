@@ -19,12 +19,12 @@ import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.errorprone.annotations.Var;
 
-public class BlobStoreAnonymizingIteratorIllegalQuotedCharacterTest {
+public class BlobStoreMaskingIteratorIllegalQuotedCharacterTest {
 
   @Test
   public void testWithoutIllegalQuotedCharacterInFilteredFields() throws Exception {
 
-    BlobStoreAnonymizingIterator iterator =
+    BlobStoreMaskingIterator iterator =
         iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_NAME", "DATASET_1_AGE"));
 
     @Var
@@ -39,13 +39,13 @@ public class BlobStoreAnonymizingIteratorIllegalQuotedCharacterTest {
 
       if ("DATASET_1".equals(cf)) {
         Assert.assertEquals(Codecs.asObject(
-            "{\"name\":\"John\",\"city\":\"ANONYMIZED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":31}"),
+            "{\"name\":\"John\",\"city\":\"MASKED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":31}"),
             Codecs.asObject(value));
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
         Assert.assertEquals(Codecs.asObject(
-            "{\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"city\":\"ANONYMIZED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            "{\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"city\":\"MASKED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
         countDataset2++;
       }
@@ -60,7 +60,7 @@ public class BlobStoreAnonymizingIteratorIllegalQuotedCharacterTest {
   @Test
   public void testFiltersWithIllegalQuotedCharacterInFilteredFields() throws Exception {
 
-    BlobStoreAnonymizingIterator iterator =
+    BlobStoreMaskingIterator iterator =
         iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_NAME", "DATASET_1_CITY"));
 
     @Var
@@ -75,13 +75,13 @@ public class BlobStoreAnonymizingIteratorIllegalQuotedCharacterTest {
 
       if ("DATASET_1".equals(cf)) {
         Assert.assertEquals(Codecs.asObject(
-            "{\"name\":\"John\",\"city\":\"New\\u0007York\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            "{\"name\":\"John\",\"city\":\"New\\u0007York\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
         countDataset1++;
       }
       if ("DATASET_2".equals(cf)) {
         Assert.assertEquals(Codecs.asObject(
-            "{\"name\":\"ANONYMIZED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"city\":\"ANONYMIZED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":\"ANONYMIZED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+            "{\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"city\":\"MASKED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
         countDataset2++;
       }
@@ -93,11 +93,11 @@ public class BlobStoreAnonymizingIteratorIllegalQuotedCharacterTest {
     Assert.assertEquals(3, countDataset2);
   }
 
-  private BlobStoreAnonymizingIterator iterator(Authorizations auths) throws IOException {
+  private BlobStoreMaskingIterator iterator(Authorizations auths) throws IOException {
 
-    BlobStoreAnonymizingIterator iterator = new BlobStoreAnonymizingIterator();
-    IteratorSetting setting = new IteratorSetting(1, BlobStoreAnonymizingIterator.class);
-    BlobStoreAnonymizingIterator.setAuthorizations(setting, auths);
+    BlobStoreMaskingIterator iterator = new BlobStoreMaskingIterator();
+    IteratorSetting setting = new IteratorSetting(1, BlobStoreMaskingIterator.class);
+    BlobStoreMaskingIterator.setAuthorizations(setting, auths);
 
     Assert.assertTrue(iterator.validateOptions(setting.getOptions()));
 

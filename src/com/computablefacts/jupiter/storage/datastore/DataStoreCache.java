@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.filters.WildcardFilter;
+import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
@@ -267,7 +268,7 @@ final public class DataStoreCache {
           if (!hash) {
             mutation.put(TEXT_CACHE, new Text(value), VALUE_EMPTY);
           } else {
-            mutation.put(TEXT_CACHE, new Text(DataStore.hash(value)), new Value(value));
+            mutation.put(TEXT_CACHE, new Text(MaskingIterator.hash(null, value)), new Value(value));
           }
 
           writers.blob().addMutation(mutation);
@@ -282,7 +283,7 @@ final public class DataStoreCache {
           if (!hash) {
             mutation.put(TEXT_CACHE, new Text(value), VALUE_EMPTY);
           } else {
-            mutation.put(TEXT_CACHE, new Text(DataStore.hash(value)), new Value(value));
+            mutation.put(TEXT_CACHE, new Text(MaskingIterator.hash(null, value)), new Value(value));
           }
 
           writers.blob().addMutation(mutation);

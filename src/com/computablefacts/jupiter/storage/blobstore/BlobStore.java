@@ -18,8 +18,8 @@ import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
-import com.computablefacts.jupiter.iterators.BlobStoreAnonymizingIterator;
 import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterator;
+import com.computablefacts.jupiter.iterators.BlobStoreMaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.logfmt.LogFormatter;
@@ -242,8 +242,9 @@ final public class BlobStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(dataset));
 
-    IteratorSetting setting1 = new IteratorSetting(21, BlobStoreAnonymizingIterator.class);
-    BlobStoreAnonymizingIterator.setAuthorizations(setting1, scanner.getAuthorizations());
+    IteratorSetting setting1 = new IteratorSetting(21, BlobStoreMaskingIterator.class);
+    BlobStoreMaskingIterator.setAuthorizations(setting1, scanner.getAuthorizations());
+    // TODO : set salt
 
     scanner.addScanIterator(setting1);
 

@@ -30,12 +30,12 @@ import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-public class BlobStoreAnonymizingIterator extends AnonymizingIterator {
+public class BlobStoreMaskingIterator extends MaskingIterator {
 
   private ObjectMapper mapper_;
   private JacksonJsonCore jsonCore_;
 
-  public BlobStoreAnonymizingIterator() {}
+  public BlobStoreMaskingIterator() {}
 
   @Generated
   @Override
@@ -45,8 +45,8 @@ public class BlobStoreAnonymizingIterator extends AnonymizingIterator {
     options.put("auths", "User authorizations.");
     options.put("salt", "User salt.");
 
-    return new IteratorOptions("BlobStoreAnonymizingIterator",
-        "BlobStoreAnonymizingIterator filters out the blobs stored in the Accumulo Value for which the user does not have the right auths.",
+    return new IteratorOptions("BlobStoreMaskingIterator",
+        "BlobStoreMaskingIterator filters out the blobs stored in the Accumulo Value for which the user does not have the right auths.",
         options, null);
   }
 
@@ -62,8 +62,8 @@ public class BlobStoreAnonymizingIterator extends AnonymizingIterator {
   }
 
   @Override
-  protected AnonymizingIterator create() {
-    return new BlobStoreAnonymizingIterator();
+  protected MaskingIterator create() {
+    return new BlobStoreMaskingIterator();
   }
 
   @Override
@@ -91,7 +91,7 @@ public class BlobStoreAnonymizingIterator extends AnonymizingIterator {
           auths.remove(STRING_ADM);
 
           if (!matches(visibilityEvaluator(auths), rowViz)) {
-            setTopValue(new Value(hash(salt(), value)));
+            setTopValue(new Value(mask(salt(), value)));
           }
         }
       }
@@ -123,7 +123,7 @@ public class BlobStoreAnonymizingIterator extends AnonymizingIterator {
 
           if (AbstractStorage.toVisibilityLabels(path).stream().map(label -> vizDataset + label)
               .noneMatch(auths::contains)) {
-            newJson.put(field, hash(salt(), object == null ? (String) object : object.toString()));
+            newJson.put(field, mask(salt(), object == null ? (String) object : object.toString()));
           } else {
             newJson.put(field, object);
           }

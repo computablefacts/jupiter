@@ -1,6 +1,5 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import static com.computablefacts.jupiter.storage.Constants.MURMUR3_128;
 import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
@@ -9,7 +8,6 @@ import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
 
-import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.time.Instant;
 import java.util.Base64;
@@ -40,6 +38,7 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.combiners.DataStoreHashIndexCombiner;
 import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
+import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
@@ -116,13 +115,6 @@ final public class DataStore {
 
   static String normalize(String str) {
     return StringIterator.removeDiacriticalMarks(StringIterator.normalize(str)).toLowerCase();
-  }
-
-  static String hash(String str) {
-    if (str == null) {
-      return "";
-    }
-    return MURMUR3_128.hashString(str, StandardCharsets.UTF_8).toString();
   }
 
   @Generated
@@ -778,7 +770,7 @@ final public class DataStore {
 
     Collections.sort(params);
 
-    String cacheId = hash(Joiner.on(SEPARATOR_NUL).join(params));
+    String cacheId = MaskingIterator.hash(null, Joiner.on(SEPARATOR_NUL).join(params));
 
     if (DataStoreCache.hasData(scanners, newDataset, cacheId)) {
       if (logger_.isDebugEnabled()) {
@@ -848,7 +840,7 @@ final public class DataStore {
 
     Collections.sort(params);
 
-    String cacheId = hash(Joiner.on(SEPARATOR_NUL).join(params));
+    String cacheId = MaskingIterator.hash(null, Joiner.on(SEPARATOR_NUL).join(params));
 
     if (DataStoreCache.hasData(scanners, newDataset, cacheId)) {
       if (logger_.isDebugEnabled()) {
@@ -882,7 +874,8 @@ final public class DataStore {
    * @param value the value to match.
    * @return an unordered stream of documents ids.
    */
-  public Iterator<String> match(Scanners scanners, String dataset, String field, Object value) {
+  public Iterator<String> matchValue(Scanners scanners, String dataset, String field,
+      Object value) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -893,7 +886,30 @@ final public class DataStore {
       logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
           .add("field", field).add("value", value).formatDebug());
     }
-    return DataStoreHashIndex.read(scanners, dataset, field, value.toString());
+    return DataStoreHashIndex.readValue(scanners, dataset, field, value.toString());
+  }
+
+  /**
+   * Get the ids of all documents where a field hashed value exactly matches a given hash.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset.
+   * @param field which field must be considered.
+   * @param hash the hash to match.
+   * @return an unordered stream of documents ids.
+   */
+  public Iterator<String> matchHash(Scanners scanners, String dataset, String field, String hash) {
+
+    Preconditions.checkNotNull(scanners, "scanners should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(hash, "hash should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
+          .add("field", field).add("hash", hash).formatDebug());
+    }
+    return DataStoreHashIndex.readHash(scanners, dataset, field, hash);
   }
 
   /**

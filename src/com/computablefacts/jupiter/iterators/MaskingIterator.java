@@ -26,11 +26,15 @@ import org.apache.accumulo.core.security.VisibilityParseException;
 import com.computablefacts.jupiter.Users;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
+import com.google.common.hash.Hasher;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-public abstract class AnonymizingIterator
+public abstract class MaskingIterator
     implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
+
+  private static final String AUTHS_CRITERION = "a";
+  private static final String SALT_CRITERION = "s";
 
   private SortedKeyValueIterator<Key, Value> source_;
   private Map<String, String> options_;
@@ -38,48 +42,80 @@ public abstract class AnonymizingIterator
   private Value topValue_;
   private Set<String> auths_;
 
-  public AnonymizingIterator() {}
+  public MaskingIterator() {}
 
   public static void setAuthorizations(IteratorSetting setting, Authorizations authorizations) {
     if (authorizations != null) {
-      setting.addOption("auths", authorizations.toString());
+      setting.addOption(AUTHS_CRITERION, authorizations.toString());
     }
   }
 
   public static void setSalt(IteratorSetting setting, String salt) {
     if (salt != null) {
-      setting.addOption("salt", salt);
+      setting.addOption(SALT_CRITERION, salt);
     }
-  }
-
-  /**
-   * Hash a given {@link Value}.
-   *
-   * @param value {@link Value}
-   * @return hashed value.
-   */
-  static String hash(String salt, Value value) {
-    if (value == null) {
-      return "ANONYMIZED_" + MURMUR3_128.hashString(salt, StandardCharsets.UTF_8).toString();
-    }
-    return "ANONYMIZED_"
-        + MURMUR3_128.newHasher().putString(salt == null ? "" : salt, StandardCharsets.UTF_8)
-            .putBytes(value.get()).hash().toString();
   }
 
   /**
    * Hash a given {@link String}.
    *
-   * @param value {@link String}
+   * @param salt salt.
+   * @param value {@link String}.
    * @return hashed value.
    */
-  static String hash(String salt, String value) {
-    if (value == null) {
-      return "ANONYMIZED_" + MURMUR3_128.hashString(salt, StandardCharsets.UTF_8).toString();
+  public static String hash(String salt, String value) {
+
+    Hasher hasher = MURMUR3_128.newHasher();
+
+    if (salt != null) {
+      hasher.putString(salt, StandardCharsets.UTF_8);
     }
-    return "ANONYMIZED_"
-        + MURMUR3_128.newHasher().putString(salt == null ? "" : salt, StandardCharsets.UTF_8)
-            .putString(value, StandardCharsets.UTF_8).hash().toString();
+    if (value != null) {
+      hasher.putString(value, StandardCharsets.UTF_8);
+    }
+    return hasher.hash().toString();
+  }
+
+  /**
+   * Hash a given {@link Value}.
+   *
+   * @param salt salt.
+   * @param value {@link Value}.
+   * @return hashed value.
+   */
+  private static String hash(String salt, Value value) {
+
+    Hasher hasher = MURMUR3_128.newHasher();
+
+    if (salt != null) {
+      hasher.putString(salt, StandardCharsets.UTF_8);
+    }
+    if (value != null) {
+      hasher.putBytes(value.get());
+    }
+    return hasher.hash().toString();
+  }
+
+  /**
+   * Mask a given {@link String}.
+   *
+   * @param salt salt.
+   * @param value {@link String}.
+   * @return hashed value.
+   */
+  protected static String mask(String salt, String value) {
+    return "MASKED_" + hash(salt, value);
+  }
+
+  /**
+   * Mask a given {@link Value}.
+   *
+   * @param salt salt.
+   * @param value {@link Value}.
+   * @return hashed value.
+   */
+  protected static String mask(String salt, Value value) {
+    return "MASKED_" + hash(salt, value);
   }
 
   @Override
@@ -89,7 +125,7 @@ public abstract class AnonymizingIterator
 
   @Override
   public boolean validateOptions(Map<String, String> map) {
-    return map.containsKey("auths");
+    return map.containsKey(AUTHS_CRITERION);
   }
 
   @Override
@@ -142,7 +178,7 @@ public abstract class AnonymizingIterator
 
   @Override
   public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment environment) {
-    AnonymizingIterator iterator = create();
+    MaskingIterator iterator = create();
     iterator.init(source_.deepCopy(environment), options_, environment);
     return iterator;
   }
@@ -150,9 +186,9 @@ public abstract class AnonymizingIterator
   /**
    * Create a new instance of the current class.
    *
-   * @return a new instance of the current class overriding {@link AnonymizingIterator}.
+   * @return a new instance of the current class overriding {@link MaskingIterator}.
    */
-  protected abstract AnonymizingIterator create();
+  protected abstract MaskingIterator create();
 
   /**
    * Create a new (Key, Value) pair based on the current one. Must call setTopKey() and
@@ -169,7 +205,7 @@ public abstract class AnonymizingIterator
    * @return the user's salt.
    */
   protected String salt() {
-    return options_.getOrDefault("salt", "");
+    return options_.getOrDefault(SALT_CRITERION, null);
   }
 
   /**
@@ -180,7 +216,7 @@ public abstract class AnonymizingIterator
   protected Set<String> parsedAuths() {
     if (auths_ == null) {
       auths_ = Sets.newHashSet(
-          Splitter.on(',').trimResults().omitEmptyStrings().split(options_.get("auths")));
+          Splitter.on(',').trimResults().omitEmptyStrings().split(options_.get(AUTHS_CRITERION)));
     }
     return new HashSet<>(auths_);
   }
