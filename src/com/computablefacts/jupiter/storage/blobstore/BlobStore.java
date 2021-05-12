@@ -242,20 +242,23 @@ final public class BlobStore extends AbstractStorage {
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(dataset));
 
-    IteratorSetting setting1 = new IteratorSetting(21, BlobStoreMaskingIterator.class);
-    BlobStoreMaskingIterator.setAuthorizations(setting1, scanner.getAuthorizations());
-    // TODO : set salt
-
-    scanner.addScanIterator(setting1);
+    @Var
+    int priority = 21;
 
     if (fields != null && !fields.isEmpty()) {
 
-      IteratorSetting setting2 =
-          new IteratorSetting(22, BlobStoreFilterOutJsonFieldsIterator.class);
-      BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting2, fields);
+      IteratorSetting setting =
+          new IteratorSetting(priority++, BlobStoreFilterOutJsonFieldsIterator.class);
+      BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting, fields);
 
-      scanner.addScanIterator(setting2);
+      scanner.addScanIterator(setting);
     }
+
+    IteratorSetting setting = new IteratorSetting(priority, BlobStoreMaskingIterator.class);
+    BlobStoreMaskingIterator.setAuthorizations(setting, scanner.getAuthorizations());
+    // TODO : set salt
+
+    scanner.addScanIterator(setting);
 
     List<Range> ranges;
 
