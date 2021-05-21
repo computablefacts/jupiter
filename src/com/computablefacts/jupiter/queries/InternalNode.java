@@ -72,10 +72,10 @@ final public class InternalNode extends AbstractNode {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(scanners, "scanners should not be null");
 
-    if (logger_.isInfoEnabled()) {
+    if (logger_.isDebugEnabled()) {
       logger_
-          .info(LogFormatter.create(true).add("dataset", dataset).add("conjunction", conjunction_)
-              .add("child1", child1_).add("child2", child2_).formatInfo());
+          .debug(LogFormatter.create(true).add("dataset", dataset).add("conjunction", conjunction_)
+              .add("child1", child1_).add("child2", child2_).formatDebug());
     }
 
     long cardChild1;
@@ -136,10 +136,10 @@ final public class InternalNode extends AbstractNode {
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(writers, "writers should not be null");
 
-    if (logger_.isInfoEnabled()) {
+    if (logger_.isDebugEnabled()) {
       logger_
-          .info(LogFormatter.create(true).add("dataset", dataset).add("conjunction", conjunction_)
-              .add("child1", child1_).add("child2", child2_).formatInfo());
+          .debug(LogFormatter.create(true).add("dataset", dataset).add("conjunction", conjunction_)
+              .add("child1", child1_).add("child2", child2_).formatDebug());
     }
 
     if (child1_ == null) {

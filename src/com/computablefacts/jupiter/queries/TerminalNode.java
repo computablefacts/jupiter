@@ -122,9 +122,9 @@ final public class TerminalNode extends AbstractNode {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(scanners, "scanners should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
-          .add("value", value_).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
+          .add("value", value_).formatDebug());
     }
 
     if (Range.equals(form_)) {
@@ -193,10 +193,10 @@ final public class TerminalNode extends AbstractNode {
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(writers, "writers should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(
           LogFormatter.create(true).add("dataset", dataset).add("key", key_).add("value", value_)
-              .add("has_docs_ids", docsIds != null).add("form", form_.toString()).formatInfo());
+              .add("has_docs_ids", docsIds != null).add("form", form_.toString()).formatDebug());
     }
 
     if (Range.equals(form_)) {
