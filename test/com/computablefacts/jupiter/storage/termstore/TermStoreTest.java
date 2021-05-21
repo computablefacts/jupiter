@@ -16,11 +16,13 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.Tables;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
@@ -1219,6 +1221,54 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(2).labels());
       Assert.assertEquals(multiset, topTerms.get(2).topTermsNoFalsePositives());
       Assert.assertEquals(multiset, topTerms.get(2).topTermsNoFalseNegatives());
+    }
+  }
+
+  @Test
+  public void testQueryWithBucketsIds() throws Exception {
+
+    String dataset = "terms";
+    Set<String> labels = Sets.newHashSet();
+    Authorizations auths = new Authorizations("ADM", "TERMS_FIRST_NAME");
+    TermStore termStore = newTermStore(auths);
+
+    try (BatchWriter writer = termStore.writer()) {
+
+      Assert
+          .assertTrue(termStore.put(writer, dataset, "1", "first_name", "john", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "1", "last_name", "doe", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "1", "age", 37, 1, labels, labels));
+
+      Assert
+          .assertTrue(termStore.put(writer, dataset, "2", "first_name", "jane", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "2", "last_name", "doe", 1, labels, labels));
+      Assert.assertTrue(termStore.put(writer, dataset, "2", "age", 27, 1, labels, labels));
+    }
+
+    BloomFilters<String> bfs = new BloomFilters<>();
+
+    for (String docId : Lists.newArrayList("2")) {
+      bfs.put(docId);
+    }
+
+    try (Scanner scanner = termStore.scanner(auths)) {
+
+      List<Term> bucketsIds = new ArrayList<>();
+      termStore.bucketsIds(scanner, dataset, null, "jan*", bfs).forEachRemaining(bucketsIds::add);
+
+      Assert.assertEquals(1, bucketsIds.size());
+      Assert.assertEquals(dataset, bucketsIds.get(0).dataset());
+      Assert.assertEquals("2", bucketsIds.get(0).bucketId());
+      Assert.assertEquals("first_name", bucketsIds.get(0).field());
+      Assert.assertEquals("jane", bucketsIds.get(0).term());
+      Assert.assertEquals(1, bucketsIds.get(0).type());
+      Assert.assertEquals(0, bucketsIds.get(0).labels().size());
+      Assert.assertEquals(1, bucketsIds.get(0).count());
+
+      bucketsIds.clear();
+      termStore.bucketsIds(scanner, dataset, null, "joh*", bfs).forEachRemaining(bucketsIds::add);
+
+      Assert.assertEquals(0, bucketsIds.size());
     }
   }
 
