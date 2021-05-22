@@ -146,9 +146,13 @@ final public class Users {
 
     if (securityOperations != null) {
       try {
-        Authorizations userAuthorizations =
-            new Authorizations(authorizations.toArray(new String[authorizations.size()]));
-        securityOperations.changeUserAuthorizations(username, userAuthorizations);
+        if (authorizations.isEmpty()) {
+          securityOperations.changeUserAuthorizations(username, Authorizations.EMPTY);
+        } else {
+          Authorizations userAuthorizations =
+              new Authorizations(authorizations.toArray(new String[authorizations.size()]));
+          securityOperations.changeUserAuthorizations(username, userAuthorizations);
+        }
         return true;
       } catch (AccumuloSecurityException | AccumuloException e) {
         logger_.error(LogFormatter.create(true).message(e).formatError());
