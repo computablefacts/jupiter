@@ -211,8 +211,8 @@ final public class TermStore extends AbstractStorage {
   @Override
   public boolean create() {
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
     }
 
     if (!isReady()) {
@@ -259,8 +259,8 @@ final public class TermStore extends AbstractStorage {
   @Override
   public boolean truncate() {
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
     }
 
     if (!super.truncate()) {
@@ -303,9 +303,9 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(deleter, "deleter should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .formatDebug());
     }
 
     Set<String> cfs = Sets.newHashSet(topTerms(dataset), distinctTerms(dataset),
@@ -325,9 +325,9 @@ final public class TermStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .formatDebug());
     }
 
     Map<String, Set<Text>> groups =
@@ -483,7 +483,7 @@ final public class TermStore extends AbstractStorage {
           .warn(LogFormatter.create(true)
               .message(String.format(
                   "%s has been lexicoded to null/an empty string. Term has been ignored.",
-                  term.toString()))
+                  term))
               .formatWarn());
       return false;
     }
@@ -559,9 +559,9 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("fields", fields).formatDebug());
     }
 
     scanner.clearColumns();
@@ -597,9 +597,9 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("fields", fields).formatDebug());
     }
 
     scanner.clearColumns();
@@ -636,9 +636,9 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("fields", fields).formatDebug());
     }
 
     scanner.clearColumns();
@@ -675,9 +675,9 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("fields", fields).formatDebug());
     }
 
     scanner.clearColumns();
@@ -714,9 +714,9 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("fields", fields).formatDebug());
     }
 
     scanner.clearColumns();
@@ -775,9 +775,9 @@ final public class TermStore extends AbstractStorage {
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
         "term cannot start AND end with a wildcard");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).add("term", term).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("fields", fields).add("term", term).formatDebug());
     }
 
     scanner.clearColumns();
@@ -853,10 +853,10 @@ final public class TermStore extends AbstractStorage {
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
         "term cannot start AND end with a wildcard");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
           .add("fields", fields).add("term", term).add("has_buckets_ids", bucketsIds != null)
-          .formatInfo());
+          .formatDebug());
     }
 
     scanner.clearColumns();
@@ -919,9 +919,9 @@ final public class TermStore extends AbstractStorage {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).add("min_term", minTerm).add("max_term", maxTerm).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("fields", fields).add("min_term", minTerm).add("max_term", maxTerm).formatDebug());
     }
 
     scanner.clearColumns();
@@ -976,10 +976,10 @@ final public class TermStore extends AbstractStorage {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
           .add("fields", fields).add("min_term", minTerm).add("max_term", maxTerm)
-          .add("has_buckets_ids", bucketsIds != null).formatInfo());
+          .add("has_buckets_ids", bucketsIds != null).formatDebug());
     }
 
     scanner.clearColumns();

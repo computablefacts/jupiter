@@ -193,8 +193,8 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return Users.grantPermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.WRITE);
@@ -205,8 +205,8 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return Users.grantPermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.READ);
@@ -217,8 +217,8 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return Users.grantPermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.WRITE);
@@ -229,8 +229,8 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return Users.grantPermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.READ);
@@ -241,8 +241,8 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return Users.revokePermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.WRITE);
@@ -253,8 +253,8 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return Users.revokePermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.READ);
@@ -265,8 +265,8 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return Users.revokePermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.WRITE);
@@ -277,8 +277,8 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return Users.revokePermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.READ);
@@ -294,8 +294,8 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return grantReadPermissionOnBlobStore(username) && grantReadPermissionOnTermStore(username);
   }
@@ -310,8 +310,8 @@ final public class DataStore {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return revokeReadPermissionOnBlobStore(username) && revokeReadPermissionOnTermStore(username);
   }
@@ -322,8 +322,8 @@ final public class DataStore {
    * @return true if the storage layer is ready to be used, false otherwise.
    */
   public boolean isReady() {
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
     return blobStore_.isReady() && termStore_.isReady();
   }
@@ -336,8 +336,8 @@ final public class DataStore {
    */
   public boolean create() {
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("namespace", name()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
 
     if (!blobStore_.isReady()) {
@@ -419,9 +419,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(
-          LogFormatter.create(true).add("namespace", name()).add("dataset", dataset).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(
+          LogFormatter.create(true).add("namespace", name()).add("dataset", dataset).formatDebug());
     }
 
     @Var
@@ -449,9 +449,9 @@ final public class DataStore {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(
-          LogFormatter.create(true).add("namespace", name()).add("dataset", dataset).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(
+          LogFormatter.create(true).add("namespace", name()).add("dataset", dataset).formatDebug());
     }
 
     boolean isOk1 = blobStore_.addLocalityGroup(dataset);

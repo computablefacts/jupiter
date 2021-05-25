@@ -73,9 +73,9 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .formatDebug());
     }
 
     Map<String, Set<Text>> groups =
@@ -115,9 +115,9 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(deleter, "deleter should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("keys", keys).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("keys", keys).formatDebug());
     }
 
     @Var
@@ -233,9 +233,9 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("has_fields", fields != null).add("has_keys", keys != null).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .add("has_fields", fields != null).add("has_keys", keys != null).formatDebug());
     }
 
     scanner.clearColumns();
