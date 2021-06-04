@@ -154,8 +154,8 @@ final public class DataStoreInfos {
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
     set.addAll(topTermsNoFalseNegatives_.cellSet().stream()
-            .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
-            .collect(Collectors.toSet()));
+        .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
+        .collect(Collectors.toSet()));
     set.addAll(visibilityLabels_.cellSet().stream()
         .map(cell -> new AbstractMap.SimpleEntry<>(cell.getRowKey(), cell.getColumnKey()))
         .collect(Collectors.toSet()));
@@ -186,7 +186,7 @@ final public class DataStoreInfos {
 
             return pair;
           }).collect(Collectors.toList())
-          : 0);
+          : Sets.newHashSet());
       map.put("top_terms_no_false_negatives", topTermsNoFalseNegatives_.contains(dataset, field)
           ? topTermsNoFalseNegatives_.get(dataset, field).entrySet().stream().map(entry -> {
 
@@ -196,7 +196,7 @@ final public class DataStoreInfos {
 
             return pair;
           }).collect(Collectors.toList())
-          : 0);
+          : Sets.newHashSet());
       map.put("visibility_labels",
           visibilityLabels_.contains(dataset, field) ? visibilityLabels_.get(dataset, field)
               : Sets.newHashSet());
