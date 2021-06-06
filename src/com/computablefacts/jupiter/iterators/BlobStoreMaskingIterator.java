@@ -3,6 +3,7 @@ package com.computablefacts.jupiter.iterators;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
+import static com.computablefacts.nona.helpers.Document.ID_MAGIC_KEY;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -121,8 +122,10 @@ public class BlobStoreMaskingIterator extends MaskingIterator {
           List<String> path = Lists.newArrayList(
               Splitter.on(SEPARATOR_CURRENCY_SIGN).trimResults().omitEmptyStrings().split(field));
 
-          if (AbstractStorage.toVisibilityLabels(path).stream().map(label -> vizDataset + label)
-              .noneMatch(auths::contains)) {
+          if (ID_MAGIC_KEY.equals(field)) {
+            newJson.put(field, object);
+          } else if (AbstractStorage.toVisibilityLabels(path).stream()
+              .map(label -> vizDataset + label).noneMatch(auths::contains)) {
             newJson.put(field, mask(salt(), object == null ? (String) object : object.toString()));
           } else {
             newJson.put(field, object);
