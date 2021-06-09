@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.datastore.DataStore.blobStoreName;
+import static com.computablefacts.jupiter.storage.datastore.DataStore.cacheName;
 import static com.computablefacts.jupiter.storage.datastore.DataStore.termStoreName;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -21,13 +22,14 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-public class Writers implements AutoCloseable {
+final public class Writers implements AutoCloseable {
 
   private static final Logger logger_ = LoggerFactory.getLogger(Writers.class);
 
   private MultiTableBatchWriter writer_;
   private BatchWriter writerBlob_;
   private BatchWriter writerIndex_;
+  private BatchWriter writerCache_;
 
   @Deprecated
   public Writers(Configurations configurations, String name) {
@@ -44,10 +46,16 @@ public class Writers implements AutoCloseable {
       writer_ = Tables.multiTableBatchWriter(configurations.connector(), config);
       writerBlob_ = writer_.getBatchWriter(blobStoreName(name));
       writerIndex_ = writer_.getBatchWriter(termStoreName(name));
+      writerCache_ = writer_.getBatchWriter(cacheName(name));
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
       close();
     }
+  }
+
+  @Override
+  protected void finalize() {
+    close();
   }
 
   @Override
@@ -63,6 +71,7 @@ public class Writers implements AutoCloseable {
       writer_ = null;
       writerBlob_ = null;
       writerIndex_ = null;
+      writerCache_ = null;
     }
   }
 
@@ -86,5 +95,9 @@ public class Writers implements AutoCloseable {
 
   public BatchWriter index() {
     return writerIndex_;
+  }
+
+  public BatchWriter cache() {
+    return writerCache_;
   }
 }

@@ -86,6 +86,16 @@ public class Shell {
             grantWritePermissionOnTermStore(configurations, datastore, getArg(args, "au")),
             "Set WRITE permission on TermStore failed!");
         break;
+      case "cache_grant_read_permission":
+        Preconditions.checkState(
+            grantReadPermissionOnCache(configurations, datastore, getArg(args, "au")),
+            "Set READ permission on Cache failed!");
+        break;
+      case "cache_grant_write_permission":
+        Preconditions.checkState(
+            grantWritePermissionOnCache(configurations, datastore, getArg(args, "au")),
+            "Set WRITE permission on Cache failed!");
+        break;
       case "add_locality_group":
         Preconditions.checkState(addLocalityGroup(configurations, datastore, getArg(args, "ds")),
             "LOCALITY GROUP creation failed!");
@@ -156,6 +166,24 @@ public class Shell {
     Preconditions.checkNotNull(datastore, "datastore should not be null");
 
     return new DataStore(configurations, datastore).grantReadPermissionOnTermStore(username);
+  }
+
+  public static boolean grantWritePermissionOnCache(Configurations configurations, String datastore,
+      String username) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+
+    return new DataStore(configurations, datastore).grantWritePermissionOnCache(username);
+  }
+
+  public static boolean grantReadPermissionOnCache(Configurations configurations, String datastore,
+      String username) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+
+    return new DataStore(configurations, datastore).grantReadPermissionOnCache(username);
   }
 
   public static boolean addLocalityGroup(Configurations configurations, String datastore,

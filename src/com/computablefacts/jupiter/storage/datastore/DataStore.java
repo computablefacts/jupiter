@@ -80,17 +80,25 @@ import com.google.errorprone.annotations.Var;
  * </p>
  *
  * <p>
- * Note that the {@link BlobStore} also holds cached data (temporary computations) and a hash index
- * of all JSON values.
+ * Note that the {@link BlobStore} also holds a hash index of all JSON values.
  * </p>
  *
  * <pre>
  *  Row                          | Column Family | Column Qualifier                                | Visibility                             | Value
  * ==============================+===============+=================================================+========================================+========
  *  <key>                        | <dataset>     | <blob_type>\0<property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
+ *  <hash>\0<field>\0<dataset>   | hidx          | (empty)                                         | (empty)                                | <key1>\0<key2>\0...
+ * </pre>
+ *
+ * <p>
+ * Another {@link BlobStore} holds cached data i.e. temporary computations.
+ * </p>
+ *
+ * <pre>
+ *  Row                          | Column Family | Column Qualifier                                | Visibility                             | Value
+ * ==============================+===============+=================================================+========================================+========
  *  <uuid>\0<dataset>            | cache         | <cached_string>                                 | (empty)                                | (empty)
  *  <uuid>\0<dataset>            | cache         | <hashed_string>                                 | (empty)                                | <cached_string>
- *  <hash>\0<field>\0<dataset>   | hidx          | (empty)                                         | (empty)                                | <key1>\0<key2>\0...
  * </pre>
  *
  * <p>
@@ -106,11 +114,13 @@ final public class DataStore {
   private final String name_;
   private final BlobStore blobStore_;
   private final TermStore termStore_;
+  private final BlobStore cache_;
 
   public DataStore(Configurations configurations, String name) {
     name_ = Preconditions.checkNotNull(name, "name should neither be null nor empty");
     blobStore_ = new BlobStore(configurations, blobStoreName(name));
     termStore_ = new TermStore(configurations, termStoreName(name));
+    cache_ = new BlobStore(configurations, cacheName(name));
   }
 
   static String normalize(String str) {
@@ -125,6 +135,11 @@ final public class DataStore {
   @Generated
   static String termStoreName(String name) {
     return name + "Terms";
+  }
+
+  @Generated
+  static String cacheName(String name) {
+    return name + "Cache";
   }
 
   /**
@@ -145,6 +160,16 @@ final public class DataStore {
   @Generated
   public TermStore termStore() {
     return termStore_;
+  }
+
+  /**
+   * Get a direct access to the underlying cache.
+   *
+   * @return {@link BlobStore}
+   */
+  @Generated
+  public BlobStore cache() {
+    return cache_;
   }
 
   /**
@@ -188,7 +213,6 @@ final public class DataStore {
     return new Writers(configurations(), name());
   }
 
-  @Deprecated
   public boolean grantWritePermissionOnBlobStore(String username) {
 
     Preconditions.checkNotNull(username, "username should not be null");
@@ -200,7 +224,6 @@ final public class DataStore {
         blobStoreName(name()), TablePermission.WRITE);
   }
 
-  @Deprecated
   public boolean grantReadPermissionOnBlobStore(String username) {
 
     Preconditions.checkNotNull(username, "username should not be null");
@@ -212,7 +235,6 @@ final public class DataStore {
         blobStoreName(name()), TablePermission.READ);
   }
 
-  @Deprecated
   public boolean grantWritePermissionOnTermStore(String username) {
 
     Preconditions.checkNotNull(username, "username should not be null");
@@ -224,7 +246,6 @@ final public class DataStore {
         termStoreName(name()), TablePermission.WRITE);
   }
 
-  @Deprecated
   public boolean grantReadPermissionOnTermStore(String username) {
 
     Preconditions.checkNotNull(username, "username should not be null");
@@ -236,7 +257,28 @@ final public class DataStore {
         termStoreName(name()), TablePermission.READ);
   }
 
-  @Deprecated
+  public boolean grantWritePermissionOnCache(String username) {
+
+    Preconditions.checkNotNull(username, "username should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
+    }
+    return Users.grantPermission(cache_.configurations().connector(), username, cacheName(name()),
+        TablePermission.WRITE);
+  }
+
+  public boolean grantReadPermissionOnCache(String username) {
+
+    Preconditions.checkNotNull(username, "username should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
+    }
+    return Users.grantPermission(cache_.configurations().connector(), username, cacheName(name()),
+        TablePermission.READ);
+  }
+
   public boolean revokeWritePermissionOnBlobStore(String username) {
 
     Preconditions.checkNotNull(username, "username should not be null");
@@ -248,7 +290,6 @@ final public class DataStore {
         blobStoreName(name()), TablePermission.WRITE);
   }
 
-  @Deprecated
   public boolean revokeReadPermissionOnBlobStore(String username) {
 
     Preconditions.checkNotNull(username, "username should not be null");
@@ -260,7 +301,6 @@ final public class DataStore {
         blobStoreName(name()), TablePermission.READ);
   }
 
-  @Deprecated
   public boolean revokeWritePermissionOnTermStore(String username) {
 
     Preconditions.checkNotNull(username, "username should not be null");
@@ -272,7 +312,6 @@ final public class DataStore {
         termStoreName(name()), TablePermission.WRITE);
   }
 
-  @Deprecated
   public boolean revokeReadPermissionOnTermStore(String username) {
 
     Preconditions.checkNotNull(username, "username should not be null");
@@ -284,36 +323,26 @@ final public class DataStore {
         termStoreName(name()), TablePermission.READ);
   }
 
-  /**
-   * Grant the READ permission on the underlying tables for a given user.
-   *
-   * @param username user.
-   * @return true iif the READ permission has been granted, false otherwise.
-   */
-  public boolean grantReadPermissions(String username) {
+  public boolean revokeWritePermissionOnCache(String username) {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
-    return grantReadPermissionOnBlobStore(username) && grantReadPermissionOnTermStore(username);
+    return Users.revokePermission(cache_.configurations().connector(), username, cacheName(name()),
+        TablePermission.WRITE);
   }
 
-  /**
-   * Revoke the READ permission on the underlying tables for a given user.
-   *
-   * @param username user.
-   * @return true iif the READ permission has been revoked, false otherwise.
-   */
-  public boolean revokeReadPermissions(String username) {
+  public boolean revokeReadPermissionOnCache(String username) {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
-    return revokeReadPermissionOnBlobStore(username) && revokeReadPermissionOnTermStore(username);
+    return Users.revokePermission(cache_.configurations().connector(), username, cacheName(name()),
+        TablePermission.READ);
   }
 
   /**
@@ -325,7 +354,7 @@ final public class DataStore {
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
-    return blobStore_.isReady() && termStore_.isReady();
+    return blobStore_.isReady() && termStore_.isReady() && cache_.isReady();
   }
 
   /**
@@ -352,12 +381,24 @@ final public class DataStore {
       }
     }
 
+    if (!cache_.isReady()) {
+      if (!cache_.create()) {
+        return false;
+      }
+    }
+
     try {
 
-      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators =
-          configurations().tableOperations().listIterators(blobStore_.tableName());
+      // Cache
+      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators1 =
+          configurations().tableOperations().listIterators(cache_.tableName());
 
-      if (!iterators.containsKey("AgeOffPeriodFilter")) {
+      if (iterators1.containsKey("AgeOffPeriodFilter")) { // TODO : remove after migration
+        configurations().tableOperations().removeIterator(cache_.tableName(),
+            AgeOffPeriodFilter.class.getSimpleName(), EnumSet.of(IteratorUtil.IteratorScope.majc,
+                IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
+      }
+      if (!iterators1.containsKey("AgeOffPeriodFilter")) {
 
         // Set a 3 hours TTL on all cached data
         IteratorSetting settings = new IteratorSetting(7, AgeOffPeriodFilter.class);
@@ -365,13 +406,28 @@ final public class DataStore {
         AgeOffPeriodFilter.setTtl(settings, 3);
         AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");
 
-        configurations().tableOperations().attachIterator(blobStore_.tableName(), settings);
+        configurations().tableOperations().attachIterator(cache_.tableName(), settings);
       }
 
-      if (!iterators.containsKey("DataStoreHashIndexCombiner")) {
+      // BlobStore
+      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators2 =
+          configurations().tableOperations().listIterators(blobStore_.tableName());
+
+      if (iterators2.containsKey("AgeOffPeriodFilter")) { // TODO : remove after migration
+        configurations().tableOperations().removeIterator(blobStore_.tableName(),
+            AgeOffPeriodFilter.class.getSimpleName(), EnumSet.of(IteratorUtil.IteratorScope.majc,
+                IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
+      }
+      if (iterators2.containsKey("DataStoreHashIndexCombiner")) {
+        configurations().tableOperations().removeIterator(blobStore_.tableName(),
+            DataStoreHashIndexCombiner.class.getSimpleName(),
+            EnumSet.of(IteratorUtil.IteratorScope.majc, IteratorUtil.IteratorScope.minc,
+                IteratorUtil.IteratorScope.scan));
+      }
+      if (!iterators2.containsKey("DataStoreHashIndexCombiner")) {
 
         // Set the left index combiner
-        IteratorSetting setting = new IteratorSetting(8, DataStoreHashIndexCombiner.class);
+        IteratorSetting setting = new IteratorSetting(7, DataStoreHashIndexCombiner.class);
         DataStoreHashIndexCombiner.setColumns(setting,
             Lists.newArrayList(new IteratorSetting.Column(TEXT_HASH_INDEX)));
         DataStoreHashIndexCombiner.setReduceOnFullCompactionOnly(setting, true);
@@ -382,11 +438,7 @@ final public class DataStore {
       logger_.error(LogFormatter.create(true).message(e).formatError());
       return false;
     }
-
-    boolean isOkLG1 = blobStore_.addLocalityGroup(TEXT_CACHE.toString());
-    boolean isOkLG2 = blobStore_.addLocalityGroup(TEXT_HASH_INDEX.toString());
-
-    return isOkLG1 && isOkLG2;
+    return blobStore_.addLocalityGroup(TEXT_HASH_INDEX.toString());
   }
 
   /**
@@ -396,7 +448,7 @@ final public class DataStore {
    *         otherwise.
    */
   public boolean destroy() {
-    return termStore_.destroy() && blobStore_.destroy();
+    return termStore_.destroy() && blobStore_.destroy() && cache_.destroy();
   }
 
   /**
@@ -405,7 +457,7 @@ final public class DataStore {
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean truncate() {
-    return termStore_.truncate() && blobStore_.truncate();
+    return termStore_.truncate() && blobStore_.truncate() && cache_.truncate();
   }
 
   /**
@@ -433,8 +485,10 @@ final public class DataStore {
     }
     try (BatchDeleter deleter = blobStore_.deleter(auths)) {
       isOk = isOk && blobStore_.removeDataset(deleter, dataset);
-      isOk = isOk && DataStoreCache.remove(deleter, dataset);
       isOk = isOk && DataStoreHashIndex.remove(deleter, dataset);
+    }
+    try (BatchDeleter deleter = cache_.deleter(auths)) {
+      isOk = isOk && DataStoreCache.remove(deleter, dataset);
     }
     return isOk;
   }

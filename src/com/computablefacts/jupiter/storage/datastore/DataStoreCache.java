@@ -157,9 +157,9 @@ final public class DataStoreCache {
     Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
     Preconditions.checkNotNull(cacheId, "cacheId should neither be null nor empty");
 
-    scanners.blob().clearColumns();
-    scanners.blob().clearScanIterators();
-    scanners.blob().fetchColumnFamily(TEXT_CACHE);
+    scanners.cache().clearColumns();
+    scanners.cache().clearScanIterators();
+    scanners.cache().fetchColumnFamily(TEXT_CACHE);
 
     Range range;
 
@@ -172,10 +172,10 @@ final public class DataStoreCache {
       range = new Range(begin, true, end, false);
     }
 
-    if (!AbstractStorage.setRange(scanners.blob(), range)) {
+    if (!AbstractStorage.setRange(scanners.cache(), range)) {
       return ITERATOR_EMPTY;
     }
-    return Iterators.transform(scanners.blob().iterator(),
+    return Iterators.transform(scanners.cache().iterator(),
         entry -> isHashed ? entry.getValue().toString()
             : entry.getKey().getColumnQualifier().toString());
   }
@@ -271,7 +271,7 @@ final public class DataStoreCache {
             mutation.put(TEXT_CACHE, new Text(MaskingIterator.hash(null, value)), new Value(value));
           }
 
-          writers.blob().addMutation(mutation);
+          writers.cache().addMutation(mutation);
           nbElementsWritten++;
         }
       } else if (maxElementsToWrite > 0) {
@@ -286,7 +286,7 @@ final public class DataStoreCache {
             mutation.put(TEXT_CACHE, new Text(MaskingIterator.hash(null, value)), new Value(value));
           }
 
-          writers.blob().addMutation(mutation);
+          writers.cache().addMutation(mutation);
           nbElementsWritten++;
 
           if (--maxElementsToWrite <= 0) {

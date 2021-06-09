@@ -1,7 +1,6 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
 
 import java.util.AbstractMap;
@@ -60,9 +59,14 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         Tables.getLocalityGroups(dataStore.blobStore().configurations().tableOperations(),
             dataStore.blobStore().tableName());
 
-    Assert.assertEquals(2, groupsBefore.size());
-    Assert.assertTrue(groupsBefore.containsKey(TEXT_CACHE.toString()));
+    Assert.assertEquals(1, groupsBefore.size());
     Assert.assertTrue(groupsBefore.containsKey(TEXT_HASH_INDEX.toString()));
+
+    // Check Cache locality groups
+    groupsBefore = Tables.getLocalityGroups(dataStore.cache().configurations().tableOperations(),
+        dataStore.cache().tableName());
+
+    Assert.assertEquals(0, groupsBefore.size());
 
     // Add new locality groups
     Assert.assertTrue(dataStore.addLocalityGroup("dataset_1"));
@@ -94,8 +98,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     groupsAfter = Tables.getLocalityGroups(dataStore.blobStore().configurations().tableOperations(),
         dataStore.blobStore().tableName());
 
-    Assert.assertEquals(3, groupsAfter.size());
-    Assert.assertTrue(groupsAfter.containsKey(TEXT_CACHE.toString()));
+    Assert.assertEquals(2, groupsAfter.size());
     Assert.assertTrue(groupsAfter.containsKey(TEXT_HASH_INDEX.toString()));
     Assert.assertEquals(Sets.newHashSet(new Text("dataset_1")), groupsAfter.get("dataset_1"));
   }
@@ -193,12 +196,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testAndQuery() throws Exception {
 
-    DataStore dataStore = newDataStore(AUTH_ADM);
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
 
     try (Writers writers = dataStore.writers()) {
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
       Assert.assertTrue(dataStore.persist(writers, "dataset_2", "row_1", Data.json3(1)));
     }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     AbstractNode query = QueryBuilder.build("joh? AND doe");
 
@@ -228,12 +235,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testAndNotQuery() throws Exception {
 
-    DataStore dataStore = newDataStore(AUTH_ADM);
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
 
     try (Writers writers = dataStore.writers()) {
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
       Assert.assertTrue(dataStore.persist(writers, "dataset_2", "row_1", Data.json3(1)));
     }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     AbstractNode query = QueryBuilder.build("doe AND NOT jan?");
 
@@ -263,12 +274,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testOrQuery() throws Exception {
 
-    DataStore dataStore = newDataStore(AUTH_ADM);
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
 
     try (Writers writers = dataStore.writers()) {
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
       Assert.assertTrue(dataStore.persist(writers, "dataset_2", "row_1", Data.json3(1)));
     }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
@@ -307,13 +322,17 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testRowLevelAuthorizations() throws Exception {
 
+    String username = nextUsername();
     DataStore dataStore =
-        newDataStore(new Authorizations("ADM", "DATASET_1_ROW_1", "DATASET_1_ROW_2"));
+        newDataStore(new Authorizations("ADM", "DATASET_1_ROW_1", "DATASET_1_ROW_2"), username);
 
     try (Writers writers = dataStore.writers()) {
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
     }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
@@ -355,12 +374,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testCount() throws Exception {
 
-    DataStore dataStore = newDataStore(AUTH_ADM);
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
 
     try (Writers writers = dataStore.writers()) {
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
     }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     @Var
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
@@ -409,12 +432,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testRangeCount() throws Exception {
 
-    DataStore dataStore = newDataStore(AUTH_ADM);
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
 
     try (Writers writers = dataStore.writers()) {
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
     }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     @Var
     AbstractNode query = QueryBuilder.build("age:[* TO 20]");
@@ -450,12 +477,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testRangeQuery() throws Exception {
 
-    DataStore dataStore = newDataStore(AUTH_ADM);
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
 
     try (Writers writers = dataStore.writers()) {
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
     }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     @Var
     AbstractNode query = QueryBuilder.build("age:[* TO 20]");
@@ -545,12 +576,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testMatchValue() throws Exception {
 
-    DataStore dataStore = newDataStore(AUTH_ADM);
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
 
     try (Writers writers = dataStore.writers()) {
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json(1)));
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json(2)));
     }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
 
@@ -599,12 +634,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testMatchHash() throws Exception {
 
-    DataStore dataStore = newDataStore(AUTH_ADM);
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
 
     try (Writers writers = dataStore.writers()) {
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json(1)));
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json(2)));
     }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
 
@@ -656,7 +695,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   @Test
   public void testDataStoreInfos() throws Exception {
 
-    DataStore dataStore = newDataStore(AUTH_ADM);
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
 
     try (Writers writers = dataStore.writers()) {
       dataStore.beginIngest();
@@ -664,6 +704,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
       dataStore.endIngest(writers, "dataset_1");
     }
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     DataStoreInfos infos = dataStore.infos(Sets.newHashSet("dataset_1"), AUTH_ADM);
     Map<String, Object> json = infos.json();
@@ -899,8 +942,11 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   }
 
   private DataStore newDataStore(Authorizations auths) throws Exception {
+    return newDataStore(auths, nextUsername());
+  }
 
-    String username = nextUsername();
+  private DataStore newDataStore(Authorizations auths, String username) throws Exception {
+
     String tableName = nextTableName();
 
     MiniAccumuloClusterUtils.newUser(accumulo(), username);
@@ -911,9 +957,12 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore = new DataStore(configurations, tableName);
 
     Assert.assertTrue(dataStore.create());
-    Assert.assertTrue(dataStore.grantReadPermissions(username));
+    Assert.assertTrue(dataStore.grantReadPermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.grantReadPermissionOnTermStore(username));
+    Assert.assertTrue(dataStore.grantReadPermissionOnCache(username));
     Assert.assertTrue(dataStore.grantWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.grantWritePermissionOnTermStore(username));
+    Assert.assertTrue(dataStore.grantWritePermissionOnCache(username));
 
     return dataStore;
   }
