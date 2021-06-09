@@ -5,7 +5,6 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_S
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
 
 import java.sql.Date;
@@ -97,8 +96,8 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                          | Column Family | Column Qualifier                                | Visibility                             | Value
  * ==============================+===============+=================================================+========================================+========
- *  <uuid>\0<dataset>            | cache         | <cached_string>                                 | (empty)                                | (empty)
- *  <uuid>\0<dataset>            | cache         | <hashed_string>                                 | (empty)                                | <cached_string>
+ *  <uuid>                       | <dataset>     | <cached_string>                                 | (empty)                                | (empty)
+ *  <uuid>                       | <dataset>     | <hashed_string>                                 | (empty)                                | <cached_string>
  * </pre>
  *
  * <p>
@@ -402,7 +401,6 @@ final public class DataStore {
 
         // Set a 3 hours TTL on all cached data
         IteratorSetting settings = new IteratorSetting(7, AgeOffPeriodFilter.class);
-        AgeOffPeriodFilter.setColumnFamily(settings, TEXT_CACHE.toString());
         AgeOffPeriodFilter.setTtl(settings, 3);
         AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");
 
@@ -510,8 +508,9 @@ final public class DataStore {
 
     boolean isOk1 = blobStore_.addLocalityGroup(dataset);
     boolean isOk2 = termStore_.addLocalityGroup(dataset);
+    boolean isOk3 = cache_.addLocalityGroup(dataset);
 
-    return isOk1 && isOk2;
+    return isOk1 && isOk2 && isOk3;
   }
 
   @Beta

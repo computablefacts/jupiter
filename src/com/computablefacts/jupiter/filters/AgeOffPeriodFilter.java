@@ -10,30 +10,20 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.hadoop.io.Text;
 
 import com.computablefacts.nona.Generated;
-import com.google.common.base.Strings;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
 @CheckReturnValue
 public class AgeOffPeriodFilter extends Filter {
 
-  private static final String CF = "cf";
   private static final String START_DATE = "sd";
   private static final String TTL = "ttl";
   private static final String TTL_UNITS = "ttlu";
 
-  private String cf_;
   private long startDate_;
   private long cutOffMillis_;
-
-  public static void setColumnFamily(IteratorSetting setting, String cf) {
-    if (!Strings.isNullOrEmpty(cf)) {
-      setting.addOption(CF, cf);
-    }
-  }
 
   public static void setStartDate(IteratorSetting setting, long startDate) {
     if (startDate > 0) {
@@ -56,40 +46,35 @@ public class AgeOffPeriodFilter extends Filter {
   public IteratorOptions describeOptions() {
 
     Map<String, String> options = new HashMap<>();
-    options.put(CF, "Column family");
     options.put(START_DATE, "Start date");
     options.put(TTL, "TTL");
     options.put(TTL_UNITS, "Units");
 
     return new IteratorOptions("AgeOffPeriodFilter",
-        "AgeOffPeriodFilter accepts or rejects each Key/Value pair based on its column family and timestamp.",
+        "AgeOffPeriodFilter accepts or rejects each Key/Value pair based on its timestamp.",
         options, null);
   }
 
   @Override
   public boolean validateOptions(Map<String, String> options) {
 
-    if (options.size() < 3) {
+    if (options.size() < 2) {
       return false;
     }
 
-    @Var
-    boolean hasCf = false;
     @Var
     boolean hasTtl = false;
     @Var
     boolean hasTtlUnits = false;
 
     for (String option : options.keySet()) {
-      if (option.equals(CF) && options.get(option) != null) {
-        hasCf = true;
-      } else if (option.equals(TTL) && options.get(option) != null) {
+      if (option.equals(TTL) && options.get(option) != null) {
         hasTtl = true;
       } else if (option.equals(TTL_UNITS) && options.get(option) != null) {
         hasTtlUnits = true;
       }
     }
-    return hasCf && hasTtl && hasTtlUnits;
+    return hasTtl && hasTtlUnits;
   }
 
   @Override
@@ -109,17 +94,10 @@ public class AgeOffPeriodFilter extends Filter {
     }
 
     cutOffMillis_ = startDate_ - (ttl * ttlUnitsFactor(units));
-    cf_ = options.get(CF);
   }
 
   @Override
   public boolean accept(Key key, Value value) {
-
-    Text cf = key.getColumnFamily();
-    if (cf == null || !cf_.equals(cf.toString())) {
-      return true;
-    }
-
     long timestamp = key.getTimestamp();
     return timestamp >= cutOffMillis_ && timestamp < startDate_;
   }

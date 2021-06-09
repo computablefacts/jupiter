@@ -24,7 +24,6 @@ public class AgeOffPeriodFilterTest {
 
     AgeOffPeriodFilter iterator = new AgeOffPeriodFilter();
     IteratorSetting iteratorSetting = new IteratorSetting(1, AgeOffPeriodFilter.class);
-    AgeOffPeriodFilter.setColumnFamily(iteratorSetting, null);
     AgeOffPeriodFilter.setTtl(iteratorSetting, 0);
     AgeOffPeriodFilter.setTtlUnits(iteratorSetting, null);
 
@@ -34,7 +33,7 @@ public class AgeOffPeriodFilterTest {
   @Test
   public void testDays() throws Exception {
 
-    AgeOffPeriodFilter iterator = iterator("DATASET_1", 5, "DAYS");
+    AgeOffPeriodFilter iterator = iterator(5, "DAYS");
 
     @Var
     int nbMatchDataset1 = 0;
@@ -56,13 +55,13 @@ public class AgeOffPeriodFilterTest {
     }
 
     Assert.assertEquals(1, nbMatchDataset1);
-    Assert.assertEquals(3, nbMatchDataset2);
+    Assert.assertEquals(2, nbMatchDataset2);
   }
 
   @Test
   public void testHours() throws Exception {
 
-    AgeOffPeriodFilter iterator = iterator("DATASET_1", 5, "HOURS");
+    AgeOffPeriodFilter iterator = iterator(5, "HOURS");
 
     @Var
     int nbMatchDataset1 = 0;
@@ -84,13 +83,13 @@ public class AgeOffPeriodFilterTest {
     }
 
     Assert.assertEquals(0, nbMatchDataset1);
-    Assert.assertEquals(3, nbMatchDataset2);
+    Assert.assertEquals(0, nbMatchDataset2);
   }
 
   @Test
   public void testMinutes() throws Exception {
 
-    AgeOffPeriodFilter iterator = iterator("DATASET_1", 24 * 60, "MINUTES");
+    AgeOffPeriodFilter iterator = iterator(24 * 60, "MINUTES");
 
     @Var
     int nbMatchDataset1 = 0;
@@ -112,13 +111,13 @@ public class AgeOffPeriodFilterTest {
     }
 
     Assert.assertEquals(1, nbMatchDataset1);
-    Assert.assertEquals(3, nbMatchDataset2);
+    Assert.assertEquals(2, nbMatchDataset2);
   }
 
   @Test
   public void testSeconds() throws Exception {
 
-    AgeOffPeriodFilter iterator = iterator("DATASET_1", 0, "SECONDS");
+    AgeOffPeriodFilter iterator = iterator(0, "SECONDS");
 
     @Var
     int nbMatchDataset1 = 0;
@@ -140,14 +139,13 @@ public class AgeOffPeriodFilterTest {
     }
 
     Assert.assertEquals(0, nbMatchDataset1);
-    Assert.assertEquals(3, nbMatchDataset2);
+    Assert.assertEquals(0, nbMatchDataset2);
   }
 
-  private AgeOffPeriodFilter iterator(String cf, long ttl, String ttlUnits) throws IOException {
+  private AgeOffPeriodFilter iterator(long ttl, String ttlUnits) throws IOException {
 
     AgeOffPeriodFilter iterator = new AgeOffPeriodFilter();
     IteratorSetting setting = new IteratorSetting(1, AgeOffPeriodFilter.class);
-    AgeOffPeriodFilter.setColumnFamily(setting, cf);
     AgeOffPeriodFilter.setTtl(setting, ttl);
     AgeOffPeriodFilter.setTtlUnits(setting, ttlUnits);
 

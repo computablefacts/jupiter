@@ -1,8 +1,6 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_CACHE;
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
 import java.util.Collections;
@@ -11,7 +9,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.accumulo.core.client.BatchDeleter;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -23,7 +20,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.logfmt.LogFormatter;
@@ -47,7 +43,7 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                    | Column Family          | Column Qualifier       | Visibility             | Value
  * ========================+========================+========================+========================+========================
- *  <uuid>\0<dataset>      | cache                  | <cached_string>        | (empty)                | (empty)
+ *  <uuid>                 | <dataset>              | <cached_string>        | (empty)                | (empty)
  * </pre>
  *
  * <p>
@@ -57,7 +53,7 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                    | Column Family          | Column Qualifier       | Visibility             | Value
  * ========================+========================+========================+========================+========================
- *  <uuid>\0<dataset>      | cache                  | <hashed_string>        | (empty)                | <cached_string>
+ *  <uuid>                 | <dataset>              | <hashed_string>        | (empty)                | <cached_string>
  * </pre>
  * 
  */
@@ -83,14 +79,8 @@ final public class DataStoreCache {
 
     deleter.clearColumns();
     deleter.clearScanIterators();
-    deleter.fetchColumnFamily(TEXT_CACHE);
+    deleter.fetchColumnFamily(new Text(dataset));
     deleter.setRanges(Collections.singleton(new Range()));
-
-    IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
-    WildcardFilter.applyOnRow(setting);
-    WildcardFilter.addWildcard(setting, "*" + SEPARATOR_NUL + dataset);
-
-    deleter.addScanIterator(setting);
 
     try {
       deleter.delete();
@@ -159,15 +149,14 @@ final public class DataStoreCache {
 
     scanners.cache().clearColumns();
     scanners.cache().clearScanIterators();
-    scanners.cache().fetchColumnFamily(TEXT_CACHE);
+    scanners.cache().fetchColumnFamily(new Text(dataset));
 
     Range range;
 
     if (nextValue == null) {
-      range = Range.exact(new Text(cacheId + SEPARATOR_NUL + dataset), TEXT_CACHE);
+      range = Range.exact(cacheId, dataset);
     } else {
-      Key begin =
-          new Key(new Text(cacheId + SEPARATOR_NUL + dataset), TEXT_CACHE, new Text(nextValue));
+      Key begin = new Key(new Text(cacheId), new Text(dataset), new Text(nextValue));
       Key end = begin.followingKey(PartialKey.ROW);
       range = new Range(begin, true, end, false);
     }
@@ -263,12 +252,13 @@ final public class DataStoreCache {
         while (iterator.hasNext()) {
 
           String value = Strings.nullToEmpty(iterator.next());
-          Mutation mutation = new Mutation(cacheId + SEPARATOR_NUL + dataset);
+          Mutation mutation = new Mutation(cacheId);
 
           if (!hash) {
-            mutation.put(TEXT_CACHE, new Text(value), VALUE_EMPTY);
+            mutation.put(new Text(dataset), new Text(value), VALUE_EMPTY);
           } else {
-            mutation.put(TEXT_CACHE, new Text(MaskingIterator.hash(null, value)), new Value(value));
+            mutation.put(new Text(dataset), new Text(MaskingIterator.hash(null, value)),
+                new Value(value));
           }
 
           writers.cache().addMutation(mutation);
@@ -278,12 +268,13 @@ final public class DataStoreCache {
         while (iterator.hasNext()) {
 
           String value = Strings.nullToEmpty(iterator.next());
-          Mutation mutation = new Mutation(cacheId + SEPARATOR_NUL + dataset);
+          Mutation mutation = new Mutation(cacheId);
 
           if (!hash) {
-            mutation.put(TEXT_CACHE, new Text(value), VALUE_EMPTY);
+            mutation.put(new Text(dataset), new Text(value), VALUE_EMPTY);
           } else {
-            mutation.put(TEXT_CACHE, new Text(MaskingIterator.hash(null, value)), new Value(value));
+            mutation.put(new Text(dataset), new Text(MaskingIterator.hash(null, value)),
+                new Value(value));
           }
 
           writers.cache().addMutation(mutation);
