@@ -17,10 +17,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.TablePermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
@@ -66,6 +68,36 @@ public class Shell {
         new Configurations(instanceName, zooKeepers, username, password);
 
     switch (action) {
+      case "blobstore_grant_alter_permission":
+        Preconditions.checkState(
+            grantAlterPermissionsOnBlobStore(configurations, datastore, getArg(args, "au")),
+            "Set ALTER permission on BlobStore failed!");
+        break;
+      case "blobstore_revoke_alter_permission":
+        Preconditions.checkState(
+            revokeAlterPermissionsOnBlobStore(configurations, datastore, getArg(args, "au")),
+            "Revoke ALTER permission on BlobStore failed!");
+        break;
+      case "termstore_grant_alter_permission":
+        Preconditions.checkState(
+            grantAlterPermissionsOnTermStore(configurations, datastore, getArg(args, "au")),
+            "Set ALTER permission on TermStore failed!");
+        break;
+      case "termstore_revoke_alter_permission":
+        Preconditions.checkState(
+            revokeAlterPermissionsOnTermStore(configurations, datastore, getArg(args, "au")),
+            "Revoke ALTER permission on TermStore failed!");
+        break;
+      case "cache_grant_alter_permission":
+        Preconditions.checkState(
+            grantAlterPermissionsOnCache(configurations, datastore, getArg(args, "au")),
+            "Set ALTER permission on Cache failed!");
+        break;
+      case "cache_revoke_alter_permission":
+        Preconditions.checkState(
+            revokeAlterPermissionsOnCache(configurations, datastore, getArg(args, "au")),
+            "Revoke ALTER permission on Cache failed!");
+        break;
       case "blobstore_grant_read_permission":
         Preconditions.checkState(
             grantReadPermissionOnBlobStore(configurations, datastore, getArg(args, "au")),
@@ -130,6 +162,78 @@ public class Shell {
       default:
         throw new RuntimeException("Unknown action \"" + action + "\"");
     }
+  }
+
+  public static boolean grantAlterPermissionsOnBlobStore(Configurations configurations,
+      String datastore, String username) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+
+    DataStore dataStore = new DataStore(configurations, datastore);
+
+    return Users.grantPermission(dataStore.configurations().connector(), username,
+        dataStore.blobStore().tableName(), TablePermission.GRANT);
+  }
+
+  public static boolean revokeAlterPermissionsOnBlobStore(Configurations configurations,
+      String datastore, String username) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+
+    DataStore dataStore = new DataStore(configurations, datastore);
+
+    return Users.revokePermission(dataStore.configurations().connector(), username,
+        dataStore.blobStore().tableName(), TablePermission.GRANT);
+  }
+
+  public static boolean grantAlterPermissionsOnTermStore(Configurations configurations,
+      String datastore, String username) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+
+    DataStore dataStore = new DataStore(configurations, datastore);
+
+    return Users.grantPermission(dataStore.configurations().connector(), username,
+        dataStore.termStore().tableName(), TablePermission.GRANT);
+  }
+
+  public static boolean revokeAlterPermissionsOnTermStore(Configurations configurations,
+      String datastore, String username) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+
+    DataStore dataStore = new DataStore(configurations, datastore);
+
+    return Users.revokePermission(dataStore.configurations().connector(), username,
+        dataStore.termStore().tableName(), TablePermission.GRANT);
+  }
+
+  public static boolean grantAlterPermissionsOnCache(Configurations configurations,
+      String datastore, String username) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+
+    DataStore dataStore = new DataStore(configurations, datastore);
+
+    return Users.grantPermission(dataStore.configurations().connector(), username,
+        dataStore.cache().tableName(), TablePermission.GRANT);
+  }
+
+  public static boolean revokeAlterPermissionsOnCache(Configurations configurations,
+      String datastore, String username) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+
+    DataStore dataStore = new DataStore(configurations, datastore);
+
+    return Users.revokePermission(dataStore.configurations().connector(), username,
+        dataStore.cache().tableName(), TablePermission.GRANT);
   }
 
   public static boolean grantWritePermissionOnBlobStore(Configurations configurations,
