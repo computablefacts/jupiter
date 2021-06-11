@@ -68,6 +68,10 @@ public class Shell {
         new Configurations(instanceName, zooKeepers, username, password);
 
     switch (action) {
+      case "create_user":
+        Preconditions.checkState(createUser(configurations, getArg(args, "au"), getArg(args, "ap")),
+            "User creation failed!");
+        break;
       case "blobstore_grant_alter_permission":
         Preconditions.checkState(
             grantAlterPermissionsOnBlobStore(configurations, datastore, getArg(args, "au")),
@@ -162,6 +166,14 @@ public class Shell {
       default:
         throw new RuntimeException("Unknown action \"" + action + "\"");
     }
+  }
+
+  public static boolean createUser(Configurations configurations, String username,
+      String password) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+
+    return Users.create(configurations.connector(), username, password);
   }
 
   public static boolean grantAlterPermissionsOnBlobStore(Configurations configurations,
