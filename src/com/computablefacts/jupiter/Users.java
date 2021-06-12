@@ -22,6 +22,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 
 @CheckReturnValue
 final public class Users {
@@ -322,6 +323,7 @@ final public class Users {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(table),
         "table should neither be null nor empty");
 
+    @Var
     boolean isOk = revokePermission(connector, username, table, TablePermission.READ);
     isOk = isOk && revokePermission(connector, username, table, TablePermission.WRITE);
     isOk = isOk && revokePermission(connector, username, table, TablePermission.BULK_IMPORT);
@@ -338,6 +340,7 @@ final public class Users {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
         "username should neither be null nor empty");
 
+    @Var
     boolean isOk = revokePermission(connector, username, SystemPermission.GRANT);
     isOk = isOk && revokePermission(connector, username, SystemPermission.CREATE_TABLE);
     isOk = isOk && revokePermission(connector, username, SystemPermission.DROP_TABLE);
