@@ -12,6 +12,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -32,8 +33,10 @@ import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.Document;
 import com.computablefacts.nona.helpers.Files;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -162,6 +165,11 @@ public class Shell {
       case "backup":
         Preconditions.checkState(backup(configurations, datastore, getArg(args, "ds"),
             getArg(args, "fi"), getArg(args, "auths")), "BACKUP failed!");
+        break;
+      case "backup_many":
+        Preconditions.checkState(backup(configurations, datastore,
+            Sets.newHashSet(Splitter.on(',').split(getArg(args, "ds"))), getArg(args, "dir"),
+            getArg(args, "auths")), "BACKUP failed!");
         break;
       default:
         throw new RuntimeException("Unknown action \"" + action + "\"");
@@ -534,6 +542,32 @@ public class Shell {
       } catch (IOException e) {
         logger_.error(LogFormatter.create(true).message(e).formatError());
       }
+    }
+    return true;
+  }
+
+  public static boolean backup(Configurations configurations, String datastore,
+      Set<String> datasets, String directory, String auths) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+    Preconditions.checkNotNull(datasets, "datasets should not be null");
+    Preconditions.checkNotNull(directory, "directory should not be null");
+
+    for (String dataset : datasets) {
+
+      logger_.info(String.format("Starting backup of dataset %s...", dataset));
+
+      String file =
+          directory + File.separator + String.format("backup-%s-%s.jsonl", datastore, dataset);
+
+      Stopwatch stopwatch = Stopwatch.createStarted();
+      Preconditions.checkState(Shell.backup(configurations, datastore, dataset, file, auths),
+          "BACKUP of dataset %s for datastore %s failed", dataset, datastore);
+      stopwatch.stop();
+
+      logger_.info(String.format("Backup of dataset %s completed in %d ms.", dataset,
+          stopwatch.elapsed(TimeUnit.MILLISECONDS)));
     }
     return true;
   }
