@@ -157,6 +157,12 @@ public class Shell {
             ingest(configurations, datastore, getArg(args, "ds"), getArg(args, "fi")),
             "INGEST failed!");
         break;
+      case "ingest_many":
+        Preconditions.checkState(
+            ingest(configurations, datastore,
+                Sets.newHashSet(Splitter.on(',').split(getArg(args, "ds"))), getArg(args, "dir")),
+            "INGEST failed!");
+        break;
       case "reindex":
         Preconditions.checkState(
             reindex(configurations, datastore, getArg(args, "ds"), getArg(args, "auths")),
@@ -423,6 +429,25 @@ public class Shell {
     return true;
   }
 
+  public static boolean ingest(Configurations configurations, String datastore,
+      Set<String> datasets, String directory) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+    Preconditions.checkNotNull(datasets, "datasets should not be null");
+    Preconditions.checkNotNull(directory, "directory should not be null");
+
+    for (String dataset : datasets) {
+
+      String file =
+          directory + File.separator + String.format("backup-%s-%s.jsonl.gz", datastore, dataset);
+
+      Preconditions.checkState(Shell.ingest(configurations, datastore, dataset, file),
+          "INGEST of dataset %s for datastore %s failed", dataset, datastore);
+    }
+    return true;
+  }
+
   public static boolean reindex(Configurations configurations, String datastore, String dataset,
       String auths) {
 
@@ -507,6 +532,7 @@ public class Shell {
 
     Preconditions.checkArgument(!f.exists(), "File exists : %s", f.getAbsolutePath());
 
+    Stopwatch stopwatch = Stopwatch.createStarted();
     DataStore ds = new DataStore(configurations, datastore);
 
     try (Scanners scanners = ds.scanners(authorizations(auths))) {
@@ -543,6 +569,13 @@ public class Shell {
         logger_.error(LogFormatter.create(true).message(e).formatError());
       }
     }
+
+    stopwatch.stop();
+
+    if (logger_.isInfoEnabled()) {
+      logger_.info(LogFormatter.create(true)
+          .message("Elapsed time : " + stopwatch.elapsed(TimeUnit.SECONDS)).formatInfo());
+    }
     return true;
   }
 
@@ -556,8 +589,6 @@ public class Shell {
 
     for (String dataset : datasets) {
 
-      logger_.info(String.format("Starting backup of dataset %s...", dataset));
-
       String file =
           directory + File.separator + String.format("backup-%s-%s.jsonl", datastore, dataset);
 
@@ -566,8 +597,27 @@ public class Shell {
           "BACKUP of dataset %s for datastore %s failed", dataset, datastore);
       stopwatch.stop();
 
-      logger_.info(String.format("Backup of dataset %s completed in %d ms.", dataset,
-          stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+      if (logger_.isInfoEnabled()) {
+        logger_.info(LogFormatter.create(true)
+            .message(String.format("Starting compression of dataset %s backup...", dataset))
+            .formatInfo());
+      }
+
+      String fileCompressed =
+          directory + File.separator + String.format("backup-%s-%s.jsonl.gz", datastore, dataset);
+
+      stopwatch.reset();
+      stopwatch.start();
+      com.computablefacts.nona.helpers.Files.gzip(new File(file), new File(fileCompressed));
+      com.computablefacts.nona.helpers.Files.delete(new File(file));
+      stopwatch.stop();
+
+      if (logger_.isInfoEnabled()) {
+        logger_.info(LogFormatter.create(true)
+            .message(String.format("Compression of dataset %s backup completed in %d ms.", dataset,
+                stopwatch.elapsed(TimeUnit.MILLISECONDS)))
+            .formatInfo());
+      }
     }
     return true;
   }
