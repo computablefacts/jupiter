@@ -397,15 +397,14 @@ final public class DataStore {
             AgeOffPeriodFilter.class.getSimpleName(), EnumSet.of(IteratorUtil.IteratorScope.majc,
                 IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
       }
-      if (!iterators1.containsKey("AgeOffPeriodFilter")) {
 
-        // Set a 3 hours TTL on all cached data
-        IteratorSetting settings = new IteratorSetting(7, AgeOffPeriodFilter.class);
-        AgeOffPeriodFilter.setTtl(settings, 3);
-        AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");
+      // Set a 3 hours TTL on all cached data
+      @Var
+      IteratorSetting settings = new IteratorSetting(7, AgeOffPeriodFilter.class);
+      AgeOffPeriodFilter.setTtl(settings, 3);
+      AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");
 
-        configurations().tableOperations().attachIterator(cache_.tableName(), settings);
-      }
+      configurations().tableOperations().attachIterator(cache_.tableName(), settings);
 
       // BlobStore
       Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators2 =
@@ -422,16 +421,15 @@ final public class DataStore {
             EnumSet.of(IteratorUtil.IteratorScope.majc, IteratorUtil.IteratorScope.minc,
                 IteratorUtil.IteratorScope.scan));
       }
-      if (!iterators2.containsKey("DataStoreHashIndexCombiner")) {
 
-        // Set the left index combiner
-        IteratorSetting setting = new IteratorSetting(7, DataStoreHashIndexCombiner.class);
-        DataStoreHashIndexCombiner.setColumns(setting,
-            Lists.newArrayList(new IteratorSetting.Column(TEXT_HASH_INDEX)));
-        DataStoreHashIndexCombiner.setReduceOnFullCompactionOnly(setting, true);
+      // Set the left index combiner
+      settings = new IteratorSetting(7, DataStoreHashIndexCombiner.class);
+      DataStoreHashIndexCombiner.setColumns(settings,
+          Lists.newArrayList(new IteratorSetting.Column(TEXT_HASH_INDEX)));
+      DataStoreHashIndexCombiner.setReduceOnFullCompactionOnly(settings, true);
 
-        configurations().tableOperations().attachIterator(blobStore_.tableName(), setting);
-      }
+      configurations().tableOperations().attachIterator(blobStore_.tableName(), settings);
+
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
       return false;
