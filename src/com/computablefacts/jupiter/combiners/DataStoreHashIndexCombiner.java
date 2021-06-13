@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.combiners;
 
 import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
+import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -24,7 +25,7 @@ public class DataStoreHashIndexCombiner extends Combiner {
   public Value reduce(Key key, Iterator<Value> iter) {
 
     if (key == null || key.getColumnFamily() == null) {
-      return new Value(); // TODO : add trace?
+      return VALUE_EMPTY; // TODO : add trace?
     }
 
     Text cf = key.getColumnFamily();
@@ -32,7 +33,7 @@ public class DataStoreHashIndexCombiner extends Combiner {
     if (cf.equals(TEXT_HASH_INDEX)) {
       return reduceHashIndex(iter);
     }
-    return new Value();
+    return VALUE_EMPTY;
   }
 
   private Value reduceHashIndex(Iterator<Value> iter) {

@@ -1,5 +1,7 @@
 package com.computablefacts.jupiter.combiners;
 
+import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -33,7 +35,7 @@ public class TermStoreCombiner extends Combiner {
   public Value reduce(Key key, Iterator<Value> iter) {
 
     if (key == null || key.getColumnFamily() == null) {
-      return new Value(); // TODO : add trace?
+      return VALUE_EMPTY; // TODO : add trace?
     }
 
     String cf = key.getColumnFamily().toString();
@@ -56,7 +58,7 @@ public class TermStoreCombiner extends Combiner {
     if (cf.endsWith("_TT")) {
       return reduceTopKSketches(iter);
     }
-    return new Value();
+    return VALUE_EMPTY;
   }
 
   private Value reduceFieldLastUpdate(Iterator<Value> iter) {
@@ -119,7 +121,7 @@ public class TermStoreCombiner extends Combiner {
     if (builder.length() <= 0) {
       return new Value(Long.toString(sum, 10));
     }
-    return new Value(Long.toString(sum, 10) + Constants.SEPARATOR_NUL + builder.toString());
+    return new Value(Long.toString(sum, 10) + Constants.SEPARATOR_NUL + builder);
   }
 
   private Value reduceThetaSketches(Iterator<Value> iter) {
