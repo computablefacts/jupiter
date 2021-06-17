@@ -760,7 +760,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("top_terms_no_false_negatives",
         Lists.newArrayList(ImmutableMap.of("term", "1", "nb_occurrences", 2)));
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_ID"));
-    map.put("types", Sets.newHashSet("TEXT"));
+    map.put("types", Sets.newHashSet("NUMBER"));
 
     Assert.assertTrue(jsons.contains(map));
 
@@ -822,7 +822,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
           "6174693c483abae057d822c6cc4c67b9\0age\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "8c979aa1006083b505eadf7fdbbd786c\0birthdate\0dataset_1", "row_1")));
+          "3e2953bf166164984fc89c98f531f4a6\0birthdate\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
           "88fecf016203005fdbeb018c1376c333\0first_name\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
@@ -838,14 +838,14 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(26, terms.size());
+      Assert.assertEquals(24, terms.size());
 
       List<Map.Entry<Key, Value>> bcnt =
           terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_BCNT"))
               .collect(Collectors.toList());
 
-      Assert.assertEquals(3, bcnt.size());
-      Assert.assertEquals(3,
+      Assert.assertEquals(2, bcnt.size());
+      Assert.assertEquals(2,
           bcnt.stream().mapToInt(kv -> Integer.parseInt(kv.getValue().toString(), 10)).sum());
 
       List<Map.Entry<Key, Value>> fcnt =
@@ -860,7 +860,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
           terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_BIDX"))
               .collect(Collectors.toList());
 
-      Assert.assertEquals(3, bidx.size());
+      Assert.assertEquals(2, bidx.size());
 
       List<Map.Entry<Key, Value>> fidx =
           terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_FIDX"))
@@ -893,7 +893,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
           "6174693c483abae057d822c6cc4c67b9\0age\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "8c979aa1006083b505eadf7fdbbd786c\0birthdate\0dataset_1", "row_1")));
+          "3e2953bf166164984fc89c98f531f4a6\0birthdate\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
           "88fecf016203005fdbeb018c1376c333\0first_name\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
@@ -909,14 +909,14 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(26, terms.size());
+      Assert.assertEquals(24, terms.size());
 
       List<Map.Entry<Key, Value>> bcnt =
           terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_BCNT"))
               .collect(Collectors.toList());
 
-      Assert.assertEquals(3, bcnt.size());
-      Assert.assertEquals(3,
+      Assert.assertEquals(2, bcnt.size());
+      Assert.assertEquals(2,
           bcnt.stream().mapToInt(kv -> Integer.parseInt(kv.getValue().toString(), 10)).sum());
 
       List<Map.Entry<Key, Value>> fcnt =
@@ -931,7 +931,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
           terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_BIDX"))
               .collect(Collectors.toList());
 
-      Assert.assertEquals(3, bidx.size());
+      Assert.assertEquals(2, bidx.size());
 
       List<Map.Entry<Key, Value>> fidx =
           terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_FIDX"))

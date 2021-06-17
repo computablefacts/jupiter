@@ -7,6 +7,8 @@ import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Date;
 import java.time.Instant;
 import java.util.Base64;
@@ -1074,10 +1076,50 @@ final public class DataStore {
       }
 
       // Serialize all values to strings and tokenize these strings to a span sequence
+      @Var
       Object value = newJson.get(field);
 
       if (value == null) { // Ignore keys with null values
         continue;
+      }
+
+      // Because the CSV file format does not have types, check if a string value can be directly
+      // mapped to a primitive in {boolean, integer, decimal, date}
+      if (value instanceof String) {
+        String text = (String) value;
+        if ("true".equalsIgnoreCase(text)) {
+          value = true;
+        } else if ("false".equalsIgnoreCase(text)) {
+          value = false;
+        } else if (com.computablefacts.nona.helpers.Strings.isNumber(text)) {
+          try {
+            value = new BigInteger(text);
+          } catch (NumberFormatException nfe1) {
+            try {
+              value = new BigDecimal(text);
+              if (text.trim().endsWith(".") || text.trim().startsWith(".")) {
+                // Ensure 123. is not mapped to 123.0
+                // Ensure .123 is not mapped to 0.123
+                value = text;
+              }
+            } catch (NumberFormatException nfe2) {
+              value = text;
+            }
+          }
+        } else {
+
+          // Because the JSON file format does not have a date type, check if val is in ISO Instant
+          // format
+          if (text.length() >= 20 && text.length() <= 24
+              && (text.charAt(10) == 'T' || text.charAt(10) == 't')
+              && (text.charAt(text.length() - 1) == 'Z' || text.charAt(text.length() - 1) == 'z')) {
+            try {
+              value = Date.from(Instant.parse(text));
+            } catch (Exception e) {
+              value = text;
+            }
+          }
+        }
       }
 
       String newField = field.replaceAll("\\[\\d+\\]", "[*]");
@@ -1100,45 +1142,27 @@ final public class DataStore {
       } else {
 
         String val = ((String) value).trim();
-        @Var
-        Object newVal = val;
 
         if (Codecs.isProbablyBase64(val)) {
           try {
-            newVal = Codecs.decodeB64(b64Decoder_, val);
+            Object newVal = Codecs.decodeB64(b64Decoder_, val);
             continue; // Base64 strings are NOT indexed
           } catch (Exception e) {
-            // fall through
+            // FALL THROUGH
           }
         }
 
-        // Because JSON does not have a date format, check if val is in ISO Instant format
-        if (val.length() >= 20 && val.length() <= 24
-            && (val.charAt(10) == 'T' || val.charAt(10) == 't')
-            && (val.charAt(val.length() - 1) == 'Z' || val.charAt(val.length() - 1) == 'z')) {
-          try {
-            newVal = Date.from(Instant.parse(val));
-          } catch (Exception e) {
-            // fall through
-          }
-        }
+        SpanSequence spanSequence;
 
-        if (!(newVal instanceof String)) {
-          fields.get(newField).add(newVal);
+        if (tokenizer != null) {
+          spanSequence = Objects.requireNonNull(tokenizer.apply(val));
         } else {
-
-          SpanSequence spanSequence;
-
-          if (tokenizer != null) {
-            spanSequence = Objects.requireNonNull(tokenizer.apply((String) newVal));
-          } else {
-            String str = normalize(value.toString());
-            spanSequence = new SpanSequence();
-            spanSequence.add(new Span(str, 0, str.length()));
-          }
-
-          spanSequence.forEach(span -> fields.get(newField).add(span.text()));
+          String str = normalize(value.toString());
+          spanSequence = new SpanSequence();
+          spanSequence.add(new Span(str, 0, str.length()));
         }
+
+        spanSequence.forEach(span -> fields.get(newField).add(span.text()));
       }
     }
 
