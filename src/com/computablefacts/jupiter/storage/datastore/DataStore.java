@@ -9,10 +9,10 @@ import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Date;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
