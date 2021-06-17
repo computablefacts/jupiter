@@ -819,16 +819,19 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
           terms.stream().map(t -> new AbstractMap.SimpleEntry<>(t.getKey().getRow().toString(),
               t.getValue().toString())).collect(Collectors.toList());
 
+      // Hash index
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
           "6174693c483abae057d822c6cc4c67b9\0age\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "3e2953bf166164984fc89c98f531f4a6\0birthdate\0dataset_1", "row_1")));
+          "8c979aa1006083b505eadf7fdbbd786c\0birthdate\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
           "88fecf016203005fdbeb018c1376c333\0first_name\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
           "4b5c86196dd52c0cf2673d2d0a569431\0last_name\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
           "717c7b8afebbfb7137f6f0f99beb2a94\0id\0dataset_1", "row_1")));
+
+      // Raw data
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>("row_1",
           "{\"birthdate\":\"2004-04-01T00:00:00Z\",\"last_name\":\"doe\",\"id\":\"1\",\"first_name\":\"john\",\"age\":17}")));
     }
@@ -893,7 +896,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
           "6174693c483abae057d822c6cc4c67b9\0age\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "3e2953bf166164984fc89c98f531f4a6\0birthdate\0dataset_1", "row_1")));
+          "8c979aa1006083b505eadf7fdbbd786c\0birthdate\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
           "88fecf016203005fdbeb018c1376c333\0first_name\0dataset_1", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(

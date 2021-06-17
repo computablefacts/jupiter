@@ -1293,8 +1293,12 @@ final public class DataStore {
           .add("doc_id", docId).add("field", field).add("value", value).formatDebug());
     }
 
-    DataStoreHashIndex.write(writers, dataset, field, value.toString(), docId);
-
+    if (value instanceof Date) {
+      DataStoreHashIndex.write(writers, dataset, field, ((Date) value).toInstant().toString(),
+          docId);
+    } else {
+      DataStoreHashIndex.write(writers, dataset, field, value.toString(), docId);
+    }
     return true;
   }
 }
