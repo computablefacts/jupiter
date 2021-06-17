@@ -51,7 +51,7 @@ public class FieldLabelsTest {
   @Test
   public void testNewMutation() {
 
-    byte[] row = "first_name\u00001".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "_\u0000first_name\u00001".getBytes(StandardCharsets.UTF_8);
     byte[] cf = "my_dataset_VIZ".getBytes(StandardCharsets.UTF_8);
     byte[] cq = TEXT_EMPTY.getBytes();
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_VIZ").getExpression();
@@ -69,7 +69,7 @@ public class FieldLabelsTest {
   @Test
   public void testFromKeyValue() {
 
-    byte[] row = "first_name\u00001".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "_\u0000first_name\u00001".getBytes(StandardCharsets.UTF_8);
     byte[] cf = "my_dataset_VIZ".getBytes(StandardCharsets.UTF_8);
     byte[] cq = TEXT_EMPTY.getBytes();
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_VIZ").getExpression();

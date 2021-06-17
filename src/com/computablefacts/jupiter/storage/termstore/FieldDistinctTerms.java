@@ -2,6 +2,7 @@ package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
@@ -57,7 +58,7 @@ final public class FieldDistinctTerms {
         "typedField format should be typed\\0type");
     Preconditions.checkNotNull(sketch, "sketch should not be null");
 
-    Text row = new Text(typedField);
+    Text row = new Text(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + typedField);
 
     Text cf = new Text(TermStore.distinctTerms(dataset));
 
@@ -83,7 +84,7 @@ final public class FieldDistinctTerms {
     String val = value.toString();
 
     // Extract term and term's type from ROW
-    int index = row.indexOf(SEPARATOR_NUL);
+    int index = row.indexOf(SEPARATOR_NUL, 2);
 
     String field;
     int type;
@@ -92,7 +93,7 @@ final public class FieldDistinctTerms {
       field = row;
       type = Term.TYPE_UNKNOWN;
     } else {
-      field = row.substring(0, index);
+      field = row.substring(2, index);
       type = Integer.parseInt(row.substring(index + 1), 10);
     }
 

@@ -2,6 +2,7 @@ package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
@@ -56,7 +57,7 @@ final public class FieldDistinctBuckets {
         typedField.indexOf(SEPARATOR_NUL) == typedField.lastIndexOf(SEPARATOR_NUL),
         "typedField format should be field\\0type");
 
-    Text row = new Text(typedField);
+    Text row = new Text(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + typedField);
 
     Text cf = new Text(TermStore.distinctBuckets(dataset));
 
@@ -82,7 +83,7 @@ final public class FieldDistinctBuckets {
     String val = value.toString();
 
     // Extract term and term's type from ROW
-    int index = row.indexOf(SEPARATOR_NUL);
+    int index = row.indexOf(SEPARATOR_NUL, 2);
 
     String field;
     int type;
@@ -91,7 +92,7 @@ final public class FieldDistinctBuckets {
       field = row;
       type = Term.TYPE_UNKNOWN;
     } else {
-      field = row.substring(0, index);
+      field = row.substring(2, index);
       type = Integer.parseInt(row.substring(index + 1), 10);
     }
 

@@ -14,6 +14,7 @@ final public class Constants {
 
   public static final char SEPARATOR_NUL = '\0';
   public static final char SEPARATOR_PIPE = '|';
+  public static final char SEPARATOR_UNDERSCORE = '_';
   public static final char SEPARATOR_CURRENCY_SIGN = '¤';
   public static final Text TEXT_EMPTY = new Text();
   public static final Text TEXT_CACHE = new Text("cache");

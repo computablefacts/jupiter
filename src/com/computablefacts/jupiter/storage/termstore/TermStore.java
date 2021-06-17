@@ -2,6 +2,7 @@ package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.Date;
@@ -62,11 +63,11 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                     | Column Family   | Column Qualifier                  | Visibility                                  | Value
  * =========================+=================+===================================+=============================================+=================================
- *  <field>\0<term_type>    | <dataset>_DB    | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
- *  <field>\0<term_type>    | <dataset>_DT    | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms
- *  <field>\0<term_type>    | <dataset>_LU    | (empty)                           | ADM|<dataset>_LU                            | utc_date
- *  <field>\0<term_type>    | <dataset>_TT    | (empty)                           | ADM|<dataset>_TT                            | top_k_terms
- *  <field>\0<term_type>    | <dataset>_VIZ   | (empty)                           | ADM|<dataset>_VIZ                           | viz1\0viz2\0...
+ *  _\0<field>\0<term_type> | <dataset>_DB    | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
+ *  _\0<field>\0<term_type> | <dataset>_DT    | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms
+ *  _\0<field>\0<term_type> | <dataset>_LU    | (empty)                           | ADM|<dataset>_LU                            | utc_date
+ *  _\0<field>\0<term_type> | <dataset>_TT    | (empty)                           | ADM|<dataset>_TT                            | top_k_terms
+ *  _\0<field>\0<term_type> | <dataset>_VIZ   | (empty)                           | ADM|<dataset>_VIZ                           | viz1\0viz2\0...
  *  <mret>                  | <dataset>_BCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
  *  <mret>                  | <dataset>_BIDX  | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_of_term_in_bucket
  *  <term>                  | <dataset>_FCNT  | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
@@ -479,12 +480,10 @@ final public class TermStore extends AbstractStorage {
     }
 
     if (com.google.common.base.Strings.isNullOrEmpty(newTerm)) {
-      logger_
-          .warn(LogFormatter.create(true)
-              .message(String.format(
-                  "%s has been lexicoded to null/an empty string. Term has been ignored.",
-                  term))
-              .formatWarn());
+      logger_.warn(LogFormatter.create(true)
+          .message(String.format(
+              "%s has been lexicoded to null/an empty string. Term has been ignored.", term))
+          .formatWarn());
       return false;
     }
 
@@ -571,10 +570,11 @@ final public class TermStore extends AbstractStorage {
     List<Range> ranges;
 
     if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
-          .collect(Collectors.toList());
+      ranges = fields.stream()
+          .map(field -> SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + field + SEPARATOR_NUL)
+          .map(Range::prefix).collect(Collectors.toList());
     } else {
-      ranges = Lists.newArrayList(new Range());
+      ranges = Lists.newArrayList(Range.prefix(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL));
     }
     if (!setRanges(scanner, ranges)) {
       return ITERATOR_EMPTY;
@@ -609,10 +609,11 @@ final public class TermStore extends AbstractStorage {
     List<Range> ranges;
 
     if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
-          .collect(Collectors.toList());
+      ranges = fields.stream()
+          .map(field -> SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + field + SEPARATOR_NUL)
+          .map(Range::prefix).collect(Collectors.toList());
     } else {
-      ranges = Lists.newArrayList(new Range());
+      ranges = Lists.newArrayList(Range.prefix(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL));
     }
     if (!setRanges(scanner, ranges)) {
       return ITERATOR_EMPTY;
@@ -648,10 +649,11 @@ final public class TermStore extends AbstractStorage {
     List<Range> ranges;
 
     if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
-          .collect(Collectors.toList());
+      ranges = fields.stream()
+          .map(field -> SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + field + SEPARATOR_NUL)
+          .map(Range::prefix).collect(Collectors.toList());
     } else {
-      ranges = Lists.newArrayList(new Range());
+      ranges = Lists.newArrayList(Range.prefix(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL));
     }
     if (!setRanges(scanner, ranges)) {
       return ITERATOR_EMPTY;
@@ -687,10 +689,11 @@ final public class TermStore extends AbstractStorage {
     List<Range> ranges;
 
     if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
-          .collect(Collectors.toList());
+      ranges = fields.stream()
+          .map(field -> SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + field + SEPARATOR_NUL)
+          .map(Range::prefix).collect(Collectors.toList());
     } else {
-      ranges = Lists.newArrayList(new Range());
+      ranges = Lists.newArrayList(Range.prefix(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL));
     }
     if (!setRanges(scanner, ranges)) {
       return ITERATOR_EMPTY;
@@ -726,10 +729,11 @@ final public class TermStore extends AbstractStorage {
     List<Range> ranges;
 
     if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream().map(field -> field + SEPARATOR_NUL).map(Range::prefix)
-          .collect(Collectors.toList());
+      ranges = fields.stream()
+          .map(field -> SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + field + SEPARATOR_NUL)
+          .map(Range::prefix).collect(Collectors.toList());
     } else {
-      ranges = Lists.newArrayList(new Range());
+      ranges = Lists.newArrayList(Range.prefix(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL));
     }
     if (!setRanges(scanner, ranges)) {
       return ITERATOR_EMPTY;
