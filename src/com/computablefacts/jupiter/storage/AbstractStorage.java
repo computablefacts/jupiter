@@ -175,8 +175,8 @@ public abstract class AbstractStorage {
    */
   public boolean isReady() {
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
     }
 
     return Tables.exists(configurations().tableOperations(), tableName());
@@ -190,8 +190,8 @@ public abstract class AbstractStorage {
    */
   public boolean create() {
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
     }
 
     if (!isReady()) {
@@ -214,8 +214,8 @@ public abstract class AbstractStorage {
    */
   public boolean destroy() {
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
     }
 
     if (isReady()) {
@@ -231,8 +231,8 @@ public abstract class AbstractStorage {
    */
   public boolean truncate() {
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
     }
 
     SortedSet<Text> splits = Tables.splits(configurations().tableOperations(), tableName());
@@ -255,9 +255,9 @@ public abstract class AbstractStorage {
     Preconditions.checkNotNull(deleter, "deleter should not be null");
     Preconditions.checkNotNull(cfs, "cfs should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(
-          LogFormatter.create(true).add("table_name", tableName()).add("cfs", cfs).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(
+          LogFormatter.create(true).add("table_name", tableName()).add("cfs", cfs).formatDebug());
     }
 
     deleter.clearColumns();
@@ -291,9 +291,9 @@ public abstract class AbstractStorage {
 
     Preconditions.checkNotNull(deleter, "deleter should not be null");
 
-    if (logger_.isInfoEnabled()) {
-      logger_.info(LogFormatter.create(true).add("table_name", tableName()).add("row", row)
-          .add("cf", cf).add("cq", cq).formatInfo());
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("row", row)
+          .add("cf", cf).add("cq", cq).formatDebug());
     }
 
     deleter.clearColumns();
