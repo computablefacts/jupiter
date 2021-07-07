@@ -309,13 +309,14 @@ final public class TerminalNode extends AbstractNode {
     }
 
     // Discard small terms and order the remaining ones by length
-    return terms.stream().filter(term -> !(WildcardMatcher.startsWithWildcard(term)
-        && WildcardMatcher.endsWithWildcard(term))).filter(term -> {
-          if (WildcardMatcher.startsWithWildcard(term)) {
-            return WildcardMatcher.prefix(reverse(term)).length() >= 3;
-          }
-          return WildcardMatcher.prefix(term).length() >= 3;
-        }).sorted(Comparator.comparingInt(byTermLength).reversed()).collect(Collectors.toList());
+    return terms.stream()
+        .filter(term -> !(WildcardMatcher.startsWithWildcard(term)
+            && WildcardMatcher.endsWithWildcard(term)))
+        /*
+         * .filter(term -> { if (WildcardMatcher.startsWithWildcard(term)) { return
+         * WildcardMatcher.prefix(reverse(term)).length() >= 3; } return
+         * WildcardMatcher.prefix(term).length() >= 3; })
+         */.sorted(Comparator.comparingInt(byTermLength).reversed()).collect(Collectors.toList());
   }
 
   public enum eTermForms {
