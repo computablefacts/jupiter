@@ -391,26 +391,26 @@ public class Shell {
         Map<String, Object> json = Codecs.asObject(row);
         Document document = new Document(json);
 
-        if (!document.fileExists()) { // do not reindex missing files
+        // if (!document.fileExists()) { // do not reindex missing files
+        // if (logger_.isInfoEnabled()) {
+        // logger_.info(LogFormatter.create(true).message(
+        // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " + document.path())
+        // .formatInfo());
+        // }
+        // } else {
+
+        if (!ds.persist(writers, dataset, document.docId(), row)) {
+          logger_.error(LogFormatter.create(true)
+              .message("Persistence of " + document.docId() + " failed").formatError());
+        }
+
+        if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
           if (logger_.isInfoEnabled()) {
-            logger_.info(LogFormatter.create(true).message(
-                "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " + document.path())
-                .formatInfo());
-          }
-        } else {
-
-          if (!ds.persist(writers, dataset, document.docId(), row)) {
-            logger_.error(LogFormatter.create(true)
-                .message("Persistence of " + document.docId() + " failed").formatError());
-          }
-
-          if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
-            if (logger_.isInfoEnabled()) {
-              logger_.info(LogFormatter.create(true)
-                  .message("Number of JSON processed : " + count.get()).formatInfo());
-            }
+            logger_.info(LogFormatter.create(true)
+                .message("Number of JSON processed : " + count.get()).formatInfo());
           }
         }
+        // }
       });
 
       ds.endIngest(writers, dataset);
