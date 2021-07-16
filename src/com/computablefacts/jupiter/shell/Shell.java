@@ -374,7 +374,6 @@ public class Shell {
     Stopwatch stopwatch = Stopwatch.createStarted();
     DataStore ds = new DataStore(configurations, datastore);
     AtomicInteger count = new AtomicInteger(0);
-    AtomicInteger ignored = new AtomicInteger(0);
 
     try (Writers writers = ds.writers()) {
 
@@ -387,30 +386,31 @@ public class Shell {
         if (Strings.isNullOrEmpty(row)) {
           return;
         }
+        try {
+          Map<String, Object> json = Codecs.asObject(row);
+          Document document = new Document(json);
 
-        Map<String, Object> json = Codecs.asObject(row);
-        Document document = new Document(json);
+          // if (!document.fileExists()) { // do not reindex missing files
+          // if (logger_.isInfoEnabled()) {
+          // logger_.info(LogFormatter.create(true).message(
+          // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " + document.path())
+          // .formatInfo());
+          // }
+          // } else {
 
-        // if (!document.fileExists()) { // do not reindex missing files
-        // if (logger_.isInfoEnabled()) {
-        // logger_.info(LogFormatter.create(true).message(
-        // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " + document.path())
-        // .formatInfo());
-        // }
-        // } else {
+          if (!ds.persist(writers, dataset, document.docId(), row)) {
+            logger_.error(LogFormatter.create(true)
+                .message("Persistence of " + document.docId() + " failed").formatError());
+          }
 
-        if (!ds.persist(writers, dataset, document.docId(), row)) {
-          logger_.error(LogFormatter.create(true)
-              .message("Persistence of " + document.docId() + " failed").formatError());
-        }
-
-        if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
-          if (logger_.isInfoEnabled()) {
+          if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
             logger_.info(LogFormatter.create(true)
                 .message("Number of JSON processed : " + count.get()).formatInfo());
           }
+          // }
+        } catch (Exception e) {
+          logger_.error(LogFormatter.create(true).message(e).formatError());
         }
-        // }
       });
 
       ds.endIngest(writers, dataset);
@@ -421,8 +421,6 @@ public class Shell {
     if (logger_.isInfoEnabled()) {
       logger_.info(LogFormatter.create(true)
           .message("Total number of JSON processed : " + count.get()).formatInfo());
-      logger_.info(LogFormatter.create(true)
-          .message("Total number of JSON ignored : " + ignored.get()).formatInfo());
       logger_.info(LogFormatter.create(true)
           .message("Elapsed time : " + stopwatch.elapsed(TimeUnit.SECONDS)).formatInfo());
     }
