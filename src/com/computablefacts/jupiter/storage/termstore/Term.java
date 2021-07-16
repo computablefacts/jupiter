@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.validation.constraints.NotNull;
@@ -27,6 +28,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -67,13 +69,26 @@ final public class Term implements HasTerm, Comparable<Term> {
 
   public static Mutation newForwardMutation(String dataset, String docId, String field, int type,
       String term, int count, Set<String> labels) {
-    return newMutation(TermStore.forwardIndex(dataset), docId, field, type, term, count, labels);
+    return newForwardMutation(null, dataset, docId, field, type, term, count, labels);
   }
 
   public static Mutation newBackwardMutation(String dataset, String docId, String field, int type,
       String term, int count, Set<String> labels) {
-    return newMutation(TermStore.backwardIndex(dataset), docId, field, type, reverse(term), count,
+    return newBackwardMutation(null, dataset, docId, field, type, term, count, labels);
+  }
+
+  @CanIgnoreReturnValue
+  public static Mutation newForwardMutation(Map<Text, Mutation> mutations, String dataset,
+      String docId, String field, int type, String term, int count, Set<String> labels) {
+    return newMutation(mutations, TermStore.forwardIndex(dataset), docId, field, type, term, count,
         labels);
+  }
+
+  @CanIgnoreReturnValue
+  public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset,
+      String docId, String field, int type, String term, int count, Set<String> labels) {
+    return newMutation(mutations, TermStore.backwardIndex(dataset), docId, field, type,
+        reverse(term), count, labels);
   }
 
   public static Term fromKeyValue(Key key, Value value) {
@@ -120,8 +135,8 @@ final public class Term implements HasTerm, Comparable<Term> {
     return new Term(datazet, docId, field, type, term, labels, count);
   }
 
-  private static Mutation newMutation(String dataset, String docId, String field, int type,
-      String term, int count, Set<String> labels) {
+  private static Mutation newMutation(Map<Text, Mutation> mutations, String dataset, String docId,
+      String field, int type, String term, int count, Set<String> labels) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docId, "docId should not be null");
@@ -130,13 +145,27 @@ final public class Term implements HasTerm, Comparable<Term> {
     Preconditions.checkArgument(count > 0, "count must be > 0");
     Preconditions.checkNotNull(labels, "labels should not be null");
 
+    Text row = new Text(term);
+
     Text cq = new Text(docId + SEPARATOR_NUL + field + SEPARATOR_NUL + type);
 
     ColumnVisibility cv = new ColumnVisibility(Joiner.on(SEPARATOR_PIPE).join(labels));
 
     Value value = new Value(Integer.toString(count, 10));
 
-    Mutation mutation = new Mutation(term);
+    Mutation mutation;
+
+    if (mutations == null || !mutations.containsKey(row)) {
+
+      mutation = new Mutation(row);
+
+      if (mutations != null) {
+        mutations.put(row, mutation);
+      }
+    } else {
+      mutation = mutations.get(row);
+    }
+
     mutation.put(new Text(dataset), cq, cv, value);
 
     return mutation;
@@ -175,9 +204,8 @@ final public class Term implements HasTerm, Comparable<Term> {
 
     @Var
     int cmp = ComparisonChain.start().compare(dataset_, term.dataset_)
-        .compare(bucketId_, term.bucketId_)
-        .compare(field_, term.field_).compare(type_, term.type_).compare(term_, term.term_)
-        .compare(count_, term.count_).result();
+        .compare(bucketId_, term.bucketId_).compare(field_, term.field_).compare(type_, term.type_)
+        .compare(term_, term.term_).compare(count_, term.count_).result();
 
     if (cmp != 0) {
       return cmp;

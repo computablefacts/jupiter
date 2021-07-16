@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
@@ -20,6 +21,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
@@ -50,12 +52,26 @@ final public class TermDistinctBuckets implements HasTerm {
 
   public static Mutation newForwardMutation(String dataset, String field, int type, String term,
       int count, Set<String> labels) {
-    return newMutation(TermStore.forwardCount(dataset), field, type, term, count, labels);
+    return newForwardMutation(null, dataset, field, type, term, count, labels);
   }
 
   public static Mutation newBackwardMutation(String dataset, String field, int type, String term,
       int count, Set<String> labels) {
-    return newMutation(TermStore.backwardCount(dataset), field, type, reverse(term), count, labels);
+    return newBackwardMutation(null, dataset, field, type, term, count, labels);
+  }
+
+  @CanIgnoreReturnValue
+  public static Mutation newForwardMutation(Map<Text, Mutation> mutations, String dataset,
+      String field, int type, String term, int count, Set<String> labels) {
+    return newMutation(mutations, TermStore.forwardCount(dataset), field, type, term, count,
+        labels);
+  }
+
+  @CanIgnoreReturnValue
+  public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset,
+      String field, int type, String term, int count, Set<String> labels) {
+    return newMutation(mutations, TermStore.backwardCount(dataset), field, type, reverse(term),
+        count, labels);
   }
 
   public static TermDistinctBuckets fromKeyValue(Key key, Value value) {
@@ -96,13 +112,15 @@ final public class TermDistinctBuckets implements HasTerm {
     return new TermDistinctBuckets(datazet, field, type, term, labels, Long.parseLong(val, 10));
   }
 
-  private static Mutation newMutation(String dataset, String field, int type, String term,
-      int count, Set<String> labels) {
+  private static Mutation newMutation(Map<Text, Mutation> mutations, String dataset, String field,
+      int type, String term, int count, Set<String> labels) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");
+
+    Text row = new Text(term);
 
     Text cq = new Text(field + SEPARATOR_NUL + type);
 
@@ -110,7 +128,19 @@ final public class TermDistinctBuckets implements HasTerm {
 
     Value value = new Value(Integer.toString(count, 10));
 
-    Mutation mutation = new Mutation(term);
+    Mutation mutation;
+
+    if (mutations == null || !mutations.containsKey(row)) {
+
+      mutation = new Mutation(row);
+
+      if (mutations != null) {
+        mutations.put(row, mutation);
+      }
+    } else {
+      mutation = mutations.get(row);
+    }
+
     mutation.put(new Text(dataset), cq, cv, value);
 
     return mutation;

@@ -7,6 +7,7 @@ import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
@@ -24,6 +25,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
@@ -50,6 +52,12 @@ final public class FieldLabels {
   }
 
   public static Mutation newMutation(String dataset, String field, int type, Set<String> labels) {
+    return newMutation(null, dataset, field, type, labels);
+  }
+
+  @CanIgnoreReturnValue
+  public static Mutation newMutation(Map<Text, Mutation> mutations, String dataset, String field,
+      int type, Set<String> labels) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
@@ -64,7 +72,19 @@ final public class FieldLabels {
 
     Value value = new Value(Joiner.on(Constants.SEPARATOR_NUL).join(labels));
 
-    Mutation mutation = new Mutation(row);
+    Mutation mutation;
+
+    if (mutations == null || !mutations.containsKey(row)) {
+
+      mutation = new Mutation(row);
+
+      if (mutations != null) {
+        mutations.put(row, mutation);
+      }
+    } else {
+      mutation = mutations.get(row);
+    }
+
     mutation.put(cf, TEXT_EMPTY, cv, value);
 
     return mutation;

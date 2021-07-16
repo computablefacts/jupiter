@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -521,27 +522,27 @@ final public class TermStore extends AbstractStorage {
           nbOccurrences);
     }
 
+    Map<Text, Mutation> mutations = new HashMap<>();
+
     // Ingest stats
-    @Var
-    boolean isOk = add(writer, FieldLastUpdate.newMutation(dataset, field, newType));
-    isOk =
-        add(writer, FieldLabels.newMutation(dataset, field, newType, fieldSpecificLabels)) && isOk;
+    FieldLastUpdate.newMutation(mutations, dataset, field, newType);
+    FieldLabels.newMutation(mutations, dataset, field, newType, fieldSpecificLabels);
 
     // Forward index
-    isOk = add(writer, TermDistinctBuckets.newForwardMutation(dataset, field, newType, newTerm, 1,
-        fieldSpecificLabels)) && isOk;
-    isOk = add(writer, Term.newForwardMutation(dataset, bucketId, field, newType, newTerm,
-        nbOccurrences, Sets.union(bucketSpecificLabels, fieldSpecificLabels))) && isOk;
+    TermDistinctBuckets.newForwardMutation(mutations, dataset, field, newType, newTerm, 1,
+        fieldSpecificLabels);
+    Term.newForwardMutation(mutations, dataset, bucketId, field, newType, newTerm, nbOccurrences,
+        Sets.union(bucketSpecificLabels, fieldSpecificLabels));
 
     if (!writeInForwardIndexOnly) {
 
       // Backward index
-      isOk = add(writer, TermDistinctBuckets.newBackwardMutation(dataset, field, newType, newTerm,
-          1, fieldSpecificLabels)) && isOk;
-      isOk = add(writer, Term.newBackwardMutation(dataset, bucketId, field, newType, newTerm,
-          nbOccurrences, Sets.union(bucketSpecificLabels, fieldSpecificLabels))) && isOk;
+      TermDistinctBuckets.newBackwardMutation(mutations, dataset, field, newType, newTerm, 1,
+          fieldSpecificLabels);
+      Term.newBackwardMutation(mutations, dataset, bucketId, field, newType, newTerm, nbOccurrences,
+          Sets.union(bucketSpecificLabels, fieldSpecificLabels));
     }
-    return isOk;
+    return mutations.values().stream().allMatch(v -> add(writer, v));
   }
 
   /**

@@ -9,6 +9,7 @@ import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
@@ -24,6 +25,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
@@ -50,10 +52,22 @@ final public class FieldLastUpdate {
   }
 
   public static Mutation newMutation(String dataset, String field, int type) {
-    return newMutation(dataset, field, type, Instant.now());
+    return newMutation(null, dataset, field, type);
   }
 
   public static Mutation newMutation(String dataset, String field, int type, Instant instant) {
+    return newMutation(null, dataset, field, type, instant);
+  }
+
+  @CanIgnoreReturnValue
+  public static Mutation newMutation(Map<Text, Mutation> mutations, String dataset, String field,
+      int type) {
+    return newMutation(mutations, dataset, field, type, Instant.now());
+  }
+
+  @CanIgnoreReturnValue
+  public static Mutation newMutation(Map<Text, Mutation> mutations, String dataset, String field,
+      int type, Instant instant) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
@@ -68,7 +82,19 @@ final public class FieldLastUpdate {
 
     Value value = new Value(DateTimeFormatter.ISO_INSTANT.format(instant));
 
-    Mutation mutation = new Mutation(row);
+    Mutation mutation;
+
+    if (mutations == null || !mutations.containsKey(row)) {
+
+      mutation = new Mutation(row);
+
+      if (mutations != null) {
+        mutations.put(row, mutation);
+      }
+    } else {
+      mutation = mutations.get(row);
+    }
+
     mutation.put(cf, TEXT_EMPTY, cv, value);
 
     return mutation;
