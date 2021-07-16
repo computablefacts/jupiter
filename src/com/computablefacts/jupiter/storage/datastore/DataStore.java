@@ -513,12 +513,10 @@ final public class DataStore {
     return isOk1 && isOk2 && isOk3;
   }
 
-  @Beta
   public void beginIngest() {
     termStore_.beginIngest();
   }
 
-  @Beta
   @CanIgnoreReturnValue
   public boolean endIngest(Writers writers, String dataset) {
 
@@ -628,7 +626,6 @@ final public class DataStore {
    * @return cardinality estimation. No particular order should be expected from the returned
    *         iterator.
    */
-  @Beta
   public Iterator<FieldDistinctTerms> fieldCardinalityEstimationForTerms(Scanners scanners,
       String dataset, String field) {
 
@@ -648,7 +645,6 @@ final public class DataStore {
    * @return cardinality estimation. No particular order should be expected from the returned
    *         iterator.
    */
-  @Beta
   public Iterator<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(Scanners scanners,
       String dataset, String field) {
 
@@ -667,7 +663,6 @@ final public class DataStore {
    * @param field field.
    * @return top terms. No particular order should be expected from the returned iterator.
    */
-  @Beta
   public Iterator<FieldTopTerms> fieldTopTerms(Scanners scanners, String dataset, String field) {
 
     Preconditions.checkNotNull(scanners, "scanners should not be null");

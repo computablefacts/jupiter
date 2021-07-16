@@ -41,7 +41,6 @@ import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.WildcardMatcher;
-import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -87,6 +86,8 @@ final public class TermStore extends AbstractStorage {
   private Map<String, ThetaSketch> fieldsCardinalityEstimatorsForTerms_;
   private Map<String, ThetaSketch> fieldsCardinalityEstimatorsForBuckets_;
   private Map<String, TopKSketch> fieldsTopTerms_;
+  private Map<String, FieldLastUpdate> fieldsLastUpdate_;
+  private Map<String, FieldLabels> fieldsLabels_;
 
   public TermStore(Configurations configurations, String name) {
     super(configurations, name);
@@ -378,14 +379,14 @@ final public class TermStore extends AbstractStorage {
         || Tables.setLocalityGroups(configurations().tableOperations(), tableName(), groups, false);
   }
 
-  @Beta
   public void beginIngest() {
     fieldsCardinalityEstimatorsForTerms_ = new HashMap<>();
     fieldsCardinalityEstimatorsForBuckets_ = new HashMap<>();
     fieldsTopTerms_ = new HashMap<>();
+    fieldsLastUpdate_ = new HashMap<>();
+    fieldsLabels_ = new HashMap<>();
   }
 
-  @Beta
   @CanIgnoreReturnValue
   public boolean endIngest(BatchWriter writer, String dataset) {
 
@@ -396,28 +397,39 @@ final public class TermStore extends AbstractStorage {
     boolean isOk = true;
 
     if (fieldsCardinalityEstimatorsForTerms_ != null) {
-      for (Map.Entry<String, ThetaSketch> sketch : fieldsCardinalityEstimatorsForTerms_
-          .entrySet()) {
-        isOk = add(writer, FieldDistinctTerms.newMutation(dataset, sketch.getKey(),
-            sketch.getValue().toByteArray())) && isOk;
-      }
+      isOk = fieldsCardinalityEstimatorsForTerms_.entrySet().stream()
+          .allMatch(sketch -> add(writer, FieldDistinctTerms.newMutation(dataset, sketch.getKey(),
+              sketch.getValue().toByteArray())))
+          && isOk;
       fieldsCardinalityEstimatorsForTerms_ = null;
     }
     if (fieldsCardinalityEstimatorsForBuckets_ != null) {
-      for (Map.Entry<String, ThetaSketch> sketch : fieldsCardinalityEstimatorsForBuckets_
-          .entrySet()) {
-        isOk = add(writer, FieldDistinctBuckets.newMutation(dataset, sketch.getKey(),
-            sketch.getValue().toByteArray())) && isOk;
-      }
+      isOk = fieldsCardinalityEstimatorsForBuckets_.entrySet().stream()
+          .allMatch(sketch -> add(writer, FieldDistinctBuckets.newMutation(dataset, sketch.getKey(),
+              sketch.getValue().toByteArray())))
+          && isOk;
       fieldsCardinalityEstimatorsForBuckets_ = null;
     }
     if (fieldsTopTerms_ != null) {
-      for (Map.Entry<String, TopKSketch> sketch : fieldsTopTerms_.entrySet()) {
-        isOk = add(writer,
-            FieldTopTerms.newMutation(dataset, sketch.getKey(), sketch.getValue().toByteArray()))
-            && isOk;
-      }
+      isOk = fieldsTopTerms_.entrySet().stream()
+          .allMatch(sketch -> add(writer,
+              FieldTopTerms.newMutation(dataset, sketch.getKey(), sketch.getValue().toByteArray())))
+          && isOk;
       fieldsTopTerms_ = null;
+    }
+    if (fieldsLabels_ != null) {
+      isOk =
+          fieldsLabels_.values().stream()
+              .allMatch(fl -> add(writer,
+                  FieldLabels.newMutation(fl.dataset(), fl.field(), fl.type(), fl.labels())))
+              && isOk;
+      fieldsLabels_ = null;
+    }
+    if (fieldsLastUpdate_ != null) {
+      isOk = fieldsLastUpdate_.values().stream().allMatch(
+          flu -> add(writer, FieldLastUpdate.newMutation(flu.dataset(), flu.field(), flu.type())))
+          && isOk;
+      fieldsLastUpdate_ = null;
     }
     return isOk;
   }
@@ -522,11 +534,44 @@ final public class TermStore extends AbstractStorage {
           nbOccurrences);
     }
 
-    Map<Text, Mutation> mutations = new HashMap<>();
+    // Compute last update
+    if (fieldsLastUpdate_ != null) {
 
-    // Ingest stats
-    FieldLastUpdate.newMutation(mutations, dataset, field, newType);
-    FieldLabels.newMutation(mutations, dataset, field, newType, fieldSpecificLabels);
+      String key = field + SEPARATOR_NUL + newType;
+      FieldLastUpdate fieldLastUpdate =
+          new FieldLastUpdate(dataset, field, newType, fieldSpecificLabels);
+
+      fieldsLastUpdate_.put(key, fieldLastUpdate); // Replace the previous entry (if any)
+    }
+
+    // Compute visibility labels
+    if (fieldsLabels_ != null) {
+
+      String key = field + SEPARATOR_NUL + newType;
+      FieldLabels fieldLabels = new FieldLabels(dataset, field, newType, fieldSpecificLabels);
+
+      if (!fieldsLabels_.containsKey(key)) {
+        fieldsLabels_.put(key, fieldLabels);
+      }
+
+      FieldLabels prev = fieldsLabels_.get(key);
+
+      if (!fieldLabels.equals(prev)) {
+
+        Preconditions.checkState(dataset.equals(prev.dataset()),
+            "mismatch between datasets : %s expected but %s found", dataset, prev.dataset());
+        Preconditions.checkState(fieldLabels.termLabels().equals(prev.termLabels()),
+            "mismatch between term labels : %s expected but %s found", fieldLabels.termLabels(),
+            prev.termLabels());
+
+        Set<String> labels = Sets.union(fieldSpecificLabels, prev.labels());
+        FieldLabels newFieldLabels = new FieldLabels(dataset, field, newType, labels);
+
+        fieldsLabels_.put(key, newFieldLabels); // Replace the previous entry (if any)
+      }
+    }
+
+    Map<Text, Mutation> mutations = new HashMap<>();
 
     // Forward index
     TermDistinctBuckets.newForwardMutation(mutations, dataset, field, newType, newTerm, 1,
@@ -631,7 +676,6 @@ final public class TermStore extends AbstractStorage {
    * @param fields fields (optional).
    * @return the number of distinct terms.
    */
-  @Beta
   public Iterator<FieldDistinctTerms> fieldCardinalityEstimationForTerms(ScannerBase scanner,
       String dataset, Set<String> fields) {
 
@@ -671,7 +715,6 @@ final public class TermStore extends AbstractStorage {
    * @param fields fields (optional).
    * @return the number of distinct buckets.
    */
-  @Beta
   public Iterator<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(ScannerBase scanner,
       String dataset, Set<String> fields) {
 
@@ -711,7 +754,6 @@ final public class TermStore extends AbstractStorage {
    * @param fields fields (optional).
    * @return the number of distinct buckets.
    */
-  @Beta
   public Iterator<FieldTopTerms> fieldTopTerms(ScannerBase scanner, String dataset,
       Set<String> fields) {
 

@@ -86,11 +86,15 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     TermStore termStore = newTermStore(auths);
 
     try (BatchWriter writer = termStore.writer()) {
+
+      termStore.beginIngest();
+
       Assert.assertTrue(
           termStore.put(writer, dataset, bucketId, "first_name", "john", 1, labels, labels));
       Assert.assertTrue(
           termStore.put(writer, dataset, bucketId, "last_name", "doe", 1, labels, labels));
       Assert.assertTrue(termStore.put(writer, dataset, bucketId, "age", 37, 1, labels, labels));
+      Assert.assertTrue(termStore.endIngest(writer, dataset));
     }
 
     // Check the index has been filled
@@ -161,17 +165,24 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     try (BatchWriter writer = termStore.writer()) {
 
+      termStore.beginIngest();
+
       Assert.assertTrue(
           termStore.put(writer, "dataset_1", bucketId, "first_name", "john", 1, labels, labels));
       Assert.assertTrue(
           termStore.put(writer, "dataset_1", bucketId, "last_name", "doe", 1, labels, labels));
       Assert.assertTrue(termStore.put(writer, "dataset_1", bucketId, "age", 37, 1, labels, labels));
 
+      Assert.assertTrue(termStore.endIngest(writer, "dataset_1"));
+      termStore.beginIngest();
+
       Assert.assertTrue(
           termStore.put(writer, "dataset_2", bucketId, "first_name", "john", 1, labels, labels));
       Assert.assertTrue(
           termStore.put(writer, "dataset_2", bucketId, "last_name", "doe", 1, labels, labels));
       Assert.assertTrue(termStore.put(writer, "dataset_2", bucketId, "age", 37, 1, labels, labels));
+
+      Assert.assertTrue(termStore.endIngest(writer, "dataset_2"));
     }
 
     // Check the index has been filled

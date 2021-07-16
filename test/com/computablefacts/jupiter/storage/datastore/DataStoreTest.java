@@ -805,7 +805,11 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     // Index
     try (Writers writers = dataStore.writers()) {
+
+      dataStore.beginIngest();
+
       Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
+      Assert.assertTrue(dataStore.endIngest(writers, "dataset_1"));
     }
 
     try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
@@ -841,7 +845,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(24, terms.size());
+      Assert.assertEquals(39, terms.size());
 
       List<Map.Entry<Key, Value>> bcnt =
           terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_BCNT"))
@@ -879,7 +883,11 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     // Reindex -> do not update blobs but rebuild the whole terms index
     try (Writers writers = dataStore.writers()) {
+
+      dataStore.beginIngest();
+
       Assert.assertTrue(dataStore.reindex(writers, "dataset_1", "row_1", Data.json2(1)));
+      Assert.assertTrue(dataStore.endIngest(writers, "dataset_1"));
     }
 
     try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
@@ -912,7 +920,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(24, terms.size());
+      Assert.assertEquals(39, terms.size());
 
       List<Map.Entry<Key, Value>> bcnt =
           terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().endsWith("_BCNT"))

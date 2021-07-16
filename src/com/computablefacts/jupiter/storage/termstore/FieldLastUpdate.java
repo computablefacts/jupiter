@@ -7,7 +7,6 @@ import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -37,8 +36,11 @@ final public class FieldLastUpdate {
   private final Set<String> labels_;
   private final String lastUpdate_;
 
-  FieldLastUpdate(String dataset, String field, int termType, Set<String> labels,
-      String lastUpdate) {
+  FieldLastUpdate(String dataset, String field, int type, Set<String> labels) {
+    this(dataset, field, type, labels, Instant.now().toString());
+  }
+
+  FieldLastUpdate(String dataset, String field, int type, Set<String> labels, String lastUpdate) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
@@ -46,7 +48,7 @@ final public class FieldLastUpdate {
 
     dataset_ = dataset;
     field_ = field;
-    type_ = termType;
+    type_ = type;
     labels_ = new HashSet<>(labels);
     lastUpdate_ = lastUpdate;
   }
@@ -80,7 +82,7 @@ final public class FieldLastUpdate {
     ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
         + AbstractStorage.toVisibilityLabel(TermStore.lastUpdate(dataset)));
 
-    Value value = new Value(DateTimeFormatter.ISO_INSTANT.format(instant));
+    Value value = new Value(instant.toString());
 
     Mutation mutation;
 

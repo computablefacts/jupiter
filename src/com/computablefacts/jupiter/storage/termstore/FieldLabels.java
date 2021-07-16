@@ -37,6 +37,11 @@ final public class FieldLabels {
   private final Set<String> labels_;
   private final Set<String> labelsTerm_;
 
+  FieldLabels(String dataset, String field, int type, Set<String> labels) {
+    this(dataset, field, type, labels, Sets.newHashSet(STRING_ADM,
+        AbstractStorage.toVisibilityLabel(TermStore.visibility(dataset))));
+  }
+
   FieldLabels(String dataset, String field, int type, Set<String> labels, Set<String> labelsTerm) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
