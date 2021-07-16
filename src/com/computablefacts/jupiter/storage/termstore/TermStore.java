@@ -379,6 +379,12 @@ final public class TermStore extends AbstractStorage {
         || Tables.setLocalityGroups(configurations().tableOperations(), tableName(), groups, false);
   }
 
+  /**
+   * This method should be called once, at the end of the ingest process.
+   *
+   * If the {@link #beginIngest()} and {@link #endIngest(BatchWriter, String)} methods are called
+   * too often, the estimators may be heavily skewed towards a subset of the data.
+   */
   public void beginIngest() {
     fieldsCardinalityEstimatorsForTerms_ = new HashMap<>();
     fieldsCardinalityEstimatorsForBuckets_ = new HashMap<>();
@@ -387,6 +393,16 @@ final public class TermStore extends AbstractStorage {
     fieldsLabels_ = new HashMap<>();
   }
 
+  /**
+   * This method should be called once, at the end of the ingest process.
+   *
+   * If the {@link #beginIngest()} and {@link #endIngest(BatchWriter, String)} methods are called
+   * too often, the estimators may be heavily skewed towards a subset of the data.
+   *
+   * @param writer batch writer.
+   * @param dataset the dataset.
+   * @return true if the write operations succeeded, false otherwise.
+   */
   @CanIgnoreReturnValue
   public boolean endIngest(BatchWriter writer, String dataset) {
 

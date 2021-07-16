@@ -513,10 +513,26 @@ final public class DataStore {
     return isOk1 && isOk2 && isOk3;
   }
 
+  /**
+   * This method should be called once, at the end of the ingest process.
+   *
+   * If the {@link #beginIngest()} and {@link #endIngest(Writers, String)} methods are called too
+   * often, the estimators may be heavily skewed towards a subset of the data.
+   */
   public void beginIngest() {
     termStore_.beginIngest();
   }
 
+  /**
+   * This method should be called once, at the end of the ingest process.
+   *
+   * If the {@link #beginIngest()} and {@link #endIngest(Writers, String)} methods are called too
+   * often, the estimators may be heavily skewed towards a subset of the data.
+   *
+   * @param writers writers.
+   * @param dataset the dataset.
+   * @return true if the write operations succeeded, false otherwise.
+   */
   @CanIgnoreReturnValue
   public boolean endIngest(Writers writers, String dataset) {
 
