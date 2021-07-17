@@ -814,13 +814,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
 
-      List<Map.Entry<Key, Value>> terms = new ArrayList<>();
-      scanner.iterator().forEachRemaining(terms::add);
+      List<Map.Entry<Key, Value>> blobs = new ArrayList<>();
+      scanner.iterator().forEachRemaining(blobs::add);
 
-      Assert.assertEquals(6, terms.size());
+      Assert.assertEquals(6, blobs.size());
 
       List<Map.Entry<String, String>> pairs =
-          terms.stream().map(t -> new AbstractMap.SimpleEntry<>(t.getKey().getRow().toString(),
+          blobs.stream().map(t -> new AbstractMap.SimpleEntry<>(t.getKey().getRow().toString(),
               t.getValue().toString())).collect(Collectors.toList());
 
       // Hash index
@@ -949,6 +949,135 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               .collect(Collectors.toList());
 
       Assert.assertEquals(5, fidx.size());
+    }
+  }
+
+  @Test
+  public void testIndexNumbersPrefixedWithZeroes() throws Exception {
+
+    Authorizations auths = new Authorizations("ADM");
+    DataStore dataStore = newDataStore(auths);
+
+    // Index
+    try (Writers writers = dataStore.writers()) {
+
+      dataStore.beginIngest();
+
+      Assert.assertTrue(dataStore.persist(writers, "dataset", "row_1", Data.json4()));
+      Assert.assertTrue(dataStore.endIngest(writers, "dataset"));
+    }
+
+    // Check BlobStore
+    try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
+
+      List<Map.Entry<Key, Value>> blobs = new ArrayList<>();
+      scanner.iterator().forEachRemaining(blobs::add);
+
+      Assert.assertEquals(11, blobs.size());
+
+      boolean hasId = blobs.stream().anyMatch(blob -> {
+
+        String row = blob.getKey().getRow().toString();
+        String cf = blob.getKey().getColumnFamily().toString();
+
+        return row.equals("365ccfea623eaebf17f36c5a0cdc4ddc\0id\0dataset" /* 0001 */)
+            && cf.equals("hidx");
+      });
+
+      Assert.assertTrue(hasId);
+
+      boolean hasCodePostal = blobs.stream().anyMatch(blob -> {
+
+        String row = blob.getKey().getRow().toString();
+        String cf = blob.getKey().getColumnFamily().toString();
+
+        return row.equals("af6196f63905efa61c2d1376b8482eae\0code_postal\0dataset" /* 01800 */)
+            && cf.equals("hidx");
+      });
+
+      Assert.assertTrue(hasCodePostal);
+
+      boolean hasNbConnexions = blobs.stream().anyMatch(blob -> {
+
+        String row = blob.getKey().getRow().toString();
+        String cf = blob.getKey().getColumnFamily().toString();
+
+        return row.equals("80a346d5bedec92a095e873ce5e98d3a\0nb_connexions\0dataset" /* 0 */)
+            && cf.equals("hidx");
+      });
+
+      Assert.assertTrue(hasNbConnexions);
+    }
+
+    // Check TermStore
+    try (Scanner scanner = dataStore.termStore().scanner(auths)) {
+
+      List<Map.Entry<Key, Value>> terms = new ArrayList<>();
+      scanner.iterator().forEachRemaining(terms::add);
+
+      Assert.assertEquals(96, terms.size());
+
+      @Var
+      boolean hasId = terms.stream().anyMatch(term -> {
+
+        String row = term.getKey().getRow().toString();
+        String cf = term.getKey().getColumnFamily().toString();
+        String cq = term.getKey().getColumnQualifier().toString();
+
+        return row.equals("0001" /* 0001 */) && cf.equals("dataset_FIDX")
+            && cq.equals("row_1\0id\0" + "1");
+      });
+
+      Assert.assertTrue(hasId);
+
+      hasId = terms.stream().anyMatch(term -> {
+
+        String row = term.getKey().getRow().toString();
+        String cf = term.getKey().getColumnFamily().toString();
+        String cq = term.getKey().getColumnQualifier().toString();
+
+        return row.equals("1000" /* 0001 */) && cf.equals("dataset_BIDX")
+            && cq.equals("row_1\0id\0" + "1");
+      });
+
+      Assert.assertTrue(hasId);
+
+      @Var
+      boolean hasCodePostal = terms.stream().anyMatch(term -> {
+
+        String row = term.getKey().getRow().toString();
+        String cf = term.getKey().getColumnFamily().toString();
+        String cq = term.getKey().getColumnQualifier().toString();
+
+        return row.equals("01800" /* 01800 */) && cf.equals("dataset_FIDX")
+            && cq.equals("row_1\0code_postal\0" + "1");
+      });
+
+      Assert.assertTrue(hasCodePostal);
+
+      hasCodePostal = terms.stream().anyMatch(term -> {
+
+        String row = term.getKey().getRow().toString();
+        String cf = term.getKey().getColumnFamily().toString();
+        String cq = term.getKey().getColumnQualifier().toString();
+
+        return row.equals("00810" /* 01800 */) && cf.equals("dataset_BIDX")
+            && cq.equals("row_1\0code_postal\0" + "1");
+      });
+
+      Assert.assertTrue(hasCodePostal);
+
+      boolean hasNbConnexions = terms.stream().anyMatch(term -> {
+
+        String row = term.getKey().getRow().toString();
+        String cf = term.getKey().getColumnFamily().toString();
+        String cq = term.getKey().getColumnQualifier().toString();
+
+        return row.equals("?0*" /* 0 */) && cf.equals("dataset_FIDX")
+            && cq.equals("row_1\0nb_connexions\0" + "2");
+      });
+
+      Assert.assertTrue(hasNbConnexions);
     }
   }
 

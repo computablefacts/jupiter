@@ -1104,11 +1104,28 @@ final public class DataStore {
           value = false;
         } else if (com.computablefacts.nona.helpers.Strings.isNumber(text)) {
           try {
+
             value = new BigInteger(text);
+
+            // Here, text is an integer (otherwise a NumberFormatException has been thrown)
+            StringIterator iterator = new StringIterator(text);
+            iterator.movePast(new char[] {'0'});
+
+            // The condition below ensures "0" is interpreted as a number but "00" as a string
+            if (iterator.position() > 1 || (iterator.position() > 0 && iterator.remaining() > 0)) {
+
+              // Ensure 00 is not mapped to 0
+              // Ensure 007 is not mapped to 7
+              value = text;
+            }
           } catch (NumberFormatException nfe1) {
             try {
+
               value = new BigDecimal(text);
+
+              // Here, text is a decimal number (otherwise a NumberFormatException has been thrown)
               if (text.trim().endsWith(".") || text.trim().startsWith(".")) {
+
                 // Ensure 123. is not mapped to 123.0
                 // Ensure .123 is not mapped to 0.123
                 value = text;

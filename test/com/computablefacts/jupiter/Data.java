@@ -52,6 +52,21 @@ final public class Data {
     return json;
   }
 
+  public static Map<String, Object> json4() {
+    Map<String, Object> json = new HashMap<>();
+    json.put("id", "0001");
+    json.put("nom", "doe");
+    json.put("prénom", "john");
+    json.put("age", 27);
+    json.put("sexe", "F");
+    json.put("rue", 95);
+    json.put("adresse", "avenue Charles-de-Gaulle");
+    json.put("code_postal", "01800");
+    json.put("ville", "Villieu");
+    json.put("nb_connexions", "0");
+    return json;
+  }
+
   public static File file(int size) throws Exception {
     java.io.File file = java.io.File.createTempFile("tmp-", ".txt");
     try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
