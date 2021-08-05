@@ -16,7 +16,11 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.TablePermission;
 import org.slf4j.Logger;
@@ -151,6 +155,9 @@ public class Shell {
       case "remove":
         Preconditions.checkState(remove(configurations, datastore, getArg(args, "ds")),
             "REMOVE failed!");
+        break;
+      case "compact":
+        Preconditions.checkState(compact(configurations, datastore), "COMPACT failed!");
         break;
       case "ingest":
         Preconditions.checkState(
@@ -357,6 +364,26 @@ public class Shell {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     return new DataStore(configurations, datastore).remove(dataset);
+  }
+
+  public static boolean compact(Configurations configurations, String datastore) {
+
+    Preconditions.checkNotNull(configurations, "configurations should not be null");
+    Preconditions.checkNotNull(datastore, "datastore should not be null");
+
+    try {
+      DataStore ds = new DataStore(configurations, datastore);
+      ds.blobStore().configurations().tableOperations().compact(ds.blobStore().tableName(),
+          new CompactionConfig());
+      ds.termStore().configurations().tableOperations().compact(ds.termStore().tableName(),
+          new CompactionConfig());
+      ds.cache().configurations().tableOperations().compact(ds.cache().tableName(),
+          new CompactionConfig());
+    } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+      logger_.error(LogFormatter.create(true).message(e).formatError());
+      return false;
+    }
+    return true;
   }
 
   public static boolean ingest(Configurations configurations, String datastore, String dataset,
