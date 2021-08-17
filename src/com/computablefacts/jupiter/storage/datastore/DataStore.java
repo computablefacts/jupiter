@@ -129,17 +129,17 @@ final public class DataStore {
   }
 
   @Generated
-  static String blobStoreName(String name) {
+  public static String blobStoreName(String name) {
     return name + "Blobs";
   }
 
   @Generated
-  static String termStoreName(String name) {
+  public static String termStoreName(String name) {
     return name + "Terms";
   }
 
   @Generated
-  static String cacheName(String name) {
+  public static String cacheName(String name) {
     return name + "Cache";
   }
 

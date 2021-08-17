@@ -38,6 +38,7 @@ import com.computablefacts.jupiter.filters.TermStoreFieldFilter;
 import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.logfmt.LogFormatter;
+import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.WildcardMatcher;
@@ -93,39 +94,48 @@ final public class TermStore extends AbstractStorage {
     super(configurations, name);
   }
 
-  static String distinctTerms(String dataset) {
+  @Generated
+  public static String distinctTerms(String dataset) {
     return dataset + "_DT";
   }
 
-  static String distinctBuckets(String dataset) {
+  @Generated
+  public static String distinctBuckets(String dataset) {
     return dataset + "_DB";
   }
 
-  static String topTerms(String dataset) {
+  @Generated
+  public static String topTerms(String dataset) {
     return dataset + "_TT";
   }
 
-  static String visibility(String dataset) {
+  @Generated
+  public static String visibility(String dataset) {
     return dataset + "_VIZ";
   }
 
-  static String lastUpdate(String dataset) {
+  @Generated
+  public static String lastUpdate(String dataset) {
     return dataset + "_LU";
   }
 
-  static String forwardCount(String dataset) {
+  @Generated
+  public static String forwardCount(String dataset) {
     return dataset + "_FCNT";
   }
 
-  static String forwardIndex(String dataset) {
+  @Generated
+  public static String forwardIndex(String dataset) {
     return dataset + "_FIDX";
   }
 
-  static String backwardCount(String dataset) {
+  @Generated
+  public static String backwardCount(String dataset) {
     return dataset + "_BCNT";
   }
 
-  static String backwardIndex(String dataset) {
+  @Generated
+  public static String backwardIndex(String dataset) {
     return dataset + "_BIDX";
   }
 
