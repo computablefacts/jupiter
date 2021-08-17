@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -15,8 +16,12 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.client.security.SecurityErrorCode;
+import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -30,6 +35,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -146,6 +152,75 @@ public abstract class AbstractStorage {
       return false;
     }
     return true;
+  }
+
+  /**
+   * This method differentiates between various types of exceptions we may see.
+   *
+   * @param exception the exception to analyze.
+   * @return true if we could retry, false if we should exit.
+   */
+  @CanIgnoreReturnValue
+  private static boolean handleExceptions(Exception exception) {
+
+    Preconditions.checkNotNull(exception, "exception should not be null");
+
+    logger_.error(LogFormatter.create(true).message(exception).formatError());
+
+    if (exception instanceof MutationsRejectedException) {
+
+      // Permanent failures
+      MutationsRejectedException ex = (MutationsRejectedException) exception;
+      Map<TabletId, Set<SecurityErrorCode>> securityErrors = ex.getSecurityErrorCodes();
+
+      for (Map.Entry<TabletId, Set<SecurityErrorCode>> entry : securityErrors.entrySet()) {
+        for (SecurityErrorCode err : entry.getValue()) {
+          logger_.error(LogFormatter.create(true).message("Permanent error: " + err.toString())
+              .formatError());
+        }
+      }
+
+      List<ConstraintViolationSummary> constraintViolations = ex.getConstraintViolationSummaries();
+
+      for (ConstraintViolationSummary cvs : constraintViolations) {
+        logger_.error(LogFormatter.create(true).message("Constraint violation: " + cvs.toString())
+            .formatError());
+      }
+
+      if (!securityErrors.isEmpty() || !constraintViolations.isEmpty()) {
+        logger_.error(
+            LogFormatter.create(true).message("Have permanent errors. Exiting...").formatError());
+        return false;
+      }
+
+      // Transient failures
+      Collection<String> errorServers = ex.getErrorServers();
+
+      for (String errorServer : errorServers) {
+        logger_.warn(
+            LogFormatter.create(true).message("Problem with server: " + errorServer).formatWarn());
+      }
+
+      int numUnknownExceptions = ex.getUnknownExceptions();
+
+      if (numUnknownExceptions > 0) {
+        logger_.warn(LogFormatter.create(true)
+            .message(numUnknownExceptions + " unknown exceptions.").formatWarn());
+      }
+      return true;
+    } else if (exception instanceof TimedOutException) {
+
+      // Transient failures
+      TimedOutException ex = (TimedOutException) exception;
+      Collection<String> errorServers = ex.getTimedOutSevers();
+
+      for (String errorServer : errorServers) {
+        logger_.warn(LogFormatter.create(true)
+            .message("Problem with server: " + errorServer + " (timeout)").formatWarn());
+      }
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -270,7 +345,7 @@ public abstract class AbstractStorage {
       }
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException e) {
-      logger_.error(LogFormatter.create(true).message(e).formatError());
+      handleExceptions(e);
       return false;
     }
     return true;
@@ -308,7 +383,7 @@ public abstract class AbstractStorage {
       }
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException e) {
-      logger_.error(LogFormatter.create(true).message(e).formatError());
+      handleExceptions(e);
       return false;
     }
     return true;
@@ -329,7 +404,7 @@ public abstract class AbstractStorage {
     try {
       writer.addMutation(mutation);
     } catch (MutationsRejectedException e) {
-      logger_.error(LogFormatter.create(true).message(e).formatError());
+      handleExceptions(e);
       return false;
     }
     return true;

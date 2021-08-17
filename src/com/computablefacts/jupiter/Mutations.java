@@ -5,17 +5,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TimedOutException;
-import org.apache.accumulo.core.client.security.SecurityErrorCode;
-import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TabletId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,67 +62,5 @@ final public class Mutations {
       logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return mutation;
-  }
-
-  /**
-   * This method differentiates between various types of exceptions we may see.
-   *
-   * @param exception the exception to analyze.
-   * @return true if we could retry, false if we should exit.
-   */
-  @Beta
-  public static boolean handleExceptions(Exception exception) {
-
-    Preconditions.checkNotNull(exception, "exception should not be null");
-
-    if (exception instanceof MutationsRejectedException) {
-
-      // Permanent failures
-      MutationsRejectedException ex = (MutationsRejectedException) exception;
-      Map<TabletId, Set<SecurityErrorCode>> securityErrors = ex.getSecurityErrorCodes();
-
-      for (Map.Entry<TabletId, Set<SecurityErrorCode>> entry : securityErrors.entrySet()) {
-        for (SecurityErrorCode err : entry.getValue()) {
-          logger_.error(LogFormatter.create(true).message("Permanent error: " + err.toString())
-              .formatError());
-        }
-      }
-
-      List<ConstraintViolationSummary> constraintViolations = ex.getConstraintViolationSummaries();
-
-      if (!securityErrors.isEmpty() || !constraintViolations.isEmpty()) {
-        logger_.error(
-            LogFormatter.create(true).message("Have permanent errors. Exiting...").formatError());
-        return false;
-      }
-
-      // Transient failures
-      Collection<String> errorServers = ex.getErrorServers();
-
-      for (String errorServer : errorServers) {
-        logger_.warn(
-            LogFormatter.create(true).message("Problem with server: " + errorServer).formatWarn());
-      }
-
-      int numUnknownExceptions = ex.getUnknownExceptions();
-
-      if (numUnknownExceptions > 0) {
-        logger_.warn(LogFormatter.create(true)
-            .message(numUnknownExceptions + " unknown exceptions.").formatWarn());
-      }
-      return true;
-    } else if (exception instanceof TimedOutException) {
-
-      // Transient failures
-      TimedOutException ex = (TimedOutException) exception;
-      Collection<String> errorServers = ex.getTimedOutSevers();
-
-      for (String errorServer : errorServers) {
-        logger_.warn(LogFormatter.create(true)
-            .message("Problem with server: " + errorServer + " (timeout)").formatWarn());
-      }
-      return true;
-    }
-    return false;
   }
 }
