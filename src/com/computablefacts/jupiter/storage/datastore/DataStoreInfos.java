@@ -72,7 +72,8 @@ final public class DataStoreInfos {
       cardEstForBuckets_.put(dataset, field, estimate);
     }
 
-    addType(dataset, field, type);
+    // Here, the type information should always be "Not Applicable"
+    // Thus, do not call addType(...)
   }
 
   @Beta

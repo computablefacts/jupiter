@@ -40,6 +40,7 @@ final public class Term implements HasTerm, Comparable<Term> {
   public static final int TYPE_NUMBER = 2;
   public static final int TYPE_DATE = 3;
   public static final int TYPE_BOOLEAN = 4;
+  public static final int TYPE_NA = 5; // Not Applicable
 
   private final String dataset_;
   private final String bucketId_;

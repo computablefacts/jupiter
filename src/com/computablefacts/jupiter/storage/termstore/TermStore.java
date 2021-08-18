@@ -568,7 +568,7 @@ final public class TermStore extends AbstractStorage {
     if (fieldsDistinctBuckets_ != null && (!prevDataset_.equals(dataset)
         || !prevField_.equals(field) || !prevBucketId_.equals(bucketId))) {
 
-      String key = field + SEPARATOR_NUL + Term.TYPE_UNKNOWN;
+      String key = field + SEPARATOR_NUL + Term.TYPE_NA;
 
       if (!fieldsDistinctBuckets_.containsKey(key)) {
         fieldsDistinctBuckets_.put(key,
