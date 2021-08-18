@@ -52,7 +52,7 @@ public class TermStoreCombiner extends Combiner {
     if (cf.endsWith("_LU")) {
       return reduceFieldLastUpdate(iter);
     }
-    if (cf.endsWith("_DB2")) {
+    if (cf.endsWith("_DB")) {
       return reduceCount(iter);
     }
     if (cf.endsWith("_DT")) {

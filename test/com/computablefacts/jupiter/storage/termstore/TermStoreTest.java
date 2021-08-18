@@ -56,8 +56,8 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
         .getLocalityGroups(termStore.configurations().tableOperations(), termStore.tableName());
 
     Assert.assertEquals(9, groupsAfter.size());
-    Assert.assertEquals(Sets.newHashSet(new Text(dataset + "_DB2")),
-        groupsAfter.get(dataset + "_DB2"));
+    Assert.assertEquals(Sets.newHashSet(new Text(dataset + "_DB")),
+        groupsAfter.get(dataset + "_DB"));
     Assert.assertEquals(Sets.newHashSet(new Text(dataset + "_DT")),
         groupsAfter.get(dataset + "_DT"));
     Assert.assertEquals(Sets.newHashSet(new Text(dataset + "_LU")),
@@ -1071,20 +1071,20 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(dataset, distinctBuckets.get(0).dataset());
       Assert.assertEquals("age", distinctBuckets.get(0).field());
-      Assert.assertEquals(Term.TYPE_UNKNOWN, distinctBuckets.get(0).type());
-      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB2"), distinctBuckets.get(0).labels());
+      Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(0).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(0).labels());
       Assert.assertEquals(5, distinctBuckets.get(0).estimate());
 
       Assert.assertEquals(dataset, distinctBuckets.get(1).dataset());
       Assert.assertEquals("first_name", distinctBuckets.get(1).field());
-      Assert.assertEquals(Term.TYPE_UNKNOWN, distinctBuckets.get(1).type());
-      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB2"), distinctBuckets.get(1).labels());
+      Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(1).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(1).labels());
       Assert.assertEquals(5, distinctBuckets.get(1).estimate());
 
       Assert.assertEquals(dataset, distinctBuckets.get(2).dataset());
       Assert.assertEquals("last_name", distinctBuckets.get(2).field());
-      Assert.assertEquals(Term.TYPE_UNKNOWN, distinctBuckets.get(2).type());
-      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB2"), distinctBuckets.get(2).labels());
+      Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(2).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(2).labels());
       Assert.assertEquals(5, distinctBuckets.get(2).estimate());
 
       // Test top terms
@@ -1179,20 +1179,20 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(dataset, distinctBuckets.get(0).dataset());
       Assert.assertEquals("age", distinctBuckets.get(0).field());
-      Assert.assertEquals(Term.TYPE_UNKNOWN, distinctBuckets.get(0).type());
-      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB2"), distinctBuckets.get(0).labels());
+      Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(0).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(0).labels());
       Assert.assertEquals(10, distinctBuckets.get(0).estimate());
 
       Assert.assertEquals(dataset, distinctBuckets.get(1).dataset());
       Assert.assertEquals("first_name", distinctBuckets.get(1).field());
-      Assert.assertEquals(Term.TYPE_UNKNOWN, distinctBuckets.get(1).type());
-      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB2"), distinctBuckets.get(1).labels());
+      Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(1).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(1).labels());
       Assert.assertEquals(10, distinctBuckets.get(1).estimate());
 
       Assert.assertEquals(dataset, distinctBuckets.get(2).dataset());
       Assert.assertEquals("last_name", distinctBuckets.get(2).field());
-      Assert.assertEquals(Term.TYPE_UNKNOWN, distinctBuckets.get(2).type());
-      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB2"), distinctBuckets.get(2).labels());
+      Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(2).type());
+      Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(2).labels());
       Assert.assertEquals(10, distinctBuckets.get(2).estimate());
 
       // Check top terms

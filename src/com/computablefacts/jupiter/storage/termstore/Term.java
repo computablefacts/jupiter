@@ -251,6 +251,11 @@ final public class Term implements HasTerm, Comparable<Term> {
   }
 
   @Generated
+  public boolean isNa() {
+    return type_ == Term.TYPE_NA;
+  }
+
+  @Generated
   public String bucketId() {
     return bucketId_;
   }

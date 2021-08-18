@@ -194,6 +194,11 @@ final public class FieldLabels {
   }
 
   @Generated
+  public boolean isNa() {
+    return type_ == Term.TYPE_NA;
+  }
+
+  @Generated
   public Set<String> labels() {
     return labels_;
   }

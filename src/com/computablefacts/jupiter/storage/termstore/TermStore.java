@@ -64,7 +64,7 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                     | Column Family   | Column Qualifier                  | Visibility                                  | Value
  * =========================+=================+===================================+=============================================+=================================
- *  _\0<field>\0<term_type> | <dataset>_DB2   | (empty)                           | ADM|<dataset>_DB2                           | #distinct_buckets
+ *  _\0<field>\0<term_type> | <dataset>_DB    | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
  *  _\0<field>\0<term_type> | <dataset>_DT    | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms
  *  _\0<field>\0<term_type> | <dataset>_LU    | (empty)                           | ADM|<dataset>_LU                            | utc_date
  *  _\0<field>\0<term_type> | <dataset>_TT    | (empty)                           | ADM|<dataset>_TT                            | top_k_terms
@@ -105,7 +105,7 @@ final public class TermStore extends AbstractStorage {
 
   @Generated
   public static String distinctBuckets2(String dataset) {
-    return dataset + "_DB2";
+    return dataset + "_DB";
   }
 
   @Generated
