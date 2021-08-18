@@ -12,6 +12,9 @@ import org.apache.datasketches.theta.UpdateSketch;
 
 import com.google.errorprone.annotations.CheckReturnValue;
 
+/**
+ * See https://datasketches.apache.org/docs/Theta/ThetaSketchFramework.html for details.
+ */
 @CheckReturnValue
 final public class ThetaSketch {
 
