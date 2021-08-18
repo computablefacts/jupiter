@@ -23,7 +23,7 @@ import com.google.errorprone.annotations.CheckReturnValue;
 final public class DataStoreInfos {
 
   private final String name_;
-  private final Table<String, String, Double> cardEstForBuckets_ = HashBasedTable.create();
+  private final Table<String, String, Long> cardEstForBuckets_ = HashBasedTable.create();
   private final Table<String, String, Double> cardEstForTerms_ = HashBasedTable.create();
   private final Table<String, String, Set<String>> visibilityLabels_ = HashBasedTable.create();
   private final Table<String, String, String> lastUpdates_ = HashBasedTable.create();
@@ -57,15 +57,17 @@ final public class DataStoreInfos {
 
   @Beta
   public void addCardinalityEstimationForBuckets(String dataset, String field, int type,
-      double estimate) {
+      long estimate) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
 
     if (cardEstForBuckets_.contains(dataset, field)) {
-      double oldEstimate = cardEstForBuckets_.get(dataset, field);
-      cardEstForBuckets_.remove(dataset, field);
-      cardEstForBuckets_.put(dataset, field, oldEstimate + estimate);
+      long oldEstimate = cardEstForBuckets_.get(dataset, field);
+      if (oldEstimate < estimate) {
+        cardEstForBuckets_.remove(dataset, field);
+        cardEstForBuckets_.put(dataset, field, estimate);
+      }
     } else {
       cardEstForBuckets_.put(dataset, field, estimate);
     }

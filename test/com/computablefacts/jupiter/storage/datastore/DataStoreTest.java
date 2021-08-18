@@ -78,7 +78,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
             dataStore.termStore().tableName());
 
     Assert.assertEquals(9, groupsAfter.size());
-    Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_DB")), groupsAfter.get("dataset_1_DB"));
+    Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_DB2")),
+        groupsAfter.get("dataset_1_DB2"));
     Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_DT")), groupsAfter.get("dataset_1_DT"));
     Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_LU")), groupsAfter.get("dataset_1_LU"));
     Assert.assertEquals(Sets.newHashSet(new Text("dataset_1_TT")), groupsAfter.get("dataset_1_TT"));
@@ -724,7 +725,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("dataset", "dataset_1");
     map.put("field", "birthdate");
     map.put("nb_distinct_terms", 2.0);
-    map.put("nb_distinct_buckets", 2.0);
+    map.put("nb_distinct_buckets", 2);
     map.put("top_terms_no_false_positives",
         Lists.newArrayList(ImmutableMap.of("term", "2004-04-01T00:00:00Z", "nb_occurrences", 1),
             ImmutableMap.of("term", "2003-04-01T00:00:00Z", "nb_occurrences", 1)));
@@ -740,7 +741,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("dataset", "dataset_1");
     map.put("field", "last_name");
     map.put("nb_distinct_terms", 1.0);
-    map.put("nb_distinct_buckets", 2.0);
+    map.put("nb_distinct_buckets", 2);
     map.put("top_terms_no_false_positives",
         Lists.newArrayList(ImmutableMap.of("term", "doe", "nb_occurrences", 2)));
     map.put("top_terms_no_false_negatives",
@@ -754,7 +755,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("dataset", "dataset_1");
     map.put("field", "id");
     map.put("nb_distinct_terms", 1.0);
-    map.put("nb_distinct_buckets", 2.0);
+    map.put("nb_distinct_buckets", 2);
     map.put("top_terms_no_false_positives",
         Lists.newArrayList(ImmutableMap.of("term", "1", "nb_occurrences", 2)));
     map.put("top_terms_no_false_negatives",
@@ -768,7 +769,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("dataset", "dataset_1");
     map.put("field", "first_name");
     map.put("nb_distinct_terms", 2.0);
-    map.put("nb_distinct_buckets", 2.0);
+    map.put("nb_distinct_buckets", 2);
     map.put("top_terms_no_false_positives",
         Lists.newArrayList(ImmutableMap.of("term", "john", "nb_occurrences", 1),
             ImmutableMap.of("term", "jane", "nb_occurrences", 1)));
@@ -784,7 +785,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.put("dataset", "dataset_1");
     map.put("field", "age");
     map.put("nb_distinct_terms", 2.0);
-    map.put("nb_distinct_buckets", 2.0);
+    map.put("nb_distinct_buckets", 2);
     map.put("top_terms_no_false_positives",
         Lists.newArrayList(ImmutableMap.of("term", "17", "nb_occurrences", 1),
             ImmutableMap.of("term", "18", "nb_occurrences", 1)));

@@ -55,7 +55,7 @@ import com.google.errorprone.annotations.Var;
  * The TermStore API allows your application to persist buckets of key-value pairs. Numbers and
  * dates are automatically lexicoded to maintain their native Java sort order.
  * </p>
- * 
+ *
  * <p>
  * This storage layer utilizes the <a href="https://accumulo.apache.org">Accumulo</a> table schemas
  * described below as the basis for its ingest and query components.
@@ -64,7 +64,7 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                     | Column Family   | Column Qualifier                  | Visibility                                  | Value
  * =========================+=================+===================================+=============================================+=================================
- *  _\0<field>\0<term_type> | <dataset>_DB    | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
+ *  _\0<field>\0<term_type> | <dataset>_DB2   | (empty)                           | ADM|<dataset>_DB2                           | #distinct_buckets
  *  _\0<field>\0<term_type> | <dataset>_DT    | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms
  *  _\0<field>\0<term_type> | <dataset>_LU    | (empty)                           | ADM|<dataset>_LU                            | utc_date
  *  _\0<field>\0<term_type> | <dataset>_TT    | (empty)                           | ADM|<dataset>_TT                            | top_k_terms
@@ -85,10 +85,14 @@ final public class TermStore extends AbstractStorage {
   private static final Logger logger_ = LoggerFactory.getLogger(TermStore.class);
 
   private Map<String, ThetaSketch> fieldsCardinalityEstimatorsForTerms_;
-  private Map<String, ThetaSketch> fieldsCardinalityEstimatorsForBuckets_;
+  private Map<String, FieldDistinctBuckets> fieldsDistinctBuckets_;
   private Map<String, TopKSketch> fieldsTopTerms_;
   private Map<String, FieldLastUpdate> fieldsLastUpdate_;
   private Map<String, FieldLabels> fieldsLabels_;
+
+  private String prevDataset_ = "";
+  private String prevField_ = "";
+  private String prevBucketId_ = "";
 
   public TermStore(Configurations configurations, String name) {
     super(configurations, name);
@@ -100,8 +104,8 @@ final public class TermStore extends AbstractStorage {
   }
 
   @Generated
-  public static String distinctBuckets(String dataset) {
-    return dataset + "_DB";
+  public static String distinctBuckets2(String dataset) {
+    return dataset + "_DB2";
   }
 
   @Generated
@@ -322,7 +326,7 @@ final public class TermStore extends AbstractStorage {
     }
 
     Set<String> cfs = Sets.newHashSet(topTerms(dataset), distinctTerms(dataset),
-        distinctBuckets(dataset), lastUpdate(dataset), visibility(dataset), forwardCount(dataset),
+        distinctBuckets2(dataset), lastUpdate(dataset), visibility(dataset), forwardCount(dataset),
         forwardIndex(dataset), backwardCount(dataset), backwardIndex(dataset));
 
     return remove(deleter, cfs);
@@ -351,7 +355,7 @@ final public class TermStore extends AbstractStorage {
     String visibility = visibility(dataset);
     String lastUpdate = lastUpdate(dataset);
     String distinctTerms = distinctTerms(dataset);
-    String distinctBuckets = distinctBuckets(dataset);
+    String distinctBuckets2 = distinctBuckets2(dataset);
     String topKTerms = topTerms(dataset);
     String forwardCount = forwardCount(dataset);
     String forwardIndex = forwardIndex(dataset);
@@ -367,8 +371,8 @@ final public class TermStore extends AbstractStorage {
     if (!groups.containsKey(distinctTerms)) {
       groups.put(distinctTerms, Sets.newHashSet(new Text(distinctTerms)));
     }
-    if (!groups.containsKey(distinctBuckets)) {
-      groups.put(distinctBuckets, Sets.newHashSet(new Text(distinctBuckets)));
+    if (!groups.containsKey(distinctBuckets2)) {
+      groups.put(distinctBuckets2, Sets.newHashSet(new Text(distinctBuckets2)));
     }
     if (!groups.containsKey(topKTerms)) {
       groups.put(topKTerms, Sets.newHashSet(new Text(topKTerms)));
@@ -390,17 +394,20 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * This method should be called once, at the end of the ingest process.
+   * This method should be called once, at the beginning of the ingest process.
    *
    * If the {@link #beginIngest()} and {@link #endIngest(BatchWriter, String)} methods are called
    * too often, the estimators may be heavily skewed towards a subset of the data.
    */
   public void beginIngest() {
     fieldsCardinalityEstimatorsForTerms_ = new HashMap<>();
-    fieldsCardinalityEstimatorsForBuckets_ = new HashMap<>();
+    fieldsDistinctBuckets_ = new HashMap<>();
     fieldsTopTerms_ = new HashMap<>();
     fieldsLastUpdate_ = new HashMap<>();
     fieldsLabels_ = new HashMap<>();
+    prevDataset_ = "";
+    prevField_ = "";
+    prevBucketId_ = "";
   }
 
   /**
@@ -429,12 +436,15 @@ final public class TermStore extends AbstractStorage {
           && isOk;
       fieldsCardinalityEstimatorsForTerms_ = null;
     }
-    if (fieldsCardinalityEstimatorsForBuckets_ != null) {
-      isOk = fieldsCardinalityEstimatorsForBuckets_.entrySet().stream()
-          .allMatch(sketch -> add(writer, FieldDistinctBuckets.newMutation(dataset, sketch.getKey(),
-              sketch.getValue().toByteArray())))
+    if (fieldsDistinctBuckets_ != null) {
+      isOk = fieldsDistinctBuckets_.entrySet().stream()
+          .allMatch(db -> add(writer,
+              FieldDistinctBuckets.newMutation(dataset, db.getKey(), db.getValue().estimate())))
           && isOk;
-      fieldsCardinalityEstimatorsForBuckets_ = null;
+      fieldsDistinctBuckets_ = null;
+      prevDataset_ = "";
+      prevField_ = "";
+      prevBucketId_ = "";
     }
     if (fieldsTopTerms_ != null) {
       isOk = fieldsTopTerms_.entrySet().stream()
@@ -463,6 +473,23 @@ final public class TermStore extends AbstractStorage {
   /**
    * Persist data. Term extraction for a given field from a given bucket should be performed by the
    * caller. This method should be called only once for each quad (dataset, bucketId, field, term).
+   *
+   * WARNING : this method makes the assumption that triples (dataset, bucketId, field) are ordered
+   * and processed one after the other. For example, this sequence will skew the bucket count :
+   *
+   * <pre>
+   *     Call n°1: (dataset_1, bucket_1, field_1)
+   *     Call n°2: (dataset_1, bucket_1, field_2)
+   *     Call n°3: (dataset_1, bucket_1, field_1)
+   * </pre>
+   *
+   * but this sequence is will not :
+   *
+   * <pre>
+   *     Call n°1: (dataset_1, bucket_1, field_1)
+   *     Call n°2: (dataset_1, bucket_1, field_1)
+   *     Call n°3: (dataset_1, bucket_1, field_2)
+   * </pre>
    *
    * @param writer batch writer.
    * @param dataset the dataset.
@@ -538,14 +565,25 @@ final public class TermStore extends AbstractStorage {
     }
 
     // Compute the number of distinct buckets
-    if (fieldsCardinalityEstimatorsForBuckets_ != null) {
+    if (fieldsDistinctBuckets_ != null && (!prevDataset_.equals(dataset)
+        || !prevField_.equals(field) || !prevBucketId_.equals(bucketId))) {
 
-      String key = field + SEPARATOR_NUL + newType;
+      String key = field + SEPARATOR_NUL + Term.TYPE_UNKNOWN;
 
-      if (!fieldsCardinalityEstimatorsForBuckets_.containsKey(key)) {
-        fieldsCardinalityEstimatorsForBuckets_.put(key, new ThetaSketch());
+      if (!fieldsDistinctBuckets_.containsKey(key)) {
+        fieldsDistinctBuckets_.put(key,
+            new FieldDistinctBuckets(dataset, field, newType, fieldSpecificLabels, 0));
       }
-      fieldsCardinalityEstimatorsForBuckets_.get(key).offer(bucketId);
+
+      FieldDistinctBuckets prev = fieldsDistinctBuckets_.get(key);
+      FieldDistinctBuckets next = new FieldDistinctBuckets(dataset, field, newType,
+          fieldSpecificLabels, prev.estimate() + 1);
+
+      fieldsDistinctBuckets_.put(key, next);
+
+      prevDataset_ = dataset;
+      prevField_ = field;
+      prevBucketId_ = bucketId;
     }
 
     // Compute the top k terms
@@ -754,7 +792,7 @@ final public class TermStore extends AbstractStorage {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(distinctBuckets(dataset)));
+    scanner.fetchColumnFamily(new Text(distinctBuckets2(dataset)));
 
     List<Range> ranges;
 

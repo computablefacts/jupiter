@@ -33,23 +33,22 @@ final public class FieldDistinctBuckets {
   private final String field_;
   private final int type_;
   private final Set<String> labels_;
-  private final double estimate_;
+  private final long estimate_;
 
-  FieldDistinctBuckets(String dataset, String field, int type, Set<String> labels, byte[] sketch) {
+  FieldDistinctBuckets(String dataset, String field, int type, Set<String> labels, long estimate) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");
-    Preconditions.checkNotNull(sketch, "sketch should not be null");
 
     dataset_ = dataset;
     field_ = field;
     type_ = type;
     labels_ = new HashSet<>(labels);
-    estimate_ = ThetaSketch.wrap(sketch).getEstimate();
+    estimate_ = estimate;
   }
 
-  public static Mutation newMutation(String dataset, String typedField, byte[] sketch) {
+  public static Mutation newMutation(String dataset, String typedField, long estimate) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(typedField, "typedField should not be null");
@@ -59,12 +58,12 @@ final public class FieldDistinctBuckets {
 
     Text row = new Text(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + typedField);
 
-    Text cf = new Text(TermStore.distinctBuckets(dataset));
+    Text cf = new Text(TermStore.distinctBuckets2(dataset));
 
     ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
-        + AbstractStorage.toVisibilityLabel(TermStore.distinctBuckets(dataset)));
+        + AbstractStorage.toVisibilityLabel(TermStore.distinctBuckets2(dataset)));
 
-    Value value = new Value(sketch);
+    Value value = new Value(Long.toString(estimate, 10));
 
     Mutation mutation = new Mutation(row);
     mutation.put(cf, TEXT_EMPTY, cv, value);
@@ -103,10 +102,10 @@ final public class FieldDistinctBuckets {
     Set<String> labels =
         Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
-    // Extract sketch from VALUE
-    byte[] sketch = value.get();
+    // Extract estimate from VALUE
+    long estimate = Long.parseLong(value.toString(), 10);
 
-    return new FieldDistinctBuckets(datazet, field, type, labels, sketch);
+    return new FieldDistinctBuckets(datazet, field, type, labels, estimate);
   }
 
   @Generated
@@ -176,7 +175,7 @@ final public class FieldDistinctBuckets {
   }
 
   @Generated
-  public double estimate() {
+  public long estimate() {
     return estimate_;
   }
 }
