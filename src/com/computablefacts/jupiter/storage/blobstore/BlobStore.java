@@ -1,5 +1,8 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +12,9 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
@@ -24,7 +29,6 @@ import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.Codecs;
-import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -45,9 +49,9 @@ import com.google.errorprone.annotations.Var;
  * </p>
  * 
  * <pre>
- *  Row         | Column Family | Column Qualifier                                | Visibility                             |Value
- * =============+===============+=================================================+========================================+========
- *  <key>       | <dataset>     | <blob_type>\0<property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
+ *  Row               | Column Family | Column Qualifier                                | Visibility                             |Value
+ * ===================+===============+=================================================+========================================+========
+ *  <dataset>\0<key>  | (empty)       | <blob_type>\0<property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
  * </pre>
  *
  * <p>
@@ -64,26 +68,26 @@ final public class BlobStore extends AbstractStorage {
   }
 
   /**
-   * Group data belonging to a same dataset together.
+   * Group data belonging to a same column family together.
    *
-   * @param dataset dataset.
+   * @param cf column family.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean addLocalityGroup(String dataset) {
+  public boolean addLocalityGroup(String cf) {
 
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(cf, "cf should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .formatDebug());
+      logger_.debug(
+          LogFormatter.create(true).add("table_name", tableName()).add("cf", cf).formatDebug());
     }
 
     Map<String, Set<Text>> groups =
         Tables.getLocalityGroups(configurations().tableOperations(), tableName());
 
-    if (!groups.containsKey(dataset)) {
+    if (!groups.containsKey(cf)) {
 
-      groups.put(dataset, Sets.newHashSet(new Text(dataset)));
+      groups.put(cf, Sets.newHashSet(new Text(cf)));
 
       return Tables.setLocalityGroups(configurations().tableOperations(), tableName(), groups,
           false);
@@ -99,36 +103,25 @@ final public class BlobStore extends AbstractStorage {
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean removeDataset(BatchDeleter deleter, String dataset) {
-    return remove(deleter, null, dataset, null);
-  }
-
-  /**
-   * Remove keys for a given dataset.
-   *
-   * @param deleter batch deleter.
-   * @param dataset dataset.
-   * @param keys a set of keys to remove.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  @Beta
-  public boolean removeKeys(BatchDeleter deleter, String dataset, Set<String> keys) {
 
     Preconditions.checkNotNull(deleter, "deleter should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("keys", keys).formatDebug());
+          .formatDebug());
     }
 
-    @Var
-    int nbRemovedKeys = 0;
+    deleter.clearColumns();
+    deleter.clearScanIterators();
 
-    for (String key : keys) {
-      if (remove(deleter, key, dataset, null)) {
-        nbRemovedKeys++;
-      }
+    try {
+      deleter.setRanges(Collections.singleton(Range.prefix(dataset + SEPARATOR_NUL)));
+      deleter.delete();
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      handleExceptions(e);
+      return false;
     }
-    return nbRemovedKeys == keys.size();
+    return true;
   }
 
   /**
@@ -240,7 +233,6 @@ final public class BlobStore extends AbstractStorage {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(dataset));
 
     @Var
     int priority = 21;
@@ -263,10 +255,11 @@ final public class BlobStore extends AbstractStorage {
     List<Range> ranges;
 
     if (keys == null || keys.isEmpty()) {
-      ranges = Lists.newArrayList(new Range());
+      ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
     } else {
-      ranges = Range.mergeOverlapping(keys.stream()
-          .map(key -> Range.exact(new Text(key), new Text(dataset))).collect(Collectors.toList()));
+      ranges = Range.mergeOverlapping(
+          keys.stream().map(key -> Range.exact(new Text(dataset + SEPARATOR_NUL + key)))
+              .collect(Collectors.toList()));
     }
 
     if (!setRanges(scanner, ranges)) {

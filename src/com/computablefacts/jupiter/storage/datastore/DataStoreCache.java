@@ -1,6 +1,8 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
 import java.util.Collections;
@@ -43,7 +45,7 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                    | Column Family          | Column Qualifier       | Visibility             | Value
  * ========================+========================+========================+========================+========================
- *  <uuid>                 | <dataset>              | <cached_string>        | (empty)                | (empty)
+ *  <dataset>\0<uuid>      | (empty)                | <cached_string>        | (empty)                | (empty)
  * </pre>
  *
  * <p>
@@ -53,7 +55,7 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                    | Column Family          | Column Qualifier       | Visibility             | Value
  * ========================+========================+========================+========================+========================
- *  <uuid>                 | <dataset>              | <hashed_string>        | (empty)                | <cached_string>
+ *  <dataset>\0<uuid>      | (empty)                | <hashed_string>        | (empty)                | <cached_string>
  * </pre>
  * 
  */
@@ -79,8 +81,8 @@ final public class DataStoreCache {
 
     deleter.clearColumns();
     deleter.clearScanIterators();
-    deleter.fetchColumnFamily(new Text(dataset));
-    deleter.setRanges(Collections.singleton(new Range()));
+    deleter.fetchColumnFamily(TEXT_EMPTY);
+    deleter.setRanges(Collections.singleton(Range.prefix(dataset + SEPARATOR_NUL)));
 
     try {
       deleter.delete();
@@ -149,14 +151,14 @@ final public class DataStoreCache {
 
     scanners.cache().clearColumns();
     scanners.cache().clearScanIterators();
-    scanners.cache().fetchColumnFamily(new Text(dataset));
 
     Range range;
 
     if (nextValue == null) {
-      range = Range.exact(cacheId, dataset);
+      range = Range.exact(dataset + SEPARATOR_NUL + cacheId);
     } else {
-      Key begin = new Key(new Text(cacheId), new Text(dataset), new Text(nextValue));
+      Key begin =
+          new Key(new Text(dataset + SEPARATOR_NUL + cacheId), TEXT_EMPTY, new Text(nextValue));
       Key end = begin.followingKey(PartialKey.ROW);
       range = new Range(begin, true, end, false);
     }
@@ -252,13 +254,12 @@ final public class DataStoreCache {
         while (iterator.hasNext()) {
 
           String value = Strings.nullToEmpty(iterator.next());
-          Mutation mutation = new Mutation(cacheId);
+          Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + cacheId);
 
           if (!hash) {
-            mutation.put(new Text(dataset), new Text(value), VALUE_EMPTY);
+            mutation.put(TEXT_EMPTY, new Text(value), VALUE_EMPTY);
           } else {
-            mutation.put(new Text(dataset), new Text(MaskingIterator.hash(null, value)),
-                new Value(value));
+            mutation.put(TEXT_EMPTY, new Text(MaskingIterator.hash(null, value)), new Value(value));
           }
 
           writers.cache().addMutation(mutation);
@@ -268,13 +269,12 @@ final public class DataStoreCache {
         while (iterator.hasNext()) {
 
           String value = Strings.nullToEmpty(iterator.next());
-          Mutation mutation = new Mutation(cacheId);
+          Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + cacheId);
 
           if (!hash) {
-            mutation.put(new Text(dataset), new Text(value), VALUE_EMPTY);
+            mutation.put(TEXT_EMPTY, new Text(value), VALUE_EMPTY);
           } else {
-            mutation.put(new Text(dataset), new Text(MaskingIterator.hash(null, value)),
-                new Value(value));
+            mutation.put(TEXT_EMPTY, new Text(MaskingIterator.hash(null, value)), new Value(value));
           }
 
           writers.cache().addMutation(mutation);

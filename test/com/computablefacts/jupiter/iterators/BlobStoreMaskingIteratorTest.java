@@ -43,16 +43,16 @@ public class BlobStoreMaskingIteratorTest {
 
     while (iterator.hasTop()) {
 
-      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String row = iterator.getTopKey().getRow().toString();
       String value = iterator.getTopValue().toString();
 
-      if ("DATASET_1".equals(cf)) {
+      if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\", \"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\", \"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
         countDataset1++;
       }
-      if ("DATASET_2".equals(cf)) {
+      if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\", \"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\", \"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
@@ -78,16 +78,16 @@ public class BlobStoreMaskingIteratorTest {
 
     while (iterator.hasTop()) {
 
-      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String row = iterator.getTopKey().getRow().toString();
       String value = iterator.getTopValue().toString();
 
-      if ("DATASET_1".equals(cf)) {
+      if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
         countDataset1++;
       }
-      if ("DATASET_2".equals(cf)) {
+      if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
@@ -113,14 +113,14 @@ public class BlobStoreMaskingIteratorTest {
 
     while (iterator.hasTop()) {
 
-      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String row = iterator.getTopKey().getRow().toString();
       String value = iterator.getTopValue().toString();
 
-      if ("DATASET_1".equals(cf)) {
+      if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(json(), value);
         countDataset1++;
       }
-      if ("DATASET_2".equals(cf)) {
+      if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}",
             value);
@@ -147,16 +147,16 @@ public class BlobStoreMaskingIteratorTest {
 
     while (iterator.hasTop()) {
 
-      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String row = iterator.getTopKey().getRow().toString();
       String value = iterator.getTopValue().toString();
 
-      if ("DATASET_1".equals(cf)) {
+      if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"city\":\"New York\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":31}"),
             Codecs.asObject(value));
         countDataset1++;
       }
-      if ("DATASET_2".equals(cf)) {
+      if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
@@ -183,16 +183,16 @@ public class BlobStoreMaskingIteratorTest {
 
     while (iterator.hasTop()) {
 
-      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String row = iterator.getTopKey().getRow().toString();
       String value = iterator.getTopValue().toString();
 
-      if ("DATASET_1".equals(cf)) {
+      if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":31}"),
             Codecs.asObject(value));
         countDataset1++;
       }
-      if ("DATASET_2".equals(cf)) {
+      if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"city\":\"New York\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
@@ -224,18 +224,24 @@ public class BlobStoreMaskingIteratorTest {
 
     SortedMap<Key, Value> map = new TreeMap<>();
 
-    map.put(new Key("KEY_1", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_1\0KEY_1", "", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
         new Value(json()));
-    map.put(new Key("KEY_2", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_1\0KEY_2", "", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
         new Value(json()));
-    map.put(new Key("KEY_3", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_1\0KEY_3", "", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
         new Value(json()));
 
-    map.put(new Key("KEY_1", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_2\0KEY_1", "", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
         new Value(json()));
-    map.put(new Key("KEY_2", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_2\0KEY_2", "", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
         new Value(json()));
-    map.put(new Key("KEY_3", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_2\0KEY_3", "", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
         new Value(json()));
 
     return map;

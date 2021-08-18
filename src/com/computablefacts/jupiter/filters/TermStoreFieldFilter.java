@@ -14,7 +14,6 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Joiner;
@@ -80,20 +79,15 @@ public class TermStoreFieldFilter extends Filter {
     int index = cq.indexOf(SEPARATOR_NUL);
 
     String field;
-    int type;
 
     if (index < 0) {
       field = cq;
-      type = Term.TYPE_UNKNOWN;
     } else {
       field = cq.substring(0, index);
-      type = Integer.parseInt(cq.substring(index + 1), 10);
     }
 
     if (keepFields_ != null) {
-      if (!acceptField(field)) {
-        return false;
-      }
+      return acceptField(field);
     }
     // TODO : backport filter on term type
     return true;

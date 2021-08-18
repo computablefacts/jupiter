@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 
 @Beta
 @CheckReturnValue
@@ -58,12 +59,12 @@ final public class FieldDistinctTerms {
         "typedField format should be typed\\0type");
     Preconditions.checkNotNull(sketch, "sketch should not be null");
 
-    Text row = new Text(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + typedField);
+    Text row = new Text(dataset + SEPARATOR_NUL + typedField);
 
-    Text cf = new Text(TermStore.distinctTerms(dataset));
+    Text cf = new Text(TermStore.distinctTerms());
 
-    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
-        + AbstractStorage.toVisibilityLabel(TermStore.distinctTerms(dataset)));
+    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE + AbstractStorage
+        .toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.distinctTerms()));
 
     Value value = new Value(sketch);
 
@@ -79,26 +80,17 @@ final public class FieldDistinctTerms {
     Preconditions.checkNotNull(value, "value should not be null");
 
     String row = key.getRow().toString();
-    String cf = key.getColumnFamily().toString();
     String cv = key.getColumnVisibility().toString();
-    String val = value.toString();
 
-    // Extract term and term's type from ROW
-    int index = row.indexOf(SEPARATOR_NUL, 2);
+    // Extract dataset, term and term's type from ROW
+    @Var
+    int index = row.indexOf(SEPARATOR_NUL);
+    String dataset = row.substring(0, index);
+    String typedField = row.substring(index + 1);
 
-    String field;
-    int type;
-
-    if (index < 0) {
-      field = row;
-      type = Term.TYPE_UNKNOWN;
-    } else {
-      field = row.substring(2, index);
-      type = Integer.parseInt(row.substring(index + 1), 10);
-    }
-
-    // Extract dataset from CF
-    String datazet = cf.substring(0, cf.lastIndexOf('_'));
+    index = typedField.indexOf(SEPARATOR_NUL);
+    String field = typedField.substring(0, index);
+    int type = Integer.parseInt(typedField.substring(index + 1), 10);
 
     // Extract visibility labels from CV
     Set<String> labels =
@@ -106,8 +98,7 @@ final public class FieldDistinctTerms {
 
     // Extract sketch from VALUE
     byte[] sketch = value.get();
-
-    return new FieldDistinctTerms(datazet, field, type, labels, sketch);
+    return new FieldDistinctTerms(dataset, field, type, labels, sketch);
   }
 
   @Generated

@@ -48,8 +48,8 @@ public class FieldLastUpdateTest {
 
     Instant instant = Instant.now();
 
-    byte[] row = "_\u0000first_name\u00001".getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset_LU".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "my_dataset\u0000first_name\u00001".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "LU".getBytes(StandardCharsets.UTF_8);
     byte[] cq = TEXT_EMPTY.getBytes();
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_LU").getExpression();
     byte[] val = DateTimeFormatter.ISO_INSTANT.format(instant).getBytes(StandardCharsets.UTF_8);
@@ -68,8 +68,8 @@ public class FieldLastUpdateTest {
 
     Instant instant = Instant.now();
 
-    byte[] row = "_\u0000first_name\u00001".getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset_LU".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "my_dataset\u0000first_name\u00001".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "LU".getBytes(StandardCharsets.UTF_8);
     byte[] cq = TEXT_EMPTY.getBytes();
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_LU").getExpression();
     byte[] val = DateTimeFormatter.ISO_INSTANT.format(instant).getBytes(StandardCharsets.UTF_8);

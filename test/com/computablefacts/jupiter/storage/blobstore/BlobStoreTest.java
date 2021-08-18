@@ -91,40 +91,6 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
-  public void testRemoveKeys() throws Exception {
-
-    File file = Data.file(10);
-    String str = Codecs.asString(Data.json(1));
-    Map<String, Object> json = Data.json(1);
-
-    String dataset = "blobs";
-    Set<String> labels = Sets.newHashSet();
-    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_RAW_FILE");
-    BlobStore blobStore = newBlobStore(auths);
-
-    try (BatchWriter writer = blobStore.writer()) {
-      Assert.assertTrue(blobStore.putFile(writer, dataset, "1", labels, file));
-      Assert.assertTrue(blobStore.putString(writer, dataset, "2", labels, str));
-      Assert.assertTrue(blobStore.putJson(writer, dataset, "3", labels, json));
-    }
-
-    try (BatchDeleter deleter = blobStore.deleter(auths)) {
-      Assert.assertTrue(blobStore.removeKeys(deleter, dataset, Sets.newHashSet("2")));
-    }
-
-    try (BatchScanner scanner = blobStore.batchScanner(auths, 1)) {
-
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.get(scanner, dataset).forEachRemaining(blobs::add);
-
-      Assert.assertEquals(2, blobs.size());
-
-      checkFile(blobs.get(0), file);
-      checkJson(blobs.get(1));
-    }
-  }
-
-  @Test
   public void testPutAndGetFile() throws Exception {
 
     File file = Data.file(10);

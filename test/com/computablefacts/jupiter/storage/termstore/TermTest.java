@@ -51,8 +51,8 @@ public class TermTest {
   @Test
   public void testNewForwardMutation() {
 
-    byte[] row = "john".getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset_FIDX".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "my_dataset\0john".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "FIDX".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "123456\0first_name\u00001".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = "11".getBytes(StandardCharsets.UTF_8);
@@ -69,8 +69,8 @@ public class TermTest {
   @Test
   public void testNewBackwardMutation() {
 
-    byte[] row = "nhoj".getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset_BIDX".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "my_dataset\0nhoj".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "BIDX".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "123456\0first_name\u00001".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = "11".getBytes(StandardCharsets.UTF_8);
@@ -87,8 +87,8 @@ public class TermTest {
   @Test
   public void testFromForwardKeyValue() {
 
-    byte[] row = "john".getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset_FIDX".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "my_dataset\0john".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "FIDX".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "123456\0first_name\u00001".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = "11".getBytes(StandardCharsets.UTF_8);
@@ -109,8 +109,8 @@ public class TermTest {
   @Test
   public void testFromBackwardKeyValue() {
 
-    byte[] row = "nhoj".getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset_BIDX".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "my_dataset\0nhoj".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "BIDX".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "123456\0first_name\u00001".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = "11".getBytes(StandardCharsets.UTF_8);

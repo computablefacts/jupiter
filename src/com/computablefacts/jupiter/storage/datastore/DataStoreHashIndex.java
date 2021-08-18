@@ -45,7 +45,7 @@ import com.google.errorprone.annotations.CheckReturnValue;
  * <pre>
  *  Row                          | Column Family          | Column Qualifier       | Visibility             | Value
  * ==============================+========================+========================+========================+========================
- *  <hash>\0<field>\0<dataset>   | hidx                   | (empty)                | (empty)                | <key1>\0<key2>\0...
+ *  <dataset>\0<hash>\0<field>   | hidx                   | (empty)                | (empty)                | <key1>\0<key2>\0...
  * </pre>
  * 
  */
@@ -71,13 +71,7 @@ final public class DataStoreHashIndex {
     deleter.clearColumns();
     deleter.clearScanIterators();
     deleter.fetchColumn(TEXT_HASH_INDEX, TEXT_EMPTY);
-    deleter.setRanges(Collections.singleton(new Range()));
-
-    IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
-    WildcardFilter.applyOnRow(setting);
-    WildcardFilter.addWildcard(setting, "*" + SEPARATOR_NUL + dataset);
-
-    deleter.addScanIterator(setting);
+    deleter.setRanges(Collections.singleton(Range.prefix(dataset + SEPARATOR_NUL)));
 
     try {
       deleter.delete();
@@ -132,24 +126,17 @@ final public class DataStoreHashIndex {
     Range range;
 
     if (hash != null && field != null) {
-      range = Range.exact(new Text(hash + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset),
+      range = Range.exact(new Text(dataset + SEPARATOR_NUL + hash + SEPARATOR_NUL + field),
           TEXT_HASH_INDEX, TEXT_EMPTY);
     } else if (hash != null) {
-
-      range = Range.prefix(hash + SEPARATOR_NUL);
-
-      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
-      WildcardFilter.applyOnRow(setting);
-      WildcardFilter.addWildcard(setting, "*" + SEPARATOR_NUL + dataset);
-
-      scanner.addScanIterator(setting);
+      range = Range.prefix(dataset + SEPARATOR_NUL + hash + SEPARATOR_NUL);
     } else if (field != null) {
 
-      range = new Range();
+      range = Range.prefix(dataset + SEPARATOR_NUL);
 
       IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
       WildcardFilter.applyOnRow(setting);
-      WildcardFilter.addWildcard(setting, "*" + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset);
+      WildcardFilter.addWildcard(setting, "*" + SEPARATOR_NUL + field);
 
       scanner.addScanIterator(setting);
     } else {
@@ -191,7 +178,7 @@ final public class DataStoreHashIndex {
     Preconditions.checkNotNull(docId, "docId should neither be null nor empty");
 
     Mutation mutation = new Mutation(
-        MaskingIterator.hash(null, value) + SEPARATOR_NUL + field + SEPARATOR_NUL + dataset);
+        dataset + SEPARATOR_NUL + MaskingIterator.hash(null, value) + SEPARATOR_NUL + field);
     mutation.put(TEXT_HASH_INDEX, TEXT_EMPTY, new Value(docId));
 
     try {

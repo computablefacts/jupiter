@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_FILE;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -112,8 +113,7 @@ final public class Blob<T> {
     Preconditions.checkNotNull(key, "key should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    String row = key.getRow().toString(); // blob identifier
-    String cf = key.getColumnFamily().toString(); // dataset
+    String row = key.getRow().toString(); // dataset\0blob identifier
     String cq = key.getColumnQualifier().toString();
     String cv = key.getColumnVisibility().toString();
 
@@ -121,11 +121,10 @@ final public class Blob<T> {
     Set<String> labels =
         Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
-    // Extract blob's type from CQ (legacy)
-    int index = cq.indexOf(SEPARATOR_NUL);
-    if (index < 0) {
-      return new Blob<>(cf, row, labels, TYPE_UNKNOWN, value, Lists.newArrayList());
-    }
+    // Extract dataset from ROW
+    int index = row.indexOf(SEPARATOR_NUL);
+    String dataset = row.substring(0, index);
+    String identifier = row.substring(index + 1);
 
     // Extract misc. blob's properties from CQ
     List<String> properties =
@@ -133,8 +132,8 @@ final public class Blob<T> {
 
     // Extract blob's type from CQ
     int type = Integer.parseInt(properties.get(0), 10);
-
-    return new Blob<>(cf, row, labels, type, value, properties.subList(1, properties.size()));
+    return new Blob<>(dataset, identifier, labels, type, value,
+        properties.subList(1, properties.size()));
   }
 
   private static Mutation newMutation(String dataset, String key, Set<String> labels, int type,
@@ -163,8 +162,8 @@ final public class Blob<T> {
 
     ColumnVisibility cv = new ColumnVisibility(Joiner.on(SEPARATOR_PIPE).join(labels));
 
-    Mutation mutation = new Mutation(key);
-    mutation.put(new Text(dataset), new Text(cq.toString()), cv, new Value(bytes));
+    Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + key);
+    mutation.put(TEXT_EMPTY, new Text(cq.toString()), cv, new Value(bytes));
 
     return mutation;
   }

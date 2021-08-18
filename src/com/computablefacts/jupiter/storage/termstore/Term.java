@@ -81,14 +81,14 @@ final public class Term implements HasTerm, Comparable<Term> {
   @CanIgnoreReturnValue
   public static Mutation newForwardMutation(Map<Text, Mutation> mutations, String dataset,
       String docId, String field, int type, String term, int count, Set<String> labels) {
-    return newMutation(mutations, TermStore.forwardIndex(dataset), docId, field, type, term, count,
-        labels);
+    return newMutation(mutations, TermStore.forwardIndex(), dataset, docId, field, type, term,
+        count, labels);
   }
 
   @CanIgnoreReturnValue
   public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset,
       String docId, String field, int type, String term, int count, Set<String> labels) {
-    return newMutation(mutations, TermStore.backwardIndex(dataset), docId, field, type,
+    return newMutation(mutations, TermStore.backwardIndex(), dataset, docId, field, type,
         reverse(term), count, labels);
   }
 
@@ -103,11 +103,11 @@ final public class Term implements HasTerm, Comparable<Term> {
     String cv = key.getColumnVisibility().toString();
     String val = value.toString();
 
-    // Extract term from ROW
-    String term = cf.endsWith("_BIDX") ? reverse(row) : row;
-
-    // Extract dataset from CF
-    String datazet = cf.substring(0, cf.lastIndexOf('_'));
+    // Extract dataset and term from ROW
+    int index = row.indexOf(SEPARATOR_NUL);
+    String dataset = row.substring(0, index);
+    String term = cf.equals(TermStore.backwardIndex()) ? reverse(row.substring(index + 1))
+        : row.substring(index + 1);
 
     // Extract document id and field from CQ
     int index1 = cq.indexOf(SEPARATOR_NUL);
@@ -133,12 +133,14 @@ final public class Term implements HasTerm, Comparable<Term> {
     List<String> spans = Splitter.on(SEPARATOR_NUL).splitToList(val);
     long count = Long.parseLong(spans.get(0), 10);
 
-    return new Term(datazet, docId, field, type, term, labels, count);
+    return new Term(dataset, docId, field, type, term, labels, count);
   }
 
-  private static Mutation newMutation(Map<Text, Mutation> mutations, String dataset, String docId,
-      String field, int type, String term, int count, Set<String> labels) {
+  private static Mutation newMutation(Map<Text, Mutation> mutations, String mutationType,
+      String dataset, String docId, String field, int type, String term, int count,
+      Set<String> labels) {
 
+    Preconditions.checkNotNull(mutationType, "mutationType should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
@@ -146,7 +148,7 @@ final public class Term implements HasTerm, Comparable<Term> {
     Preconditions.checkArgument(count > 0, "count must be > 0");
     Preconditions.checkNotNull(labels, "labels should not be null");
 
-    Text row = new Text(term);
+    Text row = new Text(dataset + SEPARATOR_NUL + term);
 
     Text cq = new Text(docId + SEPARATOR_NUL + field + SEPARATOR_NUL + type);
 
@@ -167,7 +169,7 @@ final public class Term implements HasTerm, Comparable<Term> {
       mutation = mutations.get(row);
     }
 
-    mutation.put(new Text(dataset), cq, cv, value);
+    mutation.put(new Text(mutationType), cq, cv, value);
 
     return mutation;
   }

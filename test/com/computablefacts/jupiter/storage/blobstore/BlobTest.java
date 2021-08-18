@@ -61,9 +61,10 @@ public class BlobTest {
   public void testFromString() {
 
     String str = Codecs.asString(Data.json(1));
+    String uuid = UUID.randomUUID().toString();
 
-    byte[] row = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset".getBytes(StandardCharsets.UTF_8);
+    byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "1\0".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_DATA").getExpression();
     byte[] val = str.getBytes(StandardCharsets.UTF_8);
@@ -71,7 +72,7 @@ public class BlobTest {
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual = Blob.fromString(new String(cf), new String(row), Sets.newHashSet(), str);
+    Mutation actual = Blob.fromString("my_dataset", uuid, Sets.newHashSet(), str);
 
     Assert.assertEquals(expected, actual);
   }
@@ -80,9 +81,10 @@ public class BlobTest {
   public void testFromJson() {
 
     Map<String, Object> json = Data.json(1);
+    String uuid = UUID.randomUUID().toString();
 
-    byte[] row = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset".getBytes(StandardCharsets.UTF_8);
+    byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "3\0".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_DATA").getExpression();
     byte[] val = Codecs.asString(json).getBytes(StandardCharsets.UTF_8);
@@ -90,8 +92,7 @@ public class BlobTest {
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual =
-        Blob.fromJson(new String(cf), new String(row), Sets.newHashSet(), Codecs.asString(json));
+    Mutation actual = Blob.fromJson("my_dataset", uuid, Sets.newHashSet(), Codecs.asString(json));
 
     Assert.assertEquals(expected, actual);
   }
@@ -100,9 +101,10 @@ public class BlobTest {
   public void testFromFile() throws Exception {
 
     File file = Data.file(10);
+    String uuid = UUID.randomUUID().toString();
 
-    byte[] row = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset".getBytes(StandardCharsets.UTF_8);
+    byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_FILE").getExpression();
     byte[] val = java.nio.file.Files.readAllBytes(file.toPath());
 
@@ -116,7 +118,7 @@ public class BlobTest {
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq.toString()), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual = Blob.fromFile(new String(cf), new String(row), Sets.newHashSet(), file);
+    Mutation actual = Blob.fromFile("my_dataset", uuid, Sets.newHashSet(), file);
 
     Assert.assertEquals(expected, actual);
   }
@@ -125,9 +127,10 @@ public class BlobTest {
   public void testStringFromKeyValue() {
 
     String str = Codecs.asString(Data.json(1));
+    String uuid = UUID.randomUUID().toString();
 
-    byte[] row = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset".getBytes(StandardCharsets.UTF_8);
+    byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "1\0".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = str.getBytes(StandardCharsets.UTF_8);
@@ -137,8 +140,8 @@ public class BlobTest {
     Blob<Value> blob = Blob.fromKeyValue(key, value);
 
     Assert.assertTrue(blob.isString());
-    Assert.assertEquals(new String(cf), blob.dataset());
-    Assert.assertEquals(new String(row), blob.key());
+    Assert.assertEquals("my_dataset", blob.dataset());
+    Assert.assertEquals(uuid, blob.key());
     Assert.assertEquals(Lists.newArrayList(), blob.properties());
     Assert.assertEquals(str, blob.value().toString());
   }
@@ -147,9 +150,10 @@ public class BlobTest {
   public void testJsonFromKeyValue() {
 
     Map<String, Object> json = Data.json(1);
+    String uuid = UUID.randomUUID().toString();
 
-    byte[] row = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset".getBytes(StandardCharsets.UTF_8);
+    byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "3\0".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = Codecs.asString(json).getBytes(StandardCharsets.UTF_8);
@@ -159,8 +163,8 @@ public class BlobTest {
     Blob<Value> blob = Blob.fromKeyValue(key, value);
 
     Assert.assertTrue(blob.isJson());
-    Assert.assertEquals(new String(cf), blob.dataset());
-    Assert.assertEquals(new String(row), blob.key());
+    Assert.assertEquals("my_dataset", blob.dataset());
+    Assert.assertEquals(uuid, blob.key());
     Assert.assertEquals(Lists.newArrayList(), blob.properties());
     Assert.assertEquals(Data.json(1), Codecs.asObject(new String(blob.value().get())));
   }
@@ -169,9 +173,10 @@ public class BlobTest {
   public void testFileFromKeyValue() throws Exception {
 
     File file = Data.file(10);
+    String uuid = UUID.randomUUID().toString();
 
-    byte[] row = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset".getBytes(StandardCharsets.UTF_8);
+    byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = java.nio.file.Files.readAllBytes(file.toPath());
 
@@ -187,8 +192,8 @@ public class BlobTest {
     Blob<Value> blob = Blob.fromKeyValue(key, value);
 
     Assert.assertTrue(blob.isFile());
-    Assert.assertEquals(new String(cf), blob.dataset());
-    Assert.assertEquals(new String(row), blob.key());
+    Assert.assertEquals("my_dataset", blob.dataset());
+    Assert.assertEquals(uuid, blob.key());
     Assert.assertEquals(Sets.newHashSet(), blob.labels());
     Assert.assertEquals(Lists.newArrayList(file.getName(), "10"), blob.properties());
     Assert.assertEquals(val, blob.value().get());

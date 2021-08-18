@@ -161,7 +161,7 @@ public abstract class AbstractStorage {
    * @return true if we could retry, false if we should exit.
    */
   @CanIgnoreReturnValue
-  private static boolean handleExceptions(Exception exception) {
+  protected static boolean handleExceptions(Exception exception) {
 
     Preconditions.checkNotNull(exception, "exception should not be null");
 

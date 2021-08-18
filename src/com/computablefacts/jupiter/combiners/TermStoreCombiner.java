@@ -40,25 +40,25 @@ public class TermStoreCombiner extends Combiner {
 
     String cf = key.getColumnFamily().toString();
 
-    if (cf.endsWith("_FIDX") || cf.endsWith("_BIDX")) {
+    if (cf.equals("FIDX") || cf.equals("BIDX")) {
       return reduceIndex(iter);
     }
-    if (cf.endsWith("_FCNT") || cf.endsWith("_BCNT")) {
+    if (cf.equals("FCNT") || cf.equals("BCNT")) {
       return reduceCount(iter);
     }
-    if (cf.endsWith("_VIZ")) {
+    if (cf.equals("VIZ")) {
       return reduceFieldVisibility(iter);
     }
-    if (cf.endsWith("_LU")) {
+    if (cf.equals("LU")) {
       return reduceFieldLastUpdate(iter);
     }
-    if (cf.endsWith("_DB")) {
+    if (cf.equals("DB")) {
       return reduceCount(iter);
     }
-    if (cf.endsWith("_DT")) {
+    if (cf.equals("DT")) {
       return reduceThetaSketches(iter);
     }
-    if (cf.endsWith("_TT")) {
+    if (cf.equals("TT")) {
       return reduceTopKSketches(iter);
     }
     return VALUE_EMPTY;

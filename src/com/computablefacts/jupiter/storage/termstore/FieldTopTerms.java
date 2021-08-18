@@ -28,6 +28,7 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 
 @Beta
 @CheckReturnValue
@@ -70,12 +71,12 @@ final public class FieldTopTerms {
         "typedField format should be typed\\0type");
     Preconditions.checkNotNull(sketch, "sketch should not be null");
 
-    Text row = new Text(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + typedField);
+    Text row = new Text(dataset + SEPARATOR_NUL + typedField);
 
-    Text cf = new Text(TermStore.topTerms(dataset));
+    Text cf = new Text(TermStore.topTerms());
 
     ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
-        + AbstractStorage.toVisibilityLabel(TermStore.topTerms(dataset)));
+        + AbstractStorage.toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.topTerms()));
 
     Value value = new Value(sketch);
 
@@ -91,25 +92,17 @@ final public class FieldTopTerms {
     Preconditions.checkNotNull(value, "value should not be null");
 
     String row = key.getRow().toString();
-    String cf = key.getColumnFamily().toString();
     String cv = key.getColumnVisibility().toString();
 
-    // Extract term and term's type from ROW
-    int index = row.indexOf(SEPARATOR_NUL, 2);
+    // Extract dataset, term and term's type from ROW
+    @Var
+    int index = row.indexOf(SEPARATOR_NUL);
+    String dataset = row.substring(0, index);
+    String typedField = row.substring(index + 1);
 
-    String field;
-    int type;
-
-    if (index < 0) {
-      field = row;
-      type = Term.TYPE_UNKNOWN;
-    } else {
-      field = row.substring(2, index);
-      type = Integer.parseInt(row.substring(index + 1), 10);
-    }
-
-    // Extract dataset from CF
-    String datazet = cf.substring(0, cf.lastIndexOf('_'));
+    index = typedField.indexOf(SEPARATOR_NUL);
+    String field = typedField.substring(0, index);
+    int type = Integer.parseInt(typedField.substring(index + 1), 10);
 
     // Extract visibility labels from CV
     Set<String> labels =
@@ -117,8 +110,7 @@ final public class FieldTopTerms {
 
     // Extract sketch from VALUE
     byte[] sketch = value.get();
-
-    return new FieldTopTerms(datazet, field, type, labels, sketch);
+    return new FieldTopTerms(dataset, field, type, labels, sketch);
   }
 
   @Generated

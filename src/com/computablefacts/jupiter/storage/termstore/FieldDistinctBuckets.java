@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 
 @Beta
 @CheckReturnValue
@@ -56,12 +57,12 @@ final public class FieldDistinctBuckets {
         typedField.indexOf(SEPARATOR_NUL) == typedField.lastIndexOf(SEPARATOR_NUL),
         "typedField format should be field\\0type");
 
-    Text row = new Text(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + typedField);
+    Text row = new Text(dataset + SEPARATOR_NUL + typedField);
 
-    Text cf = new Text(TermStore.distinctBuckets(dataset));
+    Text cf = new Text(TermStore.distinctBuckets());
 
-    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
-        + AbstractStorage.toVisibilityLabel(TermStore.distinctBuckets(dataset)));
+    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE + AbstractStorage
+        .toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.distinctBuckets()));
 
     Value value = new Value(Long.toString(estimate, 10));
 
@@ -77,35 +78,26 @@ final public class FieldDistinctBuckets {
     Preconditions.checkNotNull(value, "value should not be null");
 
     String row = key.getRow().toString();
-    String cf = key.getColumnFamily().toString();
     String cv = key.getColumnVisibility().toString();
     String val = value.toString();
 
-    // Extract term and term's type from ROW
-    int index = row.indexOf(SEPARATOR_NUL, 2);
+    // Extract dataset, term and term's type from ROW
+    @Var
+    int index = row.indexOf(SEPARATOR_NUL);
+    String dataset = row.substring(0, index);
+    String typedField = row.substring(index + 1);
 
-    String field;
-    int type;
-
-    if (index < 0) {
-      field = row;
-      type = Term.TYPE_UNKNOWN;
-    } else {
-      field = row.substring(2, index);
-      type = Integer.parseInt(row.substring(index + 1), 10);
-    }
-
-    // Extract dataset from CF
-    String datazet = cf.substring(0, cf.lastIndexOf('_'));
+    index = typedField.indexOf(SEPARATOR_NUL);
+    String field = typedField.substring(0, index);
+    int type = Integer.parseInt(typedField.substring(index + 1), 10);
 
     // Extract visibility labels from CV
     Set<String> labels =
         Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
     // Extract estimate from VALUE
-    long estimate = Long.parseLong(value.toString(), 10);
-
-    return new FieldDistinctBuckets(datazet, field, type, labels, estimate);
+    long estimate = Long.parseLong(val, 10);
+    return new FieldDistinctBuckets(dataset, field, type, labels, estimate);
   }
 
   @Generated

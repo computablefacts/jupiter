@@ -34,16 +34,16 @@ public class BlobStoreMaskingIteratorIllegalQuotedCharacterTest {
 
     while (iterator.hasTop()) {
 
-      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String row = iterator.getTopKey().getRow().toString();
       String value = iterator.getTopValue().toString();
 
-      if ("DATASET_1".equals(cf)) {
+      if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"name\":\"John\",\"city\":\"MASKED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":31}"),
             Codecs.asObject(value));
         countDataset1++;
       }
-      if ("DATASET_2".equals(cf)) {
+      if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"city\":\"MASKED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
@@ -70,16 +70,16 @@ public class BlobStoreMaskingIteratorIllegalQuotedCharacterTest {
 
     while (iterator.hasTop()) {
 
-      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String row = iterator.getTopKey().getRow().toString();
       String value = iterator.getTopValue().toString();
 
-      if ("DATASET_1".equals(cf)) {
+      if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"name\":\"John\",\"city\":\"New\\u0007York\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
         countDataset1++;
       }
-      if ("DATASET_2".equals(cf)) {
+      if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(Codecs.asObject(
             "{\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"city\":\"MASKED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             Codecs.asObject(value));
@@ -111,18 +111,24 @@ public class BlobStoreMaskingIteratorIllegalQuotedCharacterTest {
 
     SortedMap<Key, Value> map = new TreeMap<>();
 
-    map.put(new Key("KEY_1", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_1\0KEY_1", "", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
         new Value(json()));
-    map.put(new Key("KEY_2", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_1\0KEY_2", "", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
         new Value(json()));
-    map.put(new Key("KEY_3", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_1\0KEY_3", "", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
         new Value(json()));
 
-    map.put(new Key("KEY_1", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_2\0KEY_1", "", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
         new Value(json()));
-    map.put(new Key("KEY_2", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_2\0KEY_2", "", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
         new Value(json()));
-    map.put(new Key("KEY_3", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+    map.put(
+        new Key("DATASET_2\0KEY_3", "", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
         new Value(json()));
 
     return map;

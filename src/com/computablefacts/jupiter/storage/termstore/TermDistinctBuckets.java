@@ -23,6 +23,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 
 @CheckReturnValue
 final public class TermDistinctBuckets implements HasTerm {
@@ -63,14 +64,14 @@ final public class TermDistinctBuckets implements HasTerm {
   @CanIgnoreReturnValue
   public static Mutation newForwardMutation(Map<Text, Mutation> mutations, String dataset,
       String field, int type, String term, int count, Set<String> labels) {
-    return newMutation(mutations, TermStore.forwardCount(dataset), field, type, term, count,
+    return newMutation(mutations, TermStore.forwardCount(), dataset, field, type, term, count,
         labels);
   }
 
   @CanIgnoreReturnValue
   public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset,
       String field, int type, String term, int count, Set<String> labels) {
-    return newMutation(mutations, TermStore.backwardCount(dataset), field, type, reverse(term),
+    return newMutation(mutations, TermStore.backwardCount(), dataset, field, type, reverse(term),
         count, labels);
   }
 
@@ -85,14 +86,15 @@ final public class TermDistinctBuckets implements HasTerm {
     String cv = key.getColumnVisibility().toString();
     String val = value.toString();
 
-    // Extract term from ROW
-    String term = cf.endsWith("_BCNT") ? reverse(row) : row;
-
-    // Extract dataset from CF
-    String datazet = cf.substring(0, cf.lastIndexOf('_'));
+    // Extract dataset and term from ROW
+    @Var
+    int index = row.indexOf(SEPARATOR_NUL);
+    String dataset = row.substring(0, index);
+    String term = cf.equals(TermStore.backwardCount()) ? reverse(row.substring(index + 1))
+        : row.substring(index + 1);
 
     // Extract field from CQ
-    int index = cq.indexOf(SEPARATOR_NUL);
+    index = cq.indexOf(SEPARATOR_NUL);
 
     String field;
     int type;
@@ -109,18 +111,19 @@ final public class TermDistinctBuckets implements HasTerm {
     Set<String> labels =
         Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
-    return new TermDistinctBuckets(datazet, field, type, term, labels, Long.parseLong(val, 10));
+    return new TermDistinctBuckets(dataset, field, type, term, labels, Long.parseLong(val, 10));
   }
 
-  private static Mutation newMutation(Map<Text, Mutation> mutations, String dataset, String field,
-      int type, String term, int count, Set<String> labels) {
+  private static Mutation newMutation(Map<Text, Mutation> mutations, String mutationType,
+      String dataset, String field, int type, String term, int count, Set<String> labels) {
 
+    Preconditions.checkNotNull(mutationType, "mutationType should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");
 
-    Text row = new Text(term);
+    Text row = new Text(dataset + SEPARATOR_NUL + term);
 
     Text cq = new Text(field + SEPARATOR_NUL + type);
 
@@ -141,7 +144,7 @@ final public class TermDistinctBuckets implements HasTerm {
       mutation = mutations.get(row);
     }
 
-    mutation.put(new Text(dataset), cq, cv, value);
+    mutation.put(new Text(mutationType), cq, cv, value);
 
     return mutation;
   }

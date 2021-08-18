@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.iterators;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 import static com.computablefacts.nona.helpers.Document.ID_MAGIC_KEY;
@@ -98,8 +99,10 @@ public class BlobStoreMaskingIterator extends MaskingIterator {
       }
     } else {
 
+      String row = key.getRow().toString();
       Set<String> auths = parsedAuths();
-      String vizDataset = AbstractStorage.toVisibilityLabel(key.getColumnFamily().toString() + "_");
+      String vizDataset =
+          AbstractStorage.toVisibilityLabel(row.substring(0, row.indexOf(SEPARATOR_NUL)) + "_");
       String vizRawData = vizDataset + STRING_RAW_DATA;
       VisibilityEvaluator userVizEvaluator = visibilityEvaluator(vizRawData);
 

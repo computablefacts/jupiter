@@ -87,8 +87,8 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                          | Column Family | Column Qualifier                                | Visibility                             | Value
  * ==============================+===============+=================================================+========================================+========
- *  <key>                        | <dataset>     | <blob_type>\0<property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
- *  <hash>\0<field>\0<dataset>   | hidx          | (empty)                                         | (empty)                                | <key1>\0<key2>\0...
+ *  <dataset>\0<key>             | (empty)       | <blob_type>\0<property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
+ *  <dataset>\0<hash>\0<field>   | hidx          | (empty)                                         | (empty)                                | <key1>\0<key2>\0...
  * </pre>
  *
  * <p>
@@ -98,8 +98,8 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                          | Column Family | Column Qualifier                                | Visibility                             | Value
  * ==============================+===============+=================================================+========================================+========
- *  <uuid>                       | <dataset>     | <cached_string>                                 | (empty)                                | (empty)
- *  <uuid>                       | <dataset>     | <hashed_string>                                 | (empty)                                | <cached_string>
+ *  <dataset>\0<uuid>            | (empty)       | <cached_string>                                 | (empty)                                | (empty)
+ *  <dataset>\0<uuid>            | (empty)       | <hashed_string>                                 | (empty)                                | <cached_string>
  * </pre>
  *
  * <p>
@@ -505,12 +505,7 @@ final public class DataStore {
       logger_.debug(
           LogFormatter.create(true).add("namespace", name()).add("dataset", dataset).formatDebug());
     }
-
-    boolean isOk1 = blobStore_.addLocalityGroup(dataset);
-    boolean isOk2 = termStore_.addLocalityGroup(dataset);
-    boolean isOk3 = cache_.addLocalityGroup(dataset);
-
-    return isOk1 && isOk2 && isOk3;
+    return termStore_.addLocalityGroup(dataset);
   }
 
   /**

@@ -27,6 +27,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 
 @CheckReturnValue
 final public class FieldLabels {
@@ -38,8 +39,8 @@ final public class FieldLabels {
   private final Set<String> labelsTerm_;
 
   FieldLabels(String dataset, String field, int type, Set<String> labels) {
-    this(dataset, field, type, labels, Sets.newHashSet(STRING_ADM,
-        AbstractStorage.toVisibilityLabel(TermStore.visibility(dataset))));
+    this(dataset, field, type, labels, Sets.newHashSet(STRING_ADM, AbstractStorage
+        .toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.visibility())));
   }
 
   FieldLabels(String dataset, String field, int type, Set<String> labels, Set<String> labelsTerm) {
@@ -68,12 +69,12 @@ final public class FieldLabels {
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");
 
-    Text row = new Text(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + field + SEPARATOR_NUL + type);
+    Text row = new Text(dataset + SEPARATOR_NUL + field + SEPARATOR_NUL + type);
 
-    Text cf = new Text(TermStore.visibility(dataset));
+    Text cf = new Text(TermStore.visibility());
 
-    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
-        + AbstractStorage.toVisibilityLabel(TermStore.visibility(dataset)));
+    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE + AbstractStorage
+        .toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.visibility()));
 
     Value value = new Value(Joiner.on(Constants.SEPARATOR_NUL).join(labels));
 
@@ -101,26 +102,18 @@ final public class FieldLabels {
     Preconditions.checkNotNull(value, "value should not be null");
 
     String row = key.getRow().toString();
-    String cf = key.getColumnFamily().toString();
     String cv = key.getColumnVisibility().toString();
     String val = value.toString();
 
-    // Extract term and term's type from ROW
-    int index = row.indexOf(SEPARATOR_NUL, 2);
+    // Extract dataset, term and term's type from ROW
+    @Var
+    int index = row.indexOf(SEPARATOR_NUL);
+    String dataset = row.substring(0, index);
+    String typedField = row.substring(index + 1);
 
-    String field;
-    int type;
-
-    if (index < 0) {
-      field = row;
-      type = Term.TYPE_UNKNOWN;
-    } else {
-      field = row.substring(2, index);
-      type = Integer.parseInt(row.substring(index + 1), 10);
-    }
-
-    // Extract dataset from CF
-    String datazet = cf.substring(0, cf.lastIndexOf('_'));
+    index = typedField.indexOf(SEPARATOR_NUL);
+    String field = typedField.substring(0, index);
+    int type = Integer.parseInt(typedField.substring(index + 1), 10);
 
     // Extract visibility labels from CV
     Set<String> labels =
@@ -128,8 +121,7 @@ final public class FieldLabels {
 
     // Extract term labels from VALUE
     Set<String> labelsTerm = Sets.newHashSet(Splitter.on(SEPARATOR_NUL).split(val));
-
-    return new FieldLabels(datazet, field, type, labels, labelsTerm);
+    return new FieldLabels(dataset, field, type, labels, labelsTerm);
   }
 
   @Generated

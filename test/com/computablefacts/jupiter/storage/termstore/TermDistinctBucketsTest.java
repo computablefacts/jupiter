@@ -18,22 +18,26 @@ public class TermDistinctBucketsTest {
 
   @Test(expected = NullPointerException.class)
   public void testNullDataset() {
-    TermDistinctBuckets tc = new TermDistinctBuckets(null, "field", Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
+    TermDistinctBuckets tc =
+        new TermDistinctBuckets(null, "field", Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullField() {
-    TermDistinctBuckets tc = new TermDistinctBuckets("dataset", null, Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
+    TermDistinctBuckets tc =
+        new TermDistinctBuckets("dataset", null, Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullTerm() {
-    TermDistinctBuckets tc = new TermDistinctBuckets("dataset", "field", Term.TYPE_UNKNOWN, null, Sets.newHashSet(), 0);
+    TermDistinctBuckets tc =
+        new TermDistinctBuckets("dataset", "field", Term.TYPE_UNKNOWN, null, Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabels() {
-    TermDistinctBuckets tc = new TermDistinctBuckets("dataset", "field", Term.TYPE_STRING, "term", null, 0);
+    TermDistinctBuckets tc =
+        new TermDistinctBuckets("dataset", "field", Term.TYPE_STRING, "term", null, 0);
   }
 
   @Test
@@ -44,8 +48,8 @@ public class TermDistinctBucketsTest {
   @Test
   public void testNewForwardMutation() {
 
-    byte[] row = "john".getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset_FCNT".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "my_dataset\0john".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "FCNT".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "first_name\u00001".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = "11".getBytes(StandardCharsets.UTF_8);
@@ -53,8 +57,8 @@ public class TermDistinctBucketsTest {
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual = TermDistinctBuckets.newForwardMutation("my_dataset", "first_name", Term.TYPE_STRING,
-        "john", 11, Sets.newHashSet());
+    Mutation actual = TermDistinctBuckets.newForwardMutation("my_dataset", "first_name",
+        Term.TYPE_STRING, "john", 11, Sets.newHashSet());
 
     Assert.assertEquals(expected, actual);
   }
@@ -62,8 +66,8 @@ public class TermDistinctBucketsTest {
   @Test
   public void testNewBackwardMutation() {
 
-    byte[] row = "nhoj".getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset_BCNT".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "my_dataset\0nhoj".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "BCNT".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "first_name\u00001".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = "11".getBytes(StandardCharsets.UTF_8);
@@ -71,8 +75,8 @@ public class TermDistinctBucketsTest {
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual = TermDistinctBuckets.newBackwardMutation("my_dataset", "first_name", Term.TYPE_STRING,
-        "john", 11, Sets.newHashSet());
+    Mutation actual = TermDistinctBuckets.newBackwardMutation("my_dataset", "first_name",
+        Term.TYPE_STRING, "john", 11, Sets.newHashSet());
 
     Assert.assertEquals(expected, actual);
   }
@@ -80,8 +84,8 @@ public class TermDistinctBucketsTest {
   @Test
   public void testFromForwardKeyValue() {
 
-    byte[] row = "john".getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset_FCNT".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "my_dataset\0john".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "FCNT".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "first_name\u00001".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = "11".getBytes(StandardCharsets.UTF_8);
@@ -101,8 +105,8 @@ public class TermDistinctBucketsTest {
   @Test
   public void testFromBackwardKeyValue() {
 
-    byte[] row = "nhoj".getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "my_dataset_BCNT".getBytes(StandardCharsets.UTF_8);
+    byte[] row = "my_dataset\0nhoj".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = "BCNT".getBytes(StandardCharsets.UTF_8);
     byte[] cq = "first_name\u00001".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = "11".getBytes(StandardCharsets.UTF_8);
