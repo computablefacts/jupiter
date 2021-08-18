@@ -8,11 +8,14 @@ import org.apache.datasketches.memory.Memory;
 
 import com.google.errorprone.annotations.CheckReturnValue;
 
+/**
+ * See https://datasketches.apache.org/docs/Frequency/FrequentItemsOverview.html for details.
+ */
 @CheckReturnValue
 final public class TopKSketch {
 
   // See https://datasketches.apache.org/docs/Frequency/FrequentItemsErrorTable.html for details
-  private static final int MAP_MAX_SIZE = 1024;
+  private static final int MAP_MAX_SIZE = 16384;
 
   private final ItemsSketch<String> itemSketch_ = new ItemsSketch<>(MAP_MAX_SIZE);
 
