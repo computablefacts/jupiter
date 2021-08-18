@@ -58,10 +58,10 @@ final public class FieldDistinctBuckets {
 
     Text row = new Text(SEPARATOR_UNDERSCORE + "" + SEPARATOR_NUL + typedField);
 
-    Text cf = new Text(TermStore.distinctBuckets2(dataset));
+    Text cf = new Text(TermStore.distinctBuckets(dataset));
 
     ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
-        + AbstractStorage.toVisibilityLabel(TermStore.distinctBuckets2(dataset)));
+        + AbstractStorage.toVisibilityLabel(TermStore.distinctBuckets(dataset)));
 
     Value value = new Value(Long.toString(estimate, 10));
 

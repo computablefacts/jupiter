@@ -104,7 +104,7 @@ final public class TermStore extends AbstractStorage {
   }
 
   @Generated
-  public static String distinctBuckets2(String dataset) {
+  public static String distinctBuckets(String dataset) {
     return dataset + "_DB";
   }
 
@@ -326,7 +326,7 @@ final public class TermStore extends AbstractStorage {
     }
 
     Set<String> cfs = Sets.newHashSet(topTerms(dataset), distinctTerms(dataset),
-        distinctBuckets2(dataset), lastUpdate(dataset), visibility(dataset), forwardCount(dataset),
+        distinctBuckets(dataset), lastUpdate(dataset), visibility(dataset), forwardCount(dataset),
         forwardIndex(dataset), backwardCount(dataset), backwardIndex(dataset));
 
     return remove(deleter, cfs);
@@ -355,7 +355,7 @@ final public class TermStore extends AbstractStorage {
     String visibility = visibility(dataset);
     String lastUpdate = lastUpdate(dataset);
     String distinctTerms = distinctTerms(dataset);
-    String distinctBuckets2 = distinctBuckets2(dataset);
+    String distinctBuckets = distinctBuckets(dataset);
     String topKTerms = topTerms(dataset);
     String forwardCount = forwardCount(dataset);
     String forwardIndex = forwardIndex(dataset);
@@ -371,8 +371,8 @@ final public class TermStore extends AbstractStorage {
     if (!groups.containsKey(distinctTerms)) {
       groups.put(distinctTerms, Sets.newHashSet(new Text(distinctTerms)));
     }
-    if (!groups.containsKey(distinctBuckets2)) {
-      groups.put(distinctBuckets2, Sets.newHashSet(new Text(distinctBuckets2)));
+    if (!groups.containsKey(distinctBuckets)) {
+      groups.put(distinctBuckets, Sets.newHashSet(new Text(distinctBuckets)));
     }
     if (!groups.containsKey(topKTerms)) {
       groups.put(topKTerms, Sets.newHashSet(new Text(topKTerms)));
@@ -792,7 +792,7 @@ final public class TermStore extends AbstractStorage {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(distinctBuckets2(dataset)));
+    scanner.fetchColumnFamily(new Text(distinctBuckets(dataset)));
 
     List<Range> ranges;
 
