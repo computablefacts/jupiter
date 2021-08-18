@@ -17,11 +17,9 @@ final public class Constants {
   public static final char SEPARATOR_UNDERSCORE = '_';
   public static final char SEPARATOR_CURRENCY_SIGN = '¤';
   public static final Text TEXT_EMPTY = new Text();
-  public static final Text TEXT_CACHE = new Text("cache");
   public static final Text TEXT_HASH_INDEX = new Text("hidx");
   public static final Value VALUE_EMPTY = new Value();
   public static final Iterator ITERATOR_EMPTY = Collections.EMPTY_LIST.iterator();
-  public static final String STRING_EMPTY = "";
   public static final String STRING_ADM = "ADM";
   public static final String STRING_RAW_DATA = "RAW_DATA";
   public static final String STRING_RAW_FILE = "RAW_FILE";

@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.TOP_TERMS;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -73,10 +74,10 @@ final public class FieldTopTerms {
 
     Text row = new Text(dataset + SEPARATOR_NUL + typedField);
 
-    Text cf = new Text(TermStore.topTerms());
+    Text cf = new Text(TOP_TERMS);
 
     ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
-        + AbstractStorage.toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.topTerms()));
+        + AbstractStorage.toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TOP_TERMS));
 
     Value value = new Value(sketch);
 

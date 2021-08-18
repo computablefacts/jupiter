@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.DISTINCT_TERMS;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -61,10 +62,10 @@ final public class FieldDistinctTerms {
 
     Text row = new Text(dataset + SEPARATOR_NUL + typedField);
 
-    Text cf = new Text(TermStore.distinctTerms());
+    Text cf = new Text(DISTINCT_TERMS);
 
-    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE + AbstractStorage
-        .toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.distinctTerms()));
+    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
+        + AbstractStorage.toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + DISTINCT_TERMS));
 
     Value value = new Value(sketch);
 

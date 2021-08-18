@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.LAST_UPDATE;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -78,10 +79,10 @@ final public class FieldLastUpdate {
 
     Text row = new Text(dataset + SEPARATOR_NUL + field + SEPARATOR_NUL + type);
 
-    Text cf = new Text(TermStore.lastUpdate());
+    Text cf = new Text(LAST_UPDATE);
 
-    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE + AbstractStorage
-        .toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.lastUpdate()));
+    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
+        + AbstractStorage.toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + LAST_UPDATE));
 
     Value value = new Value(instant.toString());
 

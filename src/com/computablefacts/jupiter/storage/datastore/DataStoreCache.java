@@ -82,9 +82,9 @@ final public class DataStoreCache {
     deleter.clearColumns();
     deleter.clearScanIterators();
     deleter.fetchColumnFamily(TEXT_EMPTY);
-    deleter.setRanges(Collections.singleton(Range.prefix(dataset + SEPARATOR_NUL)));
 
     try {
+      deleter.setRanges(Collections.singleton(Range.prefix(dataset + SEPARATOR_NUL)));
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());

@@ -4,7 +4,6 @@ import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -20,7 +19,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -32,14 +30,12 @@ import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
-import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.combiners.TermStoreCombiner;
 import com.computablefacts.jupiter.filters.TermStoreDocFieldFilter;
 import com.computablefacts.jupiter.filters.TermStoreFieldFilter;
 import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.WildcardMatcher;
@@ -83,6 +79,16 @@ import com.google.errorprone.annotations.Var;
 @CheckReturnValue
 final public class TermStore extends AbstractStorage {
 
+  public static final String DISTINCT_TERMS = "DT";
+  public static final String DISTINCT_BUCKETS = "DB";
+  public static final String TOP_TERMS = "TT";
+  public static final String VISIBILITY = "VIZ";
+  public static final String LAST_UPDATE = "LU";
+  public static final String FORWARD_COUNT = "FCNT";
+  public static final String FORWARD_INDEX = "FIDX";
+  public static final String BACKWARD_COUNT = "BCNT";
+  public static final String BACKWARD_INDEX = "BIDX";
+
   private static final Logger logger_ = LoggerFactory.getLogger(TermStore.class);
 
   private Map<String, ThetaSketch> fieldsCardinalityEstimatorsForTerms_;
@@ -99,51 +105,6 @@ final public class TermStore extends AbstractStorage {
     super(configurations, name);
   }
 
-  @Generated
-  public static String distinctTerms() {
-    return "DT";
-  }
-
-  @Generated
-  public static String distinctBuckets() {
-    return "DB";
-  }
-
-  @Generated
-  public static String topTerms() {
-    return "TT";
-  }
-
-  @Generated
-  public static String visibility() {
-    return "VIZ";
-  }
-
-  @Generated
-  public static String lastUpdate() {
-    return "LU";
-  }
-
-  @Generated
-  public static String forwardCount() {
-    return "FCNT";
-  }
-
-  @Generated
-  public static String forwardIndex() {
-    return "FIDX";
-  }
-
-  @Generated
-  public static String backwardCount() {
-    return "BCNT";
-  }
-
-  @Generated
-  public static String backwardIndex() {
-    return "BIDX";
-  }
-
   private static Iterator<TermDistinctBuckets> scanCounts(ScannerBase scanner, Set<String> fields,
       Range range, boolean hitsBackwardIndex) {
 
@@ -151,9 +112,9 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(range, "range should not be null");
 
     if (hitsBackwardIndex) {
-      scanner.fetchColumnFamily(new Text(backwardCount()));
+      scanner.fetchColumnFamily(new Text(BACKWARD_COUNT));
     } else {
-      scanner.fetchColumnFamily(new Text(forwardCount()));
+      scanner.fetchColumnFamily(new Text(FORWARD_COUNT));
     }
     if (fields != null && !fields.isEmpty()) {
       IteratorSetting setting =
@@ -179,9 +140,9 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(range, "range should not be null");
 
     if (hitsBackwardIndex) {
-      scanner.fetchColumnFamily(new Text(backwardIndex()));
+      scanner.fetchColumnFamily(new Text(BACKWARD_INDEX));
     } else {
-      scanner.fetchColumnFamily(new Text(forwardIndex()));
+      scanner.fetchColumnFamily(new Text(FORWARD_INDEX));
     }
 
     @Var
@@ -250,6 +211,13 @@ final public class TermStore extends AbstractStorage {
           }
 
           configurations().tableOperations().addSplits(tableName(), splits);
+
+          Set<String> cfs =
+              Sets.newHashSet(TOP_TERMS, DISTINCT_TERMS, DISTINCT_BUCKETS, LAST_UPDATE, VISIBILITY,
+                  FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX);
+
+          addLocalityGroups(cfs);
+
         } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
           logger_.error(LogFormatter.create(true).message(e).formatError());
           return false;
@@ -292,6 +260,12 @@ final public class TermStore extends AbstractStorage {
       }
 
       configurations().tableOperations().addSplits(tableName(), splits);
+
+      Set<String> cfs = Sets.newHashSet(TOP_TERMS, DISTINCT_TERMS, DISTINCT_BUCKETS, LAST_UPDATE,
+          VISIBILITY, FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX);
+
+      addLocalityGroups(cfs);
+
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
       return false;
@@ -315,75 +289,7 @@ final public class TermStore extends AbstractStorage {
       logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
           .formatDebug());
     }
-
-    Set<String> cfs = Sets.newHashSet(topTerms(), distinctTerms(), distinctBuckets(), lastUpdate(),
-        visibility(), forwardCount(), forwardIndex(), backwardCount(), backwardIndex());
-
-    deleter.clearColumns();
-    deleter.clearScanIterators();
-
-    try {
-      deleter.setRanges(Collections.singleton(Range.prefix(dataset + SEPARATOR_NUL)));
-      for (String cf : cfs) {
-        deleter.fetchColumnFamily(new Text(cf));
-      }
-      deleter.delete();
-    } catch (TableNotFoundException | MutationsRejectedException e) {
-      handleExceptions(e);
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Group data belonging to a same dataset together.
-   *
-   * @param dataset dataset.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean addLocalityGroup(String dataset) {
-
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .formatDebug());
-    }
-
-    Map<String, Set<Text>> groups =
-        Tables.getLocalityGroups(configurations().tableOperations(), tableName());
-
-    int size = groups.size();
-
-    if (!groups.containsKey(visibility())) {
-      groups.put(visibility(), Sets.newHashSet(new Text(visibility())));
-    }
-    if (!groups.containsKey(lastUpdate())) {
-      groups.put(lastUpdate(), Sets.newHashSet(new Text(lastUpdate())));
-    }
-    if (!groups.containsKey(distinctTerms())) {
-      groups.put(distinctTerms(), Sets.newHashSet(new Text(distinctTerms())));
-    }
-    if (!groups.containsKey(distinctBuckets())) {
-      groups.put(distinctBuckets(), Sets.newHashSet(new Text(distinctBuckets())));
-    }
-    if (!groups.containsKey(topTerms())) {
-      groups.put(topTerms(), Sets.newHashSet(new Text(topTerms())));
-    }
-    if (!groups.containsKey(forwardCount())) {
-      groups.put(forwardCount(), Sets.newHashSet(new Text(forwardCount())));
-    }
-    if (!groups.containsKey(forwardIndex())) {
-      groups.put(forwardIndex(), Sets.newHashSet(new Text(forwardIndex())));
-    }
-    if (!groups.containsKey(backwardCount())) {
-      groups.put(backwardCount(), Sets.newHashSet(new Text(backwardCount())));
-    }
-    if (!groups.containsKey(backwardIndex())) {
-      groups.put(backwardIndex(), Sets.newHashSet(new Text(backwardIndex())));
-    }
-    return size == groups.size()
-        || Tables.setLocalityGroups(configurations().tableOperations(), tableName(), groups, false);
+    return removeRanges(deleter, Sets.newHashSet(Range.prefix(dataset + SEPARATOR_NUL)));
   }
 
   /**
@@ -668,7 +574,7 @@ final public class TermStore extends AbstractStorage {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(visibility()));
+    scanner.fetchColumnFamily(new Text(VISIBILITY));
 
     List<Range> ranges;
 
@@ -707,7 +613,7 @@ final public class TermStore extends AbstractStorage {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(lastUpdate()));
+    scanner.fetchColumnFamily(new Text(LAST_UPDATE));
 
     List<Range> ranges;
 
@@ -746,7 +652,7 @@ final public class TermStore extends AbstractStorage {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(distinctTerms()));
+    scanner.fetchColumnFamily(new Text(DISTINCT_TERMS));
 
     List<Range> ranges;
 
@@ -785,7 +691,7 @@ final public class TermStore extends AbstractStorage {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(distinctBuckets()));
+    scanner.fetchColumnFamily(new Text(DISTINCT_BUCKETS));
 
     List<Range> ranges;
 
@@ -824,7 +730,7 @@ final public class TermStore extends AbstractStorage {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(topTerms()));
+    scanner.fetchColumnFamily(new Text(TOP_TERMS));
 
     List<Range> ranges;
 
@@ -895,7 +801,7 @@ final public class TermStore extends AbstractStorage {
 
     if (!WildcardMatcher.hasWildcards(newTerm)) {
       range = Range.exact(dataset + SEPARATOR_NUL + newTerm,
-          isTermBackward ? backwardCount() : forwardCount());
+          isTermBackward ? BACKWARD_COUNT : FORWARD_COUNT);
     } else {
 
       range = Range.prefix(dataset + SEPARATOR_NUL + WildcardMatcher.prefix(newTerm));
@@ -962,7 +868,7 @@ final public class TermStore extends AbstractStorage {
 
     if (!WildcardMatcher.hasWildcards(newTerm)) {
       range = Range.exact(dataset + SEPARATOR_NUL + newTerm,
-          isTermBackward ? backwardIndex() : forwardIndex());
+          isTermBackward ? BACKWARD_INDEX : FORWARD_INDEX);
     } else {
 
       range = Range.prefix(dataset + SEPARATOR_NUL + WildcardMatcher.prefix(newTerm));

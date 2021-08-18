@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.DISTINCT_BUCKETS;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -59,10 +60,10 @@ final public class FieldDistinctBuckets {
 
     Text row = new Text(dataset + SEPARATOR_NUL + typedField);
 
-    Text cf = new Text(TermStore.distinctBuckets());
+    Text cf = new Text(DISTINCT_BUCKETS);
 
-    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE + AbstractStorage
-        .toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.distinctBuckets()));
+    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
+        + AbstractStorage.toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + DISTINCT_BUCKETS));
 
     Value value = new Value(Long.toString(estimate, 10));
 

@@ -2,6 +2,8 @@ package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_INDEX;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_INDEX;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.Collection;
@@ -81,15 +83,14 @@ final public class Term implements HasTerm, Comparable<Term> {
   @CanIgnoreReturnValue
   public static Mutation newForwardMutation(Map<Text, Mutation> mutations, String dataset,
       String docId, String field, int type, String term, int count, Set<String> labels) {
-    return newMutation(mutations, TermStore.forwardIndex(), dataset, docId, field, type, term,
-        count, labels);
+    return newMutation(mutations, FORWARD_INDEX, dataset, docId, field, type, term, count, labels);
   }
 
   @CanIgnoreReturnValue
   public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset,
       String docId, String field, int type, String term, int count, Set<String> labels) {
-    return newMutation(mutations, TermStore.backwardIndex(), dataset, docId, field, type,
-        reverse(term), count, labels);
+    return newMutation(mutations, BACKWARD_INDEX, dataset, docId, field, type, reverse(term), count,
+        labels);
   }
 
   public static Term fromKeyValue(Key key, Value value) {
@@ -106,8 +107,8 @@ final public class Term implements HasTerm, Comparable<Term> {
     // Extract dataset and term from ROW
     int index = row.indexOf(SEPARATOR_NUL);
     String dataset = row.substring(0, index);
-    String term = cf.equals(TermStore.backwardIndex()) ? reverse(row.substring(index + 1))
-        : row.substring(index + 1);
+    String term =
+        cf.equals(BACKWARD_INDEX) ? reverse(row.substring(index + 1)) : row.substring(index + 1);
 
     // Extract document id and field from CQ
     int index1 = cq.indexOf(SEPARATOR_NUL);

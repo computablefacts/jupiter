@@ -1,14 +1,12 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -16,7 +14,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -24,7 +21,6 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Data;
 import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
-import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.queries.AbstractNode;
 import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.nona.helpers.WildcardMatcher;
@@ -34,69 +30,6 @@ import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
 
 public class DataStoreTest extends MiniAccumuloClusterTest {
-
-  @Test
-  public void addLocalityGroup() throws Exception {
-
-    Authorizations auths = new Authorizations("ADM");
-    DataStore dataStore = newDataStore(auths);
-
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
-    }
-
-    // Check TermStore locality groups
-    @Var
-    Map<String, Set<Text>> groupsBefore =
-        Tables.getLocalityGroups(dataStore.termStore().configurations().tableOperations(),
-            dataStore.termStore().tableName());
-
-    Assert.assertEquals(0, groupsBefore.size());
-
-    // Check BlobStore locality groups
-    groupsBefore =
-        Tables.getLocalityGroups(dataStore.blobStore().configurations().tableOperations(),
-            dataStore.blobStore().tableName());
-
-    Assert.assertEquals(1, groupsBefore.size());
-    Assert.assertTrue(groupsBefore.containsKey(TEXT_HASH_INDEX.toString()));
-
-    // Check Cache locality groups
-    groupsBefore = Tables.getLocalityGroups(dataStore.cache().configurations().tableOperations(),
-        dataStore.cache().tableName());
-
-    Assert.assertEquals(0, groupsBefore.size());
-
-    // Add new locality groups
-    Assert.assertTrue(dataStore.addLocalityGroup("dataset_1"));
-
-    // Check TermStore locality groups
-    @Var
-    Map<String, Set<Text>> groupsAfter =
-        Tables.getLocalityGroups(dataStore.termStore().configurations().tableOperations(),
-            dataStore.termStore().tableName());
-
-    Assert.assertEquals(9, groupsAfter.size());
-    Assert.assertEquals(Sets.newHashSet(new Text("DB")), groupsAfter.get("DB"));
-    Assert.assertEquals(Sets.newHashSet(new Text("DT")), groupsAfter.get("DT"));
-    Assert.assertEquals(Sets.newHashSet(new Text("LU")), groupsAfter.get("LU"));
-    Assert.assertEquals(Sets.newHashSet(new Text("TT")), groupsAfter.get("TT"));
-    Assert.assertEquals(Sets.newHashSet(new Text("VIZ")), groupsAfter.get("VIZ"));
-
-    Assert.assertEquals(Sets.newHashSet(new Text("FCNT")), groupsAfter.get("FCNT"));
-    Assert.assertEquals(Sets.newHashSet(new Text("BCNT")), groupsAfter.get("BCNT"));
-    Assert.assertEquals(Sets.newHashSet(new Text("FIDX")), groupsAfter.get("FIDX"));
-    Assert.assertEquals(Sets.newHashSet(new Text("BIDX")), groupsAfter.get("BIDX"));
-
-    // Check BlobStore locality groups
-    groupsAfter = Tables.getLocalityGroups(dataStore.blobStore().configurations().tableOperations(),
-        dataStore.blobStore().tableName());
-
-    Assert.assertEquals(1, groupsAfter.size());
-    Assert.assertEquals(Sets.newHashSet(TEXT_HASH_INDEX),
-        groupsAfter.get(TEXT_HASH_INDEX.toString()));
-  }
 
   @Test
   public void testCreateIsReadyAndDestroy() throws Exception {
@@ -771,15 +704,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       // Hash index
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\0" + "6174693c483abae057d822c6cc4c67b9\0age", "row_1")));
+          "dataset_1\u00006174693c483abae057d822c6cc4c67b9\0age", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\0" + "8c979aa1006083b505eadf7fdbbd786c\0birthdate", "row_1")));
+          "dataset_1\u00008c979aa1006083b505eadf7fdbbd786c\0birthdate", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\0" + "88fecf016203005fdbeb018c1376c333\0first_name", "row_1")));
+          "dataset_1\u000088fecf016203005fdbeb018c1376c333\0first_name", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\0" + "4b5c86196dd52c0cf2673d2d0a569431\0last_name", "row_1")));
+          "dataset_1\u00004b5c86196dd52c0cf2673d2d0a569431\0last_name", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\0" + "717c7b8afebbfb7137f6f0f99beb2a94\0id", "row_1")));
+          "dataset_1\u0000717c7b8afebbfb7137f6f0f99beb2a94\0id", "row_1")));
 
       // Raw data
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>("dataset_1\0row_1",
@@ -848,15 +781,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               t.getValue().toString())).collect(Collectors.toList());
 
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\0" + "6174693c483abae057d822c6cc4c67b9\0age", "row_1")));
+          "dataset_1\u00006174693c483abae057d822c6cc4c67b9\0age", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\0" + "8c979aa1006083b505eadf7fdbbd786c\0birthdate", "row_1")));
+          "dataset_1\u00008c979aa1006083b505eadf7fdbbd786c\0birthdate", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\0" + "88fecf016203005fdbeb018c1376c333\0first_name", "row_1")));
+          "dataset_1\u000088fecf016203005fdbeb018c1376c333\0first_name", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\0" + "4b5c86196dd52c0cf2673d2d0a569431\0last_name", "row_1")));
+          "dataset_1\u00004b5c86196dd52c0cf2673d2d0a569431\0last_name", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\0" + "717c7b8afebbfb7137f6f0f99beb2a94\0id", "row_1")));
+          "dataset_1\u0000717c7b8afebbfb7137f6f0f99beb2a94\0id", "row_1")));
       Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>("dataset_1\0row_1",
           "{\"birthdate\":\"2004-04-01T00:00:00Z\",\"last_name\":\"doe\",\"id\":\"1\",\"first_name\":\"john\",\"age\":17}")));
     }
@@ -926,7 +859,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String row = blob.getKey().getRow().toString();
         String cf = blob.getKey().getColumnFamily().toString();
 
-        return row.equals("dataset\0" + "365ccfea623eaebf17f36c5a0cdc4ddc\0id" /* 0001 */)
+        return row.equals("dataset\u0000365ccfea623eaebf17f36c5a0cdc4ddc\0id" /* 0001 */)
             && cf.equals("hidx");
       });
 
@@ -948,7 +881,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String row = blob.getKey().getRow().toString();
         String cf = blob.getKey().getColumnFamily().toString();
 
-        return row.equals("dataset\0" + "80a346d5bedec92a095e873ce5e98d3a\0nb_connexions" /* 0 */)
+        return row.equals("dataset\u000080a346d5bedec92a095e873ce5e98d3a\0nb_connexions" /* 0 */)
             && cf.equals("hidx");
       });
 
@@ -970,8 +903,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cf = term.getKey().getColumnFamily().toString();
         String cq = term.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\0" + "0001" /* 0001 */) && cf.equals("FIDX")
-            && cq.equals("row_1\0id\0" + "1");
+        return row.equals("dataset\u00000001" /* 0001 */) && cf.equals("FIDX")
+            && cq.equals("row_1\0id\u00001");
       });
 
       Assert.assertTrue(hasId);
@@ -982,8 +915,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cf = term.getKey().getColumnFamily().toString();
         String cq = term.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\0" + "1000" /* 0001 */) && cf.equals("BIDX")
-            && cq.equals("row_1\0id\0" + "1");
+        return row.equals("dataset\u00001000" /* 0001 */) && cf.equals("BIDX")
+            && cq.equals("row_1\0id\u00001");
       });
 
       Assert.assertTrue(hasId);
@@ -995,8 +928,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cf = term.getKey().getColumnFamily().toString();
         String cq = term.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\0" + "01800" /* 01800 */) && cf.equals("FIDX")
-            && cq.equals("row_1\0code_postal\0" + "1");
+        return row.equals("dataset\u000001800" /* 01800 */) && cf.equals("FIDX")
+            && cq.equals("row_1\0code_postal\u00001");
       });
 
       Assert.assertTrue(hasCodePostal);
@@ -1007,8 +940,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cf = term.getKey().getColumnFamily().toString();
         String cq = term.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\0" + "00810" /* 01800 */) && cf.equals("BIDX")
-            && cq.equals("row_1\0code_postal\0" + "1");
+        return row.equals("dataset\u000000810" /* 01800 */) && cf.equals("BIDX")
+            && cq.equals("row_1\0code_postal\u00001");
       });
 
       Assert.assertTrue(hasCodePostal);
@@ -1019,8 +952,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cf = term.getKey().getColumnFamily().toString();
         String cq = term.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\0" + "?0*" /* 0 */) && cf.equals("FIDX")
-            && cq.equals("row_1\0nb_connexions\0" + "2");
+        return row.equals("dataset\u0000?0*" /* 0 */) && cf.equals("FIDX")
+            && cq.equals("row_1\0nb_connexions\u00002");
       });
 
       Assert.assertTrue(hasNbConnexions);

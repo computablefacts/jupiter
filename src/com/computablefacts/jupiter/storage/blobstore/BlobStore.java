@@ -2,7 +2,6 @@ package com.computablefacts.jupiter.storage.blobstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -12,9 +11,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
@@ -22,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
-import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterator;
 import com.computablefacts.jupiter.iterators.BlobStoreMaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
@@ -68,34 +64,6 @@ final public class BlobStore extends AbstractStorage {
   }
 
   /**
-   * Group data belonging to a same column family together.
-   *
-   * @param cf column family.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean addLocalityGroup(String cf) {
-
-    Preconditions.checkNotNull(cf, "cf should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(
-          LogFormatter.create(true).add("table_name", tableName()).add("cf", cf).formatDebug());
-    }
-
-    Map<String, Set<Text>> groups =
-        Tables.getLocalityGroups(configurations().tableOperations(), tableName());
-
-    if (!groups.containsKey(cf)) {
-
-      groups.put(cf, Sets.newHashSet(new Text(cf)));
-
-      return Tables.setLocalityGroups(configurations().tableOperations(), tableName(), groups,
-          false);
-    }
-    return true;
-  }
-
-  /**
    * Remove all data for a given dataset.
    *
    * @param deleter batch deleter.
@@ -110,18 +78,7 @@ final public class BlobStore extends AbstractStorage {
       logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
           .formatDebug());
     }
-
-    deleter.clearColumns();
-    deleter.clearScanIterators();
-
-    try {
-      deleter.setRanges(Collections.singleton(Range.prefix(dataset + SEPARATOR_NUL)));
-      deleter.delete();
-    } catch (TableNotFoundException | MutationsRejectedException e) {
-      handleExceptions(e);
-      return false;
-    }
-    return true;
+    return removeRanges(deleter, Sets.newHashSet(Range.prefix(dataset + SEPARATOR_NUL)));
   }
 
   /**

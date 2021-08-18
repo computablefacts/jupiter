@@ -2,6 +2,8 @@ package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_COUNT;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_COUNT;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.HashSet;
@@ -64,15 +66,14 @@ final public class TermDistinctBuckets implements HasTerm {
   @CanIgnoreReturnValue
   public static Mutation newForwardMutation(Map<Text, Mutation> mutations, String dataset,
       String field, int type, String term, int count, Set<String> labels) {
-    return newMutation(mutations, TermStore.forwardCount(), dataset, field, type, term, count,
-        labels);
+    return newMutation(mutations, FORWARD_COUNT, dataset, field, type, term, count, labels);
   }
 
   @CanIgnoreReturnValue
   public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset,
       String field, int type, String term, int count, Set<String> labels) {
-    return newMutation(mutations, TermStore.backwardCount(), dataset, field, type, reverse(term),
-        count, labels);
+    return newMutation(mutations, BACKWARD_COUNT, dataset, field, type, reverse(term), count,
+        labels);
   }
 
   public static TermDistinctBuckets fromKeyValue(Key key, Value value) {
@@ -90,8 +91,8 @@ final public class TermDistinctBuckets implements HasTerm {
     @Var
     int index = row.indexOf(SEPARATOR_NUL);
     String dataset = row.substring(0, index);
-    String term = cf.equals(TermStore.backwardCount()) ? reverse(row.substring(index + 1))
-        : row.substring(index + 1);
+    String term =
+        cf.equals(BACKWARD_COUNT) ? reverse(row.substring(index + 1)) : row.substring(index + 1);
 
     // Extract field from CQ
     index = cq.indexOf(SEPARATOR_NUL);

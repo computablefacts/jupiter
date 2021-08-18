@@ -71,9 +71,9 @@ final public class DataStoreHashIndex {
     deleter.clearColumns();
     deleter.clearScanIterators();
     deleter.fetchColumn(TEXT_HASH_INDEX, TEXT_EMPTY);
-    deleter.setRanges(Collections.singleton(Range.prefix(dataset + SEPARATOR_NUL)));
 
     try {
+      deleter.setRanges(Collections.singleton(Range.prefix(dataset + SEPARATOR_NUL)));
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());

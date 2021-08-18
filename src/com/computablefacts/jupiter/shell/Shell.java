@@ -139,10 +139,6 @@ public class Shell {
             grantWritePermissionOnCache(configurations, datastore, getArg(args, "au")),
             "Set WRITE permission on Cache failed!");
         break;
-      case "add_locality_group":
-        Preconditions.checkState(addLocalityGroup(configurations, datastore, getArg(args, "ds")),
-            "LOCALITY GROUP creation failed!");
-        break;
       case "create":
         Preconditions.checkState(create(configurations, datastore), "CREATE failed!");
         break;
@@ -321,16 +317,6 @@ public class Shell {
     Preconditions.checkNotNull(datastore, "datastore should not be null");
 
     return new DataStore(configurations, datastore).grantReadPermissionOnCache(username);
-  }
-
-  public static boolean addLocalityGroup(Configurations configurations, String datastore,
-      String dataset) {
-
-    Preconditions.checkNotNull(configurations, "configurations should not be null");
-    Preconditions.checkNotNull(datastore, "datastore should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return new DataStore(configurations, datastore).addLocalityGroup(dataset);
   }
 
   public static boolean create(Configurations configurations, String datastore) {

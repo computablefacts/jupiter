@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.VISIBILITY;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -39,8 +40,8 @@ final public class FieldLabels {
   private final Set<String> labelsTerm_;
 
   FieldLabels(String dataset, String field, int type, Set<String> labels) {
-    this(dataset, field, type, labels, Sets.newHashSet(STRING_ADM, AbstractStorage
-        .toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.visibility())));
+    this(dataset, field, type, labels, Sets.newHashSet(STRING_ADM,
+        AbstractStorage.toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + VISIBILITY)));
   }
 
   FieldLabels(String dataset, String field, int type, Set<String> labels, Set<String> labelsTerm) {
@@ -71,10 +72,10 @@ final public class FieldLabels {
 
     Text row = new Text(dataset + SEPARATOR_NUL + field + SEPARATOR_NUL + type);
 
-    Text cf = new Text(TermStore.visibility());
+    Text cf = new Text(VISIBILITY);
 
-    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE + AbstractStorage
-        .toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + TermStore.visibility()));
+    ColumnVisibility cv = new ColumnVisibility(STRING_ADM + SEPARATOR_PIPE
+        + AbstractStorage.toVisibilityLabel(dataset + SEPARATOR_UNDERSCORE + VISIBILITY));
 
     Value value = new Value(Joiner.on(Constants.SEPARATOR_NUL).join(labels));
 

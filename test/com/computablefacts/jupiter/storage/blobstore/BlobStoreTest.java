@@ -12,7 +12,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -20,44 +19,11 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Data;
 import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
-import com.computablefacts.jupiter.Tables;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class BlobStoreTest extends MiniAccumuloClusterTest {
-
-  @Test
-  public void testAddLocalityGroup() throws Exception {
-
-    File file = Data.file(10);
-    String str = Codecs.asString(Data.json(1));
-    Map<String, Object> json = Data.json(1);
-
-    String dataset = "blobs";
-    Set<String> labels = Sets.newHashSet();
-    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_RAW_FILE");
-    BlobStore blobStore = newBlobStore(auths);
-
-    try (BatchWriter writer = blobStore.writer()) {
-      Assert.assertTrue(blobStore.putFile(writer, dataset, "1", labels, file));
-      Assert.assertTrue(blobStore.putString(writer, dataset, "2", labels, str));
-      Assert.assertTrue(blobStore.putJson(writer, dataset, "3", labels, json));
-    }
-
-    Map<String, Set<Text>> groupsBefore = Tables
-        .getLocalityGroups(blobStore.configurations().tableOperations(), blobStore.tableName());
-
-    Assert.assertEquals(0, groupsBefore.size());
-
-    Assert.assertTrue(blobStore.addLocalityGroup(dataset));
-
-    Map<String, Set<Text>> groupsAfter = Tables
-        .getLocalityGroups(blobStore.configurations().tableOperations(), blobStore.tableName());
-
-    Assert.assertEquals(1, groupsAfter.size());
-    Assert.assertEquals(Sets.newHashSet(new Text(dataset)), groupsAfter.get(dataset));
-  }
 
   @Test
   public void testRemoveDataset() throws Exception {

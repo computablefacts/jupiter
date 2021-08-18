@@ -244,6 +244,36 @@ public abstract class AbstractStorage {
   }
 
   /**
+   * Group data belonging to a same column family together.
+   *
+   * @param cfs column families.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  @CanIgnoreReturnValue
+  public boolean addLocalityGroups(Set<String> cfs) {
+
+    Preconditions.checkNotNull(cfs, "cfs should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(
+          LogFormatter.create(true).add("table_name", tableName()).add("cfs", cfs).formatDebug());
+    }
+
+    if (!cfs.isEmpty()) {
+
+      Map<String, Set<Text>> groups =
+          Tables.getLocalityGroups(configurations().tableOperations(), tableName());
+
+      cfs.stream().filter(cf -> !groups.containsKey(cf))
+          .forEach(cf -> groups.put(cf, Sets.newHashSet(new Text(cf))));
+
+      return Tables.setLocalityGroups(configurations().tableOperations(), tableName(), groups,
+          false);
+    }
+    return true;
+  }
+
+  /**
    * Check if the storage layer has been initialized.
    *
    * @return true if the storage layer is ready to be used, false otherwise.
@@ -325,7 +355,7 @@ public abstract class AbstractStorage {
    * @param cfs the column families to remove.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean remove(BatchDeleter deleter, Set<String> cfs) {
+  public boolean removeColumnFamilies(BatchDeleter deleter, Set<String> cfs) {
 
     Preconditions.checkNotNull(deleter, "deleter should not be null");
     Preconditions.checkNotNull(cfs, "cfs should not be null");
@@ -343,6 +373,36 @@ public abstract class AbstractStorage {
       for (String cf : cfs) {
         deleter.fetchColumnFamily(new Text(cf));
       }
+      deleter.delete();
+    } catch (TableNotFoundException | MutationsRejectedException e) {
+      handleExceptions(e);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Remove a set of ranges.
+   *
+   * @param deleter batch deleter.
+   * @param ranges the ranges to remove.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean removeRanges(BatchDeleter deleter, Set<Range> ranges) {
+
+    Preconditions.checkNotNull(deleter, "deleter should not be null");
+    Preconditions.checkNotNull(ranges, "ranges should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("ranges", ranges)
+          .formatDebug());
+    }
+
+    deleter.clearColumns();
+    deleter.clearScanIterators();
+
+    try {
+      deleter.setRanges(ranges);
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException e) {
       handleExceptions(e);

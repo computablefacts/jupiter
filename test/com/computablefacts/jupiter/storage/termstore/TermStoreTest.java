@@ -5,14 +5,12 @@ import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -20,52 +18,12 @@ import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
-import com.computablefacts.jupiter.Tables;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
 public class TermStoreTest extends MiniAccumuloClusterTest {
-
-  @Test
-  public void addLocalityGroup() throws Exception {
-
-    String dataset = "terms";
-    String bucketId = "1";
-    Set<String> labels = Sets.newHashSet();
-    Authorizations auths = new Authorizations("ADM");
-    TermStore termStore = newTermStore(auths);
-
-    try (BatchWriter writer = termStore.writer()) {
-      Assert.assertTrue(
-          termStore.put(writer, dataset, bucketId, "first_name", "john", 1, labels, labels));
-      Assert.assertTrue(
-          termStore.put(writer, dataset, bucketId, "last_name", "doe", 1, labels, labels));
-      Assert.assertTrue(termStore.put(writer, dataset, bucketId, "age", 37, 1, labels, labels));
-    }
-
-    Map<String, Set<Text>> groupsBefore = Tables
-        .getLocalityGroups(termStore.configurations().tableOperations(), termStore.tableName());
-
-    Assert.assertEquals(0, groupsBefore.size());
-
-    Assert.assertTrue(termStore.addLocalityGroup(dataset));
-
-    Map<String, Set<Text>> groupsAfter = Tables
-        .getLocalityGroups(termStore.configurations().tableOperations(), termStore.tableName());
-
-    Assert.assertEquals(9, groupsAfter.size());
-    Assert.assertEquals(Sets.newHashSet(new Text("DB")), groupsAfter.get("DB"));
-    Assert.assertEquals(Sets.newHashSet(new Text("DT")), groupsAfter.get("DT"));
-    Assert.assertEquals(Sets.newHashSet(new Text("LU")), groupsAfter.get("LU"));
-    Assert.assertEquals(Sets.newHashSet(new Text("TT")), groupsAfter.get("TT"));
-    Assert.assertEquals(Sets.newHashSet(new Text("VIZ")), groupsAfter.get("VIZ"));
-    Assert.assertEquals(Sets.newHashSet(new Text("FCNT")), groupsAfter.get("FCNT"));
-    Assert.assertEquals(Sets.newHashSet(new Text("BCNT")), groupsAfter.get("BCNT"));
-    Assert.assertEquals(Sets.newHashSet(new Text("FIDX")), groupsAfter.get("FIDX"));
-    Assert.assertEquals(Sets.newHashSet(new Text("BIDX")), groupsAfter.get("BIDX"));
-  }
 
   @Test
   public void testTruncate() throws Exception {

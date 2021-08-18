@@ -432,11 +432,14 @@ final public class DataStore {
 
       configurations().tableOperations().attachIterator(blobStore_.tableName(), settings);
 
+      // Set locality group for hash index
+      blobStore_.addLocalityGroups(Sets.newHashSet(TEXT_HASH_INDEX.toString()));
+
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
       return false;
     }
-    return blobStore_.addLocalityGroup(TEXT_HASH_INDEX.toString());
+    return true;
   }
 
   /**
@@ -489,23 +492,6 @@ final public class DataStore {
       isOk = isOk && DataStoreCache.remove(deleter, dataset);
     }
     return isOk;
-  }
-
-  /**
-   * Group data belonging to a same dataset together.
-   *
-   * @param dataset dataset.
-   * @return true if the operation succeeded, false otherwise.
-   */
-  public boolean addLocalityGroup(String dataset) {
-
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(
-          LogFormatter.create(true).add("namespace", name()).add("dataset", dataset).formatDebug());
-    }
-    return termStore_.addLocalityGroup(dataset);
   }
 
   /**
