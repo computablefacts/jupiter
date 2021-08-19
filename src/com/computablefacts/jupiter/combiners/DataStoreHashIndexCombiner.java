@@ -18,6 +18,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CheckReturnValue;
 
+@Deprecated
 @CheckReturnValue
 public class DataStoreHashIndexCombiner extends Combiner {
 

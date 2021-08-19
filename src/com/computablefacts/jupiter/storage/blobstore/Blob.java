@@ -34,10 +34,10 @@ import com.google.errorprone.annotations.CheckReturnValue;
 @CheckReturnValue
 final public class Blob<T> {
 
-  private static final int TYPE_UNKNOWN = 0;
-  private static final int TYPE_STRING = 1;
-  private static final int TYPE_FILE = 2;
-  private static final int TYPE_JSON = 3;
+  public static final int TYPE_UNKNOWN = 0;
+  public static final int TYPE_STRING = 1;
+  public static final int TYPE_FILE = 2;
+  public static final int TYPE_JSON = 3;
 
   private final String dataset_;
   private final String key_;

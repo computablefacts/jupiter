@@ -1,6 +1,6 @@
 package com.computablefacts.jupiter.combiners;
 
-import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
 import java.util.Iterator;
 
@@ -13,7 +13,7 @@ import org.junit.Test;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.collect.Lists;
 
-public class DataStoreHashIndexCombinerTest {
+public class DataStoreCombinerTest {
 
   @Test
   public void testReduceNotTheRightColumnFamily() {
@@ -21,10 +21,16 @@ public class DataStoreHashIndexCombinerTest {
     Iterator<Value> values = Lists.newArrayList(new Value("1"), new Value("2"), new Value("3"),
         new Value("4"), new Value("5")).iterator();
 
-    DataStoreHashIndexCombiner combiner = new DataStoreHashIndexCombiner();
+    DataStoreCombiner combiner = new DataStoreCombiner();
     Value value = combiner.reduce(new Key(new Text("id"), new Text("dataset")), values);
+    String val = value.toString();
 
-    Assert.assertEquals("", value.toString());
+    Assert.assertTrue(WildcardMatcher.match(val, "?\0?\0?\0?\0?"));
+    Assert.assertTrue(val.contains("1"));
+    Assert.assertTrue(val.contains("2"));
+    Assert.assertTrue(val.contains("3"));
+    Assert.assertTrue(val.contains("4"));
+    Assert.assertTrue(val.contains("5"));
   }
 
   @Test
@@ -33,8 +39,8 @@ public class DataStoreHashIndexCombinerTest {
     Iterator<Value> values = Lists.newArrayList(new Value("1"), new Value("2"), new Value("3"),
         new Value("4"), new Value("5")).iterator();
 
-    DataStoreHashIndexCombiner combiner = new DataStoreHashIndexCombiner();
-    Value value = combiner.reduce(new Key(new Text("id"), TEXT_HASH_INDEX), values);
+    DataStoreCombiner combiner = new DataStoreCombiner();
+    Value value = combiner.reduce(new Key(new Text("id"), TEXT_EMPTY), values);
     String val = value.toString();
 
     Assert.assertTrue(WildcardMatcher.match(val, "?\0?\0?\0?\0?"));
@@ -51,8 +57,8 @@ public class DataStoreHashIndexCombinerTest {
     Iterator<Value> values = Lists.newArrayList(new Value("1"), new Value("2"), new Value("2"),
         new Value("3"), new Value("4")).iterator();
 
-    DataStoreHashIndexCombiner combiner = new DataStoreHashIndexCombiner();
-    Value value = combiner.reduce(new Key(new Text("id"), TEXT_HASH_INDEX), values);
+    DataStoreCombiner combiner = new DataStoreCombiner();
+    Value value = combiner.reduce(new Key(new Text("id"), TEXT_EMPTY), values);
     String val = value.toString();
 
     Assert.assertTrue(WildcardMatcher.match(val, "?\0?\0?\0?"));

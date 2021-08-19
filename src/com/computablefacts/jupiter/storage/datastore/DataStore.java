@@ -1,11 +1,12 @@
 package com.computablefacts.jupiter.storage.datastore;
 
+import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_HASH_INDEX;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -26,21 +27,29 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Users;
+import com.computablefacts.jupiter.combiners.DataStoreCombiner;
 import com.computablefacts.jupiter.combiners.DataStoreHashIndexCombiner;
 import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
+import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
+import com.computablefacts.jupiter.storage.FlattenIterator;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.jupiter.storage.termstore.FieldDistinctBuckets;
@@ -88,7 +97,7 @@ import com.google.errorprone.annotations.Var;
  *  Row                          | Column Family | Column Qualifier                                | Visibility                             | Value
  * ==============================+===============+=================================================+========================================+========
  *  <dataset>\0<key>             | (empty)       | <blob_type>\0<property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
- *  <dataset>\0<hash>\0<field>   | hidx          | (empty)                                         | (empty)                                | <key1>\0<key2>\0...
+ *  <dataset>\0<hash>            | (empty)       | <blob_type>\0<field>                            | (empty)                                | <key1>\0<key2>\0...
  * </pre>
  *
  * <p>
@@ -417,23 +426,20 @@ final public class DataStore {
             AgeOffPeriodFilter.class.getSimpleName(), EnumSet.of(IteratorUtil.IteratorScope.majc,
                 IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
       }
-      if (iterators2.containsKey("DataStoreHashIndexCombiner")) {
+      if (iterators2.containsKey("DataStoreHashIndexCombiner")) { // TODO : remove after migration
         configurations().tableOperations().removeIterator(blobStore_.tableName(),
             DataStoreHashIndexCombiner.class.getSimpleName(),
             EnumSet.of(IteratorUtil.IteratorScope.majc, IteratorUtil.IteratorScope.minc,
                 IteratorUtil.IteratorScope.scan));
       }
 
-      // Set the left index combiner
-      settings = new IteratorSetting(7, DataStoreHashIndexCombiner.class);
-      DataStoreHashIndexCombiner.setColumns(settings,
-          Lists.newArrayList(new IteratorSetting.Column(TEXT_HASH_INDEX)));
-      DataStoreHashIndexCombiner.setReduceOnFullCompactionOnly(settings, true);
+      // Set the hash index combiner
+      settings = new IteratorSetting(7, DataStoreCombiner.class);
+      DataStoreCombiner.setColumns(settings,
+          Lists.newArrayList(new IteratorSetting.Column(TEXT_EMPTY)));
+      DataStoreCombiner.setReduceOnFullCompactionOnly(settings, true);
 
       configurations().tableOperations().attachIterator(blobStore_.tableName(), settings);
-
-      // Set locality group for hash index
-      blobStore_.addLocalityGroups(Sets.newHashSet(TEXT_HASH_INDEX.toString()));
 
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
@@ -486,7 +492,6 @@ final public class DataStore {
     }
     try (BatchDeleter deleter = blobStore_.deleter(auths)) {
       isOk = isOk && blobStore_.removeDataset(deleter, dataset);
-      isOk = isOk && DataStoreHashIndex.remove(deleter, dataset);
     }
     try (BatchDeleter deleter = cache_.deleter(auths)) {
       isOk = isOk && DataStoreCache.remove(deleter, dataset);
@@ -675,7 +680,7 @@ final public class DataStore {
    *
    * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
    * must also have the <dataset>_<field> auth for each requested field.
-   * 
+   *
    * @param scanners scanners.
    * @param dataset dataset.
    * @param fields JSON fields to keep (optional).
@@ -931,7 +936,7 @@ final public class DataStore {
       logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
           .add("field", field).add("value", value).formatDebug());
     }
-    return DataStoreHashIndex.readValue(scanners, dataset, field, value.toString());
+    return readHash(scanners, dataset, field, MaskingIterator.hash(null, value.toString()));
   }
 
   /**
@@ -954,7 +959,7 @@ final public class DataStore {
       logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
           .add("field", field).add("hash", hash).formatDebug());
     }
-    return DataStoreHashIndex.readHash(scanners, dataset, field, hash);
+    return readHash(scanners, dataset, field, hash);
   }
 
   /**
@@ -1303,11 +1308,101 @@ final public class DataStore {
     }
 
     if (value instanceof Date) {
-      DataStoreHashIndex.write(writers, dataset, field, ((Date) value).toInstant().toString(),
-          docId);
-    } else {
-      DataStoreHashIndex.write(writers, dataset, field, value.toString(), docId);
+      return writeHash(writers, dataset, field, ((Date) value).toInstant().toString(), docId);
     }
-    return true;
+    return writeHash(writers, dataset, field, value.toString(), docId);
+  }
+
+  /**
+   * Cache fields and values.
+   *
+   * @param writers writers.
+   * @param dataset dataset.
+   * @param field the field.
+   * @param value the field value.
+   * @param docId the document id.
+   */
+  private boolean writeHash(Writers writers, String dataset, String field, String value,
+      String docId) {
+
+    Preconditions.checkNotNull(writers, "writers should neither be null nor empty");
+    Preconditions.checkNotNull(field, "field should neither be null nor empty");
+    Preconditions.checkNotNull(value, "value should neither be null nor empty");
+    Preconditions.checkNotNull(docId, "docId should neither be null nor empty");
+
+    Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + MaskingIterator.hash(null, value));
+    mutation.put(TEXT_EMPTY, new Text(Blob.TYPE_STRING + "" + SEPARATOR_NUL + field),
+        new Value(docId));
+
+    try {
+      writers.blob().addMutation(mutation);
+      return true;
+    } catch (MutationsRejectedException e) {
+      logger_.error(LogFormatter.create(true).message(e).formatError());
+    }
+    return false;
+  }
+
+  /**
+   * Get documents ids.
+   *
+   * @param scanners scanners.
+   * @param dataset dataset.
+   * @param field the field.
+   * @param hash the field hashed value.
+   * @return an unordered set of docs ids.
+   */
+  private Iterator<String> readHash(Scanners scanners, String dataset, String field, String hash) {
+
+    Preconditions.checkNotNull(scanners, "scanners should neither be null nor empty");
+    Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("field", field)
+          .add("hash", hash).formatDebug());
+    }
+
+    ScannerBase scanner = scanners.blob(NB_QUERY_THREADS);
+
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+    scanner.fetchColumnFamily(TEXT_EMPTY);
+
+    Range range;
+
+    if (hash != null && field != null) {
+      range = Range.exact(new Text(dataset + SEPARATOR_NUL + hash), TEXT_EMPTY,
+          new Text(Blob.TYPE_STRING + "" + SEPARATOR_NUL + field));
+    } else if (hash != null) {
+      range = Range.prefix(new Text(dataset + SEPARATOR_NUL + hash), TEXT_EMPTY,
+          new Text(Blob.TYPE_STRING + "" + SEPARATOR_NUL));
+    } else if (field != null) {
+
+      range = Range.prefix(dataset + SEPARATOR_NUL);
+
+      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
+      WildcardFilter.applyOnColumnQualifier(setting);
+      WildcardFilter.addWildcard(setting, Blob.TYPE_STRING + "" + SEPARATOR_NUL + field);
+
+      scanner.addScanIterator(setting);
+    } else {
+
+      range = Range.prefix(dataset + SEPARATOR_NUL);
+
+      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
+      WildcardFilter.applyOnColumnQualifier(setting);
+      WildcardFilter.addWildcard(setting, Blob.TYPE_STRING + "" + SEPARATOR_NUL + "*");
+
+      scanner.addScanIterator(setting);
+    }
+
+    if (!AbstractStorage.setRange(scanner, range)) {
+      return ITERATOR_EMPTY;
+    }
+    return new FlattenIterator<>(scanner.iterator(), entry -> {
+      Value val = entry.getValue();
+      return Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings()
+          .splitToList(val.toString());
+    });
   }
 }
