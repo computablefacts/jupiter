@@ -21,14 +21,14 @@ import com.computablefacts.jupiter.storage.termstore.Term;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
 
-public class TermStoreDocFieldFilterTest {
+public class TermStoreBucketFieldFilterTest {
 
   @Test
   public void testNullDocs() {
 
-    TermStoreDocFieldFilter iterator = new TermStoreDocFieldFilter();
-    IteratorSetting iteratorSetting = new IteratorSetting(1, TermStoreDocFieldFilter.class);
-    TermStoreDocFieldFilter.setDocsToKeep(iteratorSetting, null);
+    TermStoreBucketFieldFilter iterator = new TermStoreBucketFieldFilter();
+    IteratorSetting iteratorSetting = new IteratorSetting(1, TermStoreBucketFieldFilter.class);
+    TermStoreBucketFieldFilter.setDocsToKeep(iteratorSetting, null);
 
     Assert.assertFalse(iterator.validateOptions(iteratorSetting.getOptions()));
   }
@@ -36,9 +36,9 @@ public class TermStoreDocFieldFilterTest {
   @Test
   public void testNullFields() {
 
-    TermStoreDocFieldFilter iterator = new TermStoreDocFieldFilter();
-    IteratorSetting iteratorSetting = new IteratorSetting(1, TermStoreDocFieldFilter.class);
-    TermStoreDocFieldFilter.setFieldsToKeep(iteratorSetting, null);
+    TermStoreBucketFieldFilter iterator = new TermStoreBucketFieldFilter();
+    IteratorSetting iteratorSetting = new IteratorSetting(1, TermStoreBucketFieldFilter.class);
+    TermStoreBucketFieldFilter.setFieldsToKeep(iteratorSetting, null);
 
     Assert.assertFalse(iterator.validateOptions(iteratorSetting.getOptions()));
   }
@@ -59,7 +59,7 @@ public class TermStoreDocFieldFilterTest {
     BloomFilters<String> bfs = new BloomFilters<>();
     bfs.put("DOCID_1");
 
-    TermStoreDocFieldFilter iterator = iterator(bfs, null);
+    TermStoreBucketFieldFilter iterator = iterator(bfs, null);
 
     @Var
     int nbMatch = 0;
@@ -79,7 +79,7 @@ public class TermStoreDocFieldFilterTest {
   @Test
   public void filterOnFields() throws Exception {
 
-    TermStoreDocFieldFilter iterator = iterator(null, Sets.newHashSet("FIELD_1", "FIELD_2"));
+    TermStoreBucketFieldFilter iterator = iterator(null, Sets.newHashSet("FIELD_1", "FIELD_2"));
 
     List<Key> list = new ArrayList<>();
 
@@ -115,7 +115,7 @@ public class TermStoreDocFieldFilterTest {
     BloomFilters<String> bfs = new BloomFilters<>();
     bfs.put("DOCID_1");
 
-    TermStoreDocFieldFilter iterator = iterator(bfs, Sets.newHashSet("FIELD_1", "FIELD_2"));
+    TermStoreBucketFieldFilter iterator = iterator(bfs, Sets.newHashSet("FIELD_1", "FIELD_2"));
 
     @Var
     int nbMatch = 0;
@@ -132,13 +132,13 @@ public class TermStoreDocFieldFilterTest {
     Assert.assertEquals(2, nbMatch);
   }
 
-  private TermStoreDocFieldFilter iterator(BloomFilters<String> docsToKeep,
+  private TermStoreBucketFieldFilter iterator(BloomFilters<String> docsToKeep,
       Set<String> fieldsToKeep) throws IOException {
 
-    TermStoreDocFieldFilter iterator = new TermStoreDocFieldFilter();
-    IteratorSetting setting = new IteratorSetting(1, TermStoreDocFieldFilter.class);
-    TermStoreDocFieldFilter.setDocsToKeep(setting, docsToKeep);
-    TermStoreDocFieldFilter.setFieldsToKeep(setting, fieldsToKeep);
+    TermStoreBucketFieldFilter iterator = new TermStoreBucketFieldFilter();
+    IteratorSetting setting = new IteratorSetting(1, TermStoreBucketFieldFilter.class);
+    TermStoreBucketFieldFilter.setDocsToKeep(setting, docsToKeep);
+    TermStoreBucketFieldFilter.setFieldsToKeep(setting, fieldsToKeep);
 
     Assert.assertTrue(iterator.validateOptions(setting.getOptions()));
 

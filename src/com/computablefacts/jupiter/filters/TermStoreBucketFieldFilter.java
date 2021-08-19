@@ -23,17 +23,17 @@ import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-public class TermStoreDocFieldFilter extends Filter {
+public class TermStoreBucketFieldFilter extends Filter {
 
-  private static final String DOCS_CRITERION = "d";
+  private static final String BUCKETS_CRITERION = "d";
   private static final String FIELDS_CRITERION = "f";
 
-  private BloomFilters<String> keepDocs_;
+  private BloomFilters<String> keepBucketsIds_;
   private Set<String> keepFields_;
 
-  public static void setDocsToKeep(IteratorSetting setting, BloomFilters<String> bf) {
-    if (bf != null) {
-      setting.addOption(DOCS_CRITERION, BloomFilters.toString(bf));
+  public static void setDocsToKeep(IteratorSetting setting, BloomFilters<String> bucketsIds) {
+    if (bucketsIds != null) {
+      setting.addOption(BUCKETS_CRITERION, BloomFilters.toString(bucketsIds));
     }
   }
 
@@ -48,11 +48,11 @@ public class TermStoreDocFieldFilter extends Filter {
   public IteratorOptions describeOptions() {
 
     Map<String, String> options = new HashMap<>();
-    options.put(DOCS_CRITERION, "Documents to keep.");
+    options.put(BUCKETS_CRITERION, "Buckets ids to keep.");
     options.put(FIELDS_CRITERION, "Fields patterns to keep.");
 
-    return new IteratorOptions("TermStoreDocFieldFilter",
-        "TermStoreDocFieldFilter accepts or rejects each Key/Value pair based on documents and/or fields filters.",
+    return new IteratorOptions("TermStoreBucketFieldFilter",
+        "TermStoreBucketFieldFilter accepts or rejects each Key/Value pair based on buckets ids and/or fields filters.",
         options, null);
   }
 
@@ -61,8 +61,8 @@ public class TermStoreDocFieldFilter extends Filter {
     if (options.size() < 1 || options.size() > 2) {
       return false;
     }
-    if (options.containsKey(DOCS_CRITERION)) {
-      if (options.get(DOCS_CRITERION) == null) {
+    if (options.containsKey(BUCKETS_CRITERION)) {
+      if (options.get(BUCKETS_CRITERION) == null) {
         return false;
       }
     }
@@ -78,12 +78,12 @@ public class TermStoreDocFieldFilter extends Filter {
 
     super.init(source, options, env);
 
-    if (!options.containsKey(DOCS_CRITERION)) {
-      keepDocs_ = null;
+    if (!options.containsKey(BUCKETS_CRITERION)) {
+      keepBucketsIds_ = null;
     } else {
-      keepDocs_ = BloomFilters.fromString(options.get(DOCS_CRITERION));
-      if (keepDocs_ == null) {
-        keepDocs_ = new BloomFilters<>();
+      keepBucketsIds_ = BloomFilters.fromString(options.get(BUCKETS_CRITERION));
+      if (keepBucketsIds_ == null) {
+        keepBucketsIds_ = new BloomFilters<>();
       }
     }
 
@@ -101,7 +101,7 @@ public class TermStoreDocFieldFilter extends Filter {
 
     String cq = key.getColumnQualifier().toString();
     int index = cq.indexOf(SEPARATOR_NUL);
-    String doc = cq.substring(0, index);
+    String bucketId = cq.substring(0, index);
 
     String field;
 
@@ -112,8 +112,8 @@ public class TermStoreDocFieldFilter extends Filter {
       field = cq.substring(index + 1, index2);
     }
 
-    if (keepDocs_ != null) {
-      if (!acceptDoc(doc)) {
+    if (keepBucketsIds_ != null) {
+      if (!acceptBucket(bucketId)) {
         return false;
       }
     }
@@ -133,7 +133,7 @@ public class TermStoreDocFieldFilter extends Filter {
     return false;
   }
 
-  private boolean acceptDoc(String doc) {
-    return keepDocs_.mightContain(doc);
+  private boolean acceptBucket(String bucketId) {
+    return keepBucketsIds_.mightContain(bucketId);
   }
 }

@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.combiners.TermStoreCombiner;
-import com.computablefacts.jupiter.filters.TermStoreDocFieldFilter;
+import com.computablefacts.jupiter.filters.TermStoreBucketFieldFilter;
 import com.computablefacts.jupiter.filters.TermStoreFieldFilter;
 import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.storage.AbstractStorage;
@@ -148,15 +148,15 @@ final public class TermStore extends AbstractStorage {
     @Var
     boolean add = false;
     IteratorSetting setting =
-        new IteratorSetting(22, "TermStoreDocFieldFilter", TermStoreDocFieldFilter.class);
+        new IteratorSetting(22, "TermStoreBucketFieldFilter", TermStoreBucketFieldFilter.class);
 
     if (fields != null && !fields.isEmpty()) {
       add = true;
-      TermStoreDocFieldFilter.setFieldsToKeep(setting, fields);
+      TermStoreBucketFieldFilter.setFieldsToKeep(setting, fields);
     }
     if (bucketsIds != null) {
       add = true;
-      TermStoreDocFieldFilter.setDocsToKeep(setting, bucketsIds);
+      TermStoreBucketFieldFilter.setDocsToKeep(setting, bucketsIds);
     }
     if (add) {
       scanner.addScanIterator(setting);
