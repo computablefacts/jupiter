@@ -71,12 +71,9 @@ public final class Cache {
   private static final Logger logger_ = LoggerFactory.getLogger(Cache.class);
   private static final ExecutorService executorService_ = Executors.newFixedThreadPool(3);
 
-  private final String tableName_;
   private final BlobStore cache_;
 
   public Cache(Configurations configurations, String tableName) {
-    tableName_ =
-        Preconditions.checkNotNull(tableName, "tableName should neither be null nor empty");
     cache_ = new BlobStore(configurations, tableName);
   }
 
@@ -87,7 +84,7 @@ public final class Cache {
    */
   @Generated
   public String tableName() {
-    return tableName_;
+    return cache_.tableName();
   }
 
   /**
