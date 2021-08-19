@@ -27,7 +27,6 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
-import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.jupiter.storage.datastore.Scanners;
 import com.computablefacts.jupiter.storage.datastore.Writers;
 import com.computablefacts.logfmt.LogFormatter;
@@ -40,7 +39,7 @@ import com.google.errorprone.annotations.Var;
 
 /**
  * <p>
- * This class contains helper functions to read/write values to the {@link DataStore} cache.
+ * This class contains helper functions to read/write values to the {@link Cache} cache.
  * </p>
  *
  * <p>
