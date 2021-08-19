@@ -21,7 +21,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
 import com.computablefacts.jupiter.storage.AbstractStorage;
-import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.nona.Generated;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -131,11 +130,7 @@ final public class Blob<T> {
     List<String> properties =
         Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings().splitToList(cq);
 
-    // Extract blob's type from CQ (if any)
-    if (properties.isEmpty()) { // needed because of the hash index
-      return new Blob<>(dataset, identifier, labels, Term.TYPE_NA, value, new ArrayList<>());
-    }
-
+    // Extract blob's type from CQ
     int type = Integer.parseInt(properties.get(0), 10);
     return new Blob<>(dataset, identifier, labels, type, value,
         properties.subList(1, properties.size()));
