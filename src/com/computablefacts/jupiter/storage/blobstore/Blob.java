@@ -5,7 +5,10 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_FILE;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_ARRAY;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_FILE;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_JSON;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_STRING;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -34,23 +37,20 @@ import com.google.errorprone.annotations.CheckReturnValue;
 @CheckReturnValue
 final public class Blob<T> {
 
-  public static final int TYPE_UNKNOWN = 0;
-  public static final int TYPE_STRING = 1;
-  public static final int TYPE_FILE = 2;
-  public static final int TYPE_JSON = 3;
-
   private final String dataset_;
   private final String key_;
   private final Set<String> labels_;
-  private final int type_;
+  private final String type_;
   private final List<String> properties_;
   private final T value_;
 
-  Blob(String dataset, String key, Set<String> labels, int type, T value, List<String> properties) {
+  Blob(String dataset, String key, Set<String> labels, String type, T value,
+      List<String> properties) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(key, "key should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");
+    Preconditions.checkNotNull(type, "type should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
     Preconditions.checkNotNull(properties, "properties should not be null");
 
@@ -63,8 +63,23 @@ final public class Blob<T> {
   }
 
   public static boolean isJson(Key key) {
-    return key != null && key.getColumnQualifier() != null
-        && key.getColumnQualifier().toString().startsWith(TYPE_JSON + "" + SEPARATOR_NUL);
+    return key != null && key.getColumnFamily() != null
+        && key.getColumnFamily().toString().equals(TYPE_JSON);
+  }
+
+  public static boolean isString(Key key) {
+    return key != null && key.getColumnFamily() != null
+        && key.getColumnFamily().toString().equals(TYPE_STRING);
+  }
+
+  public static boolean isFile(Key key) {
+    return key != null && key.getColumnFamily() != null
+        && key.getColumnFamily().toString().equals(TYPE_FILE);
+  }
+
+  public static boolean isArray(Key key) {
+    return key != null && key.getColumnFamily() != null
+        && key.getColumnFamily().toString().equals(TYPE_ARRAY);
   }
 
   public static Mutation fromString(String dataset, String key, Set<String> labels, String value) {
@@ -108,12 +123,24 @@ final public class Blob<T> {
     return null;
   }
 
+  public static Mutation fromArray(String dataset, String key, Set<String> labels, String value) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(key, "key should not be null");
+    Preconditions.checkNotNull(labels, "labels should not be null");
+    Preconditions.checkNotNull(value, "value should not be null");
+
+    return newMutation(dataset, key, new HashSet<>(labels), TYPE_ARRAY,
+        value.getBytes(StandardCharsets.UTF_8), null);
+  }
+
   public static Blob<Value> fromKeyValue(Key key, Value value) {
 
     Preconditions.checkNotNull(key, "key should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
     String row = key.getRow().toString(); // dataset\0blob identifier
+    String cf = key.getColumnFamily().toString();
     String cq = key.getColumnQualifier().toString();
     String cv = key.getColumnVisibility().toString();
 
@@ -130,31 +157,29 @@ final public class Blob<T> {
     List<String> properties =
         Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings().splitToList(cq);
 
-    // Extract blob's type from CQ
-    int type = Integer.parseInt(properties.get(0), 10);
-    return new Blob<>(dataset, identifier, labels, type, value,
-        properties.subList(1, properties.size()));
+    return new Blob<>(dataset, identifier, labels, cf, value, properties);
   }
 
-  private static Mutation newMutation(String dataset, String key, Set<String> labels, int type,
+  private static Mutation newMutation(String dataset, String key, Set<String> labels, String type,
       byte[] bytes, List<String> properties) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(key, "key should not be null");
     Preconditions.checkNotNull(labels, "labels should not be null");
+    Preconditions.checkNotNull(type, "type should not be null");
     Preconditions.checkNotNull(bytes, "bytes should not be null");
 
-    StringBuilder cq = new StringBuilder();
-    cq.append(type);
-    cq.append(SEPARATOR_NUL);
+    String cq;
 
     if (properties != null && !properties.isEmpty()) {
-      cq.append(Joiner.on(SEPARATOR_NUL).join(properties));
+      cq = Joiner.on(SEPARATOR_NUL).join(properties);
+    } else {
+      cq = "";
     }
 
     labels.add(STRING_ADM);
 
-    if (type == TYPE_FILE) {
+    if (TYPE_FILE.equals(type)) {
       labels.add(AbstractStorage.toVisibilityLabel(dataset + "_" + STRING_RAW_FILE));
     } else {
       labels.add(AbstractStorage.toVisibilityLabel(dataset + "_" + STRING_RAW_DATA));
@@ -163,7 +188,7 @@ final public class Blob<T> {
     ColumnVisibility cv = new ColumnVisibility(Joiner.on(SEPARATOR_PIPE).join(labels));
 
     Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + key);
-    mutation.put(TEXT_EMPTY, new Text(cq.toString()), cv, new Value(bytes));
+    mutation.put(new Text(type), new Text(cq), cv, new Value(bytes));
 
     return mutation;
   }
@@ -211,7 +236,7 @@ final public class Blob<T> {
   }
 
   @Generated
-  public int type() {
+  public String type() {
     return type_;
   }
 
@@ -226,22 +251,22 @@ final public class Blob<T> {
   }
 
   @Generated
-  public boolean isUnknown() {
-    return type_ == TYPE_UNKNOWN;
-  }
-
-  @Generated
   public boolean isString() {
-    return type_ == TYPE_STRING;
+    return TYPE_STRING.equals(type_);
   }
 
   @Generated
   public boolean isJson() {
-    return type_ == TYPE_JSON;
+    return TYPE_JSON.equals(type_);
   }
 
   @Generated
   public boolean isFile() {
-    return type_ == TYPE_FILE;
+    return TYPE_FILE.equals(type_);
+  }
+
+  @Generated
+  public boolean isArray() {
+    return TYPE_ARRAY.equals(type_);
   }
 }

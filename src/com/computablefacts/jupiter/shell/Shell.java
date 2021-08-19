@@ -486,7 +486,7 @@ public class Shell {
         ds.beginIngest();
 
         Iterator<Blob<Value>> iterator =
-            ds.blobStore().get(scanners.blob(NB_QUERY_THREADS), dataset);
+            ds.blobStore().getJsons(scanners.blob(NB_QUERY_THREADS), dataset, null, null);
 
         while (iterator.hasNext()) {
 
@@ -552,7 +552,7 @@ public class Shell {
 
           AtomicInteger count = new AtomicInteger(0);
           Iterator<Blob<Value>> iterator =
-              ds.blobStore().get(scanners.blob(NB_QUERY_THREADS), dataset);
+              ds.blobStore().getJsons(scanners.blob(NB_QUERY_THREADS), dataset, null, null);
 
           while (iterator.hasNext()) {
 

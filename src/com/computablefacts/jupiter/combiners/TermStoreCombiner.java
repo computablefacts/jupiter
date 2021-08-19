@@ -1,6 +1,15 @@
 package com.computablefacts.jupiter.combiners;
 
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_COUNT;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_INDEX;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.DISTINCT_BUCKETS;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.DISTINCT_TERMS;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_COUNT;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_INDEX;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.LAST_UPDATE;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.TOP_TERMS;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.VISIBILITY;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -40,25 +49,25 @@ public class TermStoreCombiner extends Combiner {
 
     String cf = key.getColumnFamily().toString();
 
-    if (cf.equals("FIDX") || cf.equals("BIDX")) {
+    if (cf.equals(FORWARD_INDEX) || cf.equals(BACKWARD_INDEX)) {
       return reduceIndex(iter);
     }
-    if (cf.equals("FCNT") || cf.equals("BCNT")) {
+    if (cf.equals(FORWARD_COUNT) || cf.equals(BACKWARD_COUNT)) {
       return reduceCount(iter);
     }
-    if (cf.equals("VIZ")) {
+    if (cf.equals(VISIBILITY)) {
       return reduceFieldVisibility(iter);
     }
-    if (cf.equals("LU")) {
+    if (cf.equals(LAST_UPDATE)) {
       return reduceFieldLastUpdate(iter);
     }
-    if (cf.equals("DB")) {
+    if (cf.equals(DISTINCT_BUCKETS)) {
       return reduceCount(iter);
     }
-    if (cf.equals("DT")) {
+    if (cf.equals(DISTINCT_TERMS)) {
       return reduceThetaSketches(iter);
     }
-    if (cf.equals("TT")) {
+    if (cf.equals(TOP_TERMS)) {
       return reduceTopKSketches(iter);
     }
     return VALUE_EMPTY;

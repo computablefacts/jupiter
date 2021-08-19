@@ -1,5 +1,7 @@
 package com.computablefacts.jupiter.iterators;
 
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_JSON;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.SortedMap;
@@ -224,25 +226,19 @@ public class BlobStoreMaskingIteratorTest {
 
     SortedMap<Key, Value> map = new TreeMap<>();
 
-    map.put(
-        new Key("DATASET_1\0KEY_1", "", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
-        new Value(json()));
-    map.put(
-        new Key("DATASET_1\0KEY_2", "", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
-        new Value(json()));
-    map.put(
-        new Key("DATASET_1\0KEY_3", "", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
-        new Value(json()));
+    map.put(new Key("DATASET_1\0KEY_1", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("DATASET_1\0KEY_2", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("DATASET_1\0KEY_3", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
 
-    map.put(
-        new Key("DATASET_2\0KEY_1", "", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
-        new Value(json()));
-    map.put(
-        new Key("DATASET_2\0KEY_2", "", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
-        new Value(json()));
-    map.put(
-        new Key("DATASET_2\0KEY_3", "", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
-        new Value(json()));
+    map.put(new Key("DATASET_2\0KEY_1", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("DATASET_2\0KEY_2", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("DATASET_2\0KEY_3", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
 
     return map;
   }

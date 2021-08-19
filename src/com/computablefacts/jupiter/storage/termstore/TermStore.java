@@ -5,6 +5,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -24,6 +25,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -185,46 +187,55 @@ final public class TermStore extends AbstractStorage {
     }
 
     if (!isReady()) {
-      if (super.create()) {
-        try {
-
-          // Set combiner
-          IteratorSetting setting = new IteratorSetting(7, TermStoreCombiner.class);
-          TermStoreCombiner.setCombineAllColumns(setting, true);
-          TermStoreCombiner.setReduceOnFullCompactionOnly(setting, true);
-
-          configurations().tableOperations().attachIterator(tableName(), setting);
-
-          // Set default splits on [a-zA-Z0-9]
-          SortedSet<Text> splits = new TreeSet<>();
-
-          for (char i = '0'; i < '9' + 1; i++) {
-            splits.add(new Text(Character.toString(i)));
-          }
-
-          for (char i = 'a'; i < 'z' + 1; i++) {
-            splits.add(new Text(Character.toString(i)));
-          }
-
-          for (char i = 'A'; i < 'Z' + 1; i++) {
-            splits.add(new Text(Character.toString(i)));
-          }
-
-          configurations().tableOperations().addSplits(tableName(), splits);
-
-          Set<String> cfs =
-              Sets.newHashSet(TOP_TERMS, DISTINCT_TERMS, DISTINCT_BUCKETS, LAST_UPDATE, VISIBILITY,
-                  FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX);
-
-          addLocalityGroups(cfs);
-
-        } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-          logger_.error(LogFormatter.create(true).message(e).formatError());
-          return false;
-        }
+      if (!super.create()) {
+        return false;
       }
     }
-    return true;
+
+    try {
+
+      // Remove legacy iterators from the TermStore
+      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators =
+          configurations().tableOperations().listIterators(tableName());
+
+      if (iterators.containsKey("TermStoreCombiner")) { // TODO : remove after migration
+        configurations().tableOperations().removeIterator(tableName(),
+            TermStoreCombiner.class.getSimpleName(), EnumSet.of(IteratorUtil.IteratorScope.majc,
+                IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
+      }
+
+      // Set combiner
+      IteratorSetting setting = new IteratorSetting(7, TermStoreCombiner.class);
+      TermStoreCombiner.setCombineAllColumns(setting, true);
+      TermStoreCombiner.setReduceOnFullCompactionOnly(setting, true);
+
+      configurations().tableOperations().attachIterator(tableName(), setting);
+
+      // Set default splits on [a-zA-Z0-9]
+      SortedSet<Text> splits = new TreeSet<>();
+
+      for (char i = '0'; i < '9' + 1; i++) {
+        splits.add(new Text(Character.toString(i)));
+      }
+
+      for (char i = 'a'; i < 'z' + 1; i++) {
+        splits.add(new Text(Character.toString(i)));
+      }
+
+      for (char i = 'A'; i < 'Z' + 1; i++) {
+        splits.add(new Text(Character.toString(i)));
+      }
+
+      configurations().tableOperations().addSplits(tableName(), splits);
+
+      // Set locality groups
+      return addLocalityGroups(Sets.newHashSet(TOP_TERMS, DISTINCT_TERMS, DISTINCT_BUCKETS,
+          LAST_UPDATE, VISIBILITY, FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX));
+
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      logger_.error(LogFormatter.create(true).message(e).formatError());
+    }
+    return false;
   }
 
   /**

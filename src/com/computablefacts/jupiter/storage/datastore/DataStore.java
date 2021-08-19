@@ -6,7 +6,7 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_S
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_ARRAY;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -14,7 +14,6 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -23,17 +22,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
-import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.io.Text;
@@ -43,10 +38,6 @@ import org.slf4j.LoggerFactory;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Users;
-import com.computablefacts.jupiter.combiners.DataStoreCombiner;
-import com.computablefacts.jupiter.combiners.DataStoreHashIndexCombiner;
-import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
-import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.FlattenIterator;
@@ -95,10 +86,10 @@ import com.google.errorprone.annotations.Var;
  * </p>
  *
  * <pre>
- *  Row                          | Column Family | Column Qualifier                                | Visibility                             | Value
- * ==============================+===============+=================================================+========================================+========
- *  <dataset>\0<key>             | (empty)       | <blob_type>\0<property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
- *  <dataset>\0<hash>            | (empty)       | <blob_type>\0<field>                            | (empty)                                | <key1>\0<key2>\0...
+ *  Row                          | Column Family | Column Qualifier                   | Visibility                             | Value
+ * ==============================+===============+====================================+========================================+========
+ *  <dataset>\0<key>             | <blob_type>   | <property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
+ *  <dataset>\0<hash>            | ARR           | <field>                            | (empty)                                | <key1>\0<key2>\0...
  * </pre>
  *
  * <p>
@@ -385,66 +376,13 @@ final public class DataStore {
         return false;
       }
     }
-
     if (!termStore_.isReady()) {
       if (!termStore_.create()) {
         return false;
       }
     }
-
     if (!cache_.isReady()) {
-      if (!cache_.create()) {
-        return false;
-      }
-    }
-
-    try {
-
-      // Cache
-      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators1 =
-          configurations().tableOperations().listIterators(cache_.tableName());
-
-      if (iterators1.containsKey("AgeOffPeriodFilter")) { // TODO : remove after migration
-        configurations().tableOperations().removeIterator(cache_.tableName(),
-            AgeOffPeriodFilter.class.getSimpleName(), EnumSet.of(IteratorUtil.IteratorScope.majc,
-                IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
-      }
-
-      // Set a 3 hours TTL on all cached data
-      @Var
-      IteratorSetting settings = new IteratorSetting(7, AgeOffPeriodFilter.class);
-      AgeOffPeriodFilter.setTtl(settings, 3);
-      AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");
-
-      configurations().tableOperations().attachIterator(cache_.tableName(), settings);
-
-      // BlobStore
-      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators2 =
-          configurations().tableOperations().listIterators(blobStore_.tableName());
-
-      if (iterators2.containsKey("AgeOffPeriodFilter")) { // TODO : remove after migration
-        configurations().tableOperations().removeIterator(blobStore_.tableName(),
-            AgeOffPeriodFilter.class.getSimpleName(), EnumSet.of(IteratorUtil.IteratorScope.majc,
-                IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
-      }
-      if (iterators2.containsKey("DataStoreHashIndexCombiner")) { // TODO : remove after migration
-        configurations().tableOperations().removeIterator(blobStore_.tableName(),
-            DataStoreHashIndexCombiner.class.getSimpleName(),
-            EnumSet.of(IteratorUtil.IteratorScope.majc, IteratorUtil.IteratorScope.minc,
-                IteratorUtil.IteratorScope.scan));
-      }
-
-      // Set the hash index combiner
-      settings = new IteratorSetting(7, DataStoreCombiner.class);
-      DataStoreCombiner.setColumns(settings,
-          Lists.newArrayList(new IteratorSetting.Column(TEXT_EMPTY)));
-      DataStoreCombiner.setReduceOnFullCompactionOnly(settings, true);
-
-      configurations().tableOperations().attachIterator(blobStore_.tableName(), settings);
-
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-      logger_.error(LogFormatter.create(true).message(e).formatError());
-      return false;
+      return cache_.create();
     }
     return true;
   }
@@ -695,7 +633,7 @@ final public class DataStore {
     Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return blobStore_.get(scanners.blob(nbQueryThreads), dataset, null, fields);
+    return blobStore_.getJsons(scanners.blob(nbQueryThreads), dataset, null, fields);
   }
 
   /**
@@ -719,7 +657,7 @@ final public class DataStore {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docsIds, "docsIds should not be null");
 
-    return blobStore_.get(scanners.blob(nbQueryThreads), dataset, docsIds, fields);
+    return blobStore_.getJsons(scanners.blob(nbQueryThreads), dataset, docsIds, fields);
   }
 
   /**
@@ -1317,6 +1255,9 @@ final public class DataStore {
   /**
    * Cache fields and values.
    *
+   * WARNING : bypass {@link BlobStore#putArray(BatchWriter, String, String, Set, String)} because
+   * we expect the column visibility to be empty.
+   * 
    * @param writers writers.
    * @param dataset dataset.
    * @param field the field.
@@ -1332,8 +1273,7 @@ final public class DataStore {
     Preconditions.checkNotNull(docId, "docId should neither be null nor empty");
 
     Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + MaskingIterator.hash(null, value));
-    mutation.put(TEXT_EMPTY, new Text(Blob.TYPE_STRING + "" + SEPARATOR_NUL + field),
-        new Value(docId));
+    mutation.put(TYPE_ARRAY, field, docId);
 
     try {
       writers.blob().addMutation(mutation);
@@ -1346,6 +1286,9 @@ final public class DataStore {
 
   /**
    * Get documents ids.
+   *
+   * WARNING : bypass {@link BlobStore#getArrays(ScannerBase, String, Set, Set)} because we expect
+   * the column visibility to be empty.
    *
    * @param scanners scanners.
    * @param dataset dataset.
@@ -1367,34 +1310,21 @@ final public class DataStore {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(TEXT_EMPTY);
+
+    if (field != null) {
+      scanner.fetchColumn(new Text(TYPE_ARRAY), new Text(field));
+    } else {
+      scanner.fetchColumnFamily(new Text(TYPE_ARRAY));
+    }
 
     Range range;
 
     if (hash != null && field != null) {
-      range = Range.exact(new Text(dataset + SEPARATOR_NUL + hash), TEXT_EMPTY,
-          new Text(Blob.TYPE_STRING + "" + SEPARATOR_NUL + field));
+      range = Range.exact(dataset + SEPARATOR_NUL + hash, TYPE_ARRAY, field);
     } else if (hash != null) {
-      range = Range.prefix(new Text(dataset + SEPARATOR_NUL + hash), TEXT_EMPTY,
-          new Text(Blob.TYPE_STRING + "" + SEPARATOR_NUL));
-    } else if (field != null) {
-
-      range = Range.prefix(dataset + SEPARATOR_NUL);
-
-      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
-      WildcardFilter.applyOnColumnQualifier(setting);
-      WildcardFilter.addWildcard(setting, Blob.TYPE_STRING + "" + SEPARATOR_NUL + field);
-
-      scanner.addScanIterator(setting);
+      range = Range.exact(dataset + SEPARATOR_NUL + hash, TYPE_ARRAY);
     } else {
-
       range = Range.prefix(dataset + SEPARATOR_NUL);
-
-      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter", WildcardFilter.class);
-      WildcardFilter.applyOnColumnQualifier(setting);
-      WildcardFilter.addWildcard(setting, Blob.TYPE_STRING + "" + SEPARATOR_NUL + "*");
-
-      scanner.addScanIterator(setting);
     }
 
     if (!AbstractStorage.setRange(scanner, range)) {

@@ -6,11 +6,18 @@ import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -18,12 +25,14 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
@@ -115,7 +124,61 @@ public final class Cache {
    */
   @Generated
   public boolean create() {
-    return cache_.create();
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
+    }
+
+    if (!isReady()) {
+      if (!cache_.create()) {
+        return false;
+      }
+    }
+
+    try {
+
+      // Set default splits on [a-zA-Z0-9]
+      SortedSet<Text> splits = new TreeSet<>();
+
+      for (char i = '0'; i < '9' + 1; i++) {
+        splits.add(new Text(Character.toString(i)));
+      }
+
+      for (char i = 'a'; i < 'z' + 1; i++) {
+        splits.add(new Text(Character.toString(i)));
+      }
+
+      for (char i = 'A'; i < 'Z' + 1; i++) {
+        splits.add(new Text(Character.toString(i)));
+      }
+
+      configurations().tableOperations().addSplits(tableName(), splits);
+
+      // Remove legacy iterators from the cache
+      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators =
+          configurations().tableOperations().listIterators(tableName());
+
+      if (iterators.containsKey("AgeOffPeriodFilter")) { // TODO : remove after migration
+        configurations().tableOperations().removeIterator(tableName(),
+            AgeOffPeriodFilter.class.getSimpleName(), EnumSet.of(IteratorUtil.IteratorScope.majc,
+                IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
+      }
+
+
+      // Set a 3 hours TTL on all cached data
+      IteratorSetting settings = new IteratorSetting(7 + 1 /* one above the BlobStore iterator */,
+          AgeOffPeriodFilter.class);
+      AgeOffPeriodFilter.setTtl(settings, 3);
+      AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");
+
+      configurations().tableOperations().attachIterator(tableName(), settings);
+
+      return true;
+
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      logger_.error(LogFormatter.create(true).message(e).formatError());
+    }
+    return false;
   }
 
   /**

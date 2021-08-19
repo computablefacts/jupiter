@@ -1,6 +1,10 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_ARRAY;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_FILE;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_JSON;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_STRING;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -27,29 +31,36 @@ public class BlobTest {
   @Test(expected = NullPointerException.class)
   public void testNullDataset() {
     Blob<String> blob =
-        new Blob<>(null, "key", Sets.newHashSet(), 0, "value", Lists.newArrayList());
+        new Blob<>(null, "key", Sets.newHashSet(), TYPE_STRING, "value", Lists.newArrayList());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullKey() {
     Blob<String> blob =
-        new Blob<>("dataset", null, Sets.newHashSet(), 0, "value", Lists.newArrayList());
+        new Blob<>("dataset", null, Sets.newHashSet(), TYPE_STRING, "value", Lists.newArrayList());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabels() {
-    Blob<String> blob = new Blob<>("dataset", "key", null, 0, "value", Lists.newArrayList());
+    Blob<String> blob =
+        new Blob<>("dataset", "key", null, TYPE_STRING, "value", Lists.newArrayList());
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testNullType() {
+    Blob<String> blob =
+        new Blob<>("dataset", "key", Sets.newHashSet(), null, "value", Lists.newArrayList());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullProperties() {
-    Blob<String> blob = new Blob<>("dataset", "key", Sets.newHashSet(), 0, "value", null);
+    Blob<String> blob = new Blob<>("dataset", "key", Sets.newHashSet(), TYPE_STRING, "value", null);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullValue() {
     Blob<String> blob =
-        new Blob<>("dataset", "key", Sets.newHashSet(), 0, null, Lists.newArrayList());
+        new Blob<>("dataset", "key", Sets.newHashSet(), TYPE_STRING, null, Lists.newArrayList());
   }
 
   @Test
@@ -64,8 +75,8 @@ public class BlobTest {
     String uuid = UUID.randomUUID().toString();
 
     byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
-    byte[] cq = "1\0".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = TYPE_STRING.getBytes(StandardCharsets.UTF_8);
+    byte[] cq = "".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_DATA").getExpression();
     byte[] val = str.getBytes(StandardCharsets.UTF_8);
 
@@ -84,8 +95,8 @@ public class BlobTest {
     String uuid = UUID.randomUUID().toString();
 
     byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
-    byte[] cq = "3\0".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = TYPE_JSON.getBytes(StandardCharsets.UTF_8);
+    byte[] cq = "".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_DATA").getExpression();
     byte[] val = Codecs.asString(json).getBytes(StandardCharsets.UTF_8);
 
@@ -104,13 +115,11 @@ public class BlobTest {
     String uuid = UUID.randomUUID().toString();
 
     byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = TYPE_FILE.getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_FILE").getExpression();
     byte[] val = java.nio.file.Files.readAllBytes(file.toPath());
 
     StringBuilder cq = new StringBuilder();
-    cq.append(2);
-    cq.append(SEPARATOR_NUL);
     cq.append(file.getName());
     cq.append(SEPARATOR_NUL);
     cq.append(Long.toString(file.length(), 10));
@@ -124,14 +133,33 @@ public class BlobTest {
   }
 
   @Test
+  public void testFromArray() {
+
+    String uuid = UUID.randomUUID().toString();
+
+    byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
+    byte[] cf = TYPE_ARRAY.getBytes(StandardCharsets.UTF_8);
+    byte[] cq = "".getBytes(StandardCharsets.UTF_8);
+    byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_DATA").getExpression();
+    byte[] val = "value1\0value2".getBytes(StandardCharsets.UTF_8);
+
+    Mutation expected = new Mutation(row);
+    expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
+
+    Mutation actual = Blob.fromArray("my_dataset", uuid, Sets.newHashSet(), "value1\0value2");
+
+    Assert.assertEquals(expected, actual);
+  }
+
+  @Test
   public void testStringFromKeyValue() {
 
     String str = Codecs.asString(Data.json(1));
     String uuid = UUID.randomUUID().toString();
 
     byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
-    byte[] cq = "1\0".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = TYPE_STRING.getBytes(StandardCharsets.UTF_8);
+    byte[] cq = "".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = str.getBytes(StandardCharsets.UTF_8);
 
@@ -153,8 +181,8 @@ public class BlobTest {
     String uuid = UUID.randomUUID().toString();
 
     byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
-    byte[] cq = "3\0".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = TYPE_JSON.getBytes(StandardCharsets.UTF_8);
+    byte[] cq = "".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = Codecs.asString(json).getBytes(StandardCharsets.UTF_8);
 
@@ -176,13 +204,11 @@ public class BlobTest {
     String uuid = UUID.randomUUID().toString();
 
     byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
-    byte[] cf = "".getBytes(StandardCharsets.UTF_8);
+    byte[] cf = TYPE_FILE.getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
     byte[] val = java.nio.file.Files.readAllBytes(file.toPath());
 
     StringBuilder cq = new StringBuilder();
-    cq.append(2);
-    cq.append(SEPARATOR_NUL);
     cq.append(file.getName());
     cq.append(SEPARATOR_NUL);
     cq.append(Long.toString(file.length(), 10));
@@ -196,6 +222,29 @@ public class BlobTest {
     Assert.assertEquals(uuid, blob.key());
     Assert.assertEquals(Sets.newHashSet(), blob.labels());
     Assert.assertEquals(Lists.newArrayList(file.getName(), "10"), blob.properties());
+    Assert.assertEquals(val, blob.value().get());
+  }
+
+  @Test
+  public void testArrayFromKeyValue() {
+
+    String uuid = UUID.randomUUID().toString();
+
+    byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
+    byte[] cf = TYPE_ARRAY.getBytes(StandardCharsets.UTF_8);
+    byte[] cq = "".getBytes(StandardCharsets.UTF_8);
+    byte[] cv = new ColumnVisibility().getExpression();
+    byte[] val = "value1\0value2".getBytes(StandardCharsets.UTF_8);
+
+    Key key = new Key(row, cf, cq, cv);
+    Value value = new Value(val);
+    Blob<Value> blob = Blob.fromKeyValue(key, value);
+
+    Assert.assertTrue(blob.isArray());
+    Assert.assertEquals("my_dataset", blob.dataset());
+    Assert.assertEquals(uuid, blob.key());
+    Assert.assertEquals(Sets.newHashSet(), blob.labels());
+    Assert.assertEquals(Lists.newArrayList(), blob.properties());
     Assert.assertEquals(val, blob.value().get());
   }
 }

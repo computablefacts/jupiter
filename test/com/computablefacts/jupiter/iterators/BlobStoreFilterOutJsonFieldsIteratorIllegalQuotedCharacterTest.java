@@ -1,5 +1,7 @@
 package com.computablefacts.jupiter.iterators;
 
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_JSON;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
@@ -32,14 +34,14 @@ public class BlobStoreFilterOutJsonFieldsIteratorIllegalQuotedCharacterTest {
 
     while (iterator.hasTop()) {
 
-      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String row = iterator.getTopKey().getRow().toString();
       String value = iterator.getTopValue().toString();
 
-      if ("DATASET_1".equals(cf)) {
+      if (row.startsWith("DATASET_1")) {
         Assert.assertEquals("{\"name\":\"John\",\"age\":31}", value);
         countDataset1++;
       }
-      if ("DATASET_2".equals(cf)) {
+      if (row.startsWith("DATASET_2")) {
         Assert.assertEquals("{\"name\":\"John\",\"age\":31}", value);
         countDataset2++;
       }
@@ -63,14 +65,14 @@ public class BlobStoreFilterOutJsonFieldsIteratorIllegalQuotedCharacterTest {
 
     while (iterator.hasTop()) {
 
-      String cf = iterator.getTopKey().getColumnFamily().toString();
+      String row = iterator.getTopKey().getRow().toString();
       String value = iterator.getTopValue().toString();
 
-      if ("DATASET_1".equals(cf)) {
+      if (row.startsWith("DATASET_1")) {
         Assert.assertEquals("{\"name\":\"John\",\"city\":\"New\\u0007York\"}", value);
         countDataset1++;
       }
-      if ("DATASET_2".equals(cf)) {
+      if (row.startsWith("DATASET_2")) {
         Assert.assertEquals("{\"name\":\"John\",\"city\":\"New\\u0007York\"}", value);
         countDataset2++;
       }
@@ -100,19 +102,19 @@ public class BlobStoreFilterOutJsonFieldsIteratorIllegalQuotedCharacterTest {
 
     SortedMap<Key, Value> map = new TreeMap<>();
 
-    map.put(new Key("KEY_1", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
-        new Value(json()));
-    map.put(new Key("KEY_2", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
-        new Value(json()));
-    map.put(new Key("KEY_3", "DATASET_1", "3\0", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
-        new Value(json()));
+    map.put(new Key("DATASET_1\0KEY_1", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("DATASET_1\0KEY_2", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("DATASET_1\0KEY_3", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
 
-    map.put(new Key("KEY_1", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
-        new Value(json()));
-    map.put(new Key("KEY_2", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
-        new Value(json()));
-    map.put(new Key("KEY_3", "DATASET_2", "3\0", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
-        new Value(json()));
+    map.put(new Key("DATASET_2\0KEY_1", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("DATASET_2\0KEY_2", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("DATASET_2\0KEY_3", TYPE_JSON, "",
+        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
 
     return map;
   }

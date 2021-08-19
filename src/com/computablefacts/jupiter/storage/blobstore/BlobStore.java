@@ -1,25 +1,33 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.jupiter.combiners.BlobStoreCombiner;
+import com.computablefacts.jupiter.combiners.DataStoreHashIndexCombiner;
 import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterator;
 import com.computablefacts.jupiter.iterators.BlobStoreMaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
@@ -46,9 +54,9 @@ import com.google.errorprone.annotations.Var;
  * </p>
  * 
  * <pre>
- *  Row               | Column Family | Column Qualifier                                | Visibility                             |Value
- * ===================+===============+=================================================+========================================+========
- *  <dataset>\0<key>  | (empty)       | <blob_type>\0<property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
+ *  Row               | Column Family | Column Qualifier                   | Visibility                             |Value
+ * ===================+===============+====================================+========================================+========
+ *  <dataset>\0<key>  | <blob_type>   | <property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
  * </pre>
  *
  * <p>
@@ -58,10 +66,87 @@ import com.google.errorprone.annotations.Var;
 @CheckReturnValue
 final public class BlobStore extends AbstractStorage {
 
+  public static final String TYPE_STRING = "STR";
+  public static final String TYPE_FILE = "FIL";
+  public static final String TYPE_JSON = "JSO";
+  public static final String TYPE_ARRAY = "ARR";
+
   private static final Logger logger_ = LoggerFactory.getLogger(BlobStore.class);
 
   public BlobStore(Configurations configurations, String name) {
     super(configurations, name);
+  }
+
+  /**
+   * Initialize the storage layer.
+   *
+   * @return true if the storage layer already exists or has been successfully initialized, false
+   *         otherwise.
+   */
+  @Override
+  public boolean create() {
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
+    }
+
+    if (!isReady()) {
+      if (!super.create()) {
+        return false;
+      }
+    }
+
+    try {
+
+      // Set default splits on [a-zA-Z0-9]
+      SortedSet<Text> splits = new TreeSet<>();
+
+      for (char i = '0'; i < '9' + 1; i++) {
+        splits.add(new Text(Character.toString(i)));
+      }
+
+      for (char i = 'a'; i < 'z' + 1; i++) {
+        splits.add(new Text(Character.toString(i)));
+      }
+
+      for (char i = 'A'; i < 'Z' + 1; i++) {
+        splits.add(new Text(Character.toString(i)));
+      }
+
+      configurations().tableOperations().addSplits(tableName(), splits);
+
+      // Remove legacy iterators from the BlobStore
+      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators =
+          configurations().tableOperations().listIterators(tableName());
+
+      if (iterators.containsKey("BlobStoreCombiner")) { // TODO : remove after migration
+        configurations().tableOperations().removeIterator(tableName(),
+            BlobStoreCombiner.class.getSimpleName(), EnumSet.of(IteratorUtil.IteratorScope.majc,
+                IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
+      }
+
+      if (iterators.containsKey("DataStoreHashIndexCombiner")) { // TODO : remove after migration
+        configurations().tableOperations().removeIterator(tableName(),
+            DataStoreHashIndexCombiner.class.getSimpleName(),
+            EnumSet.of(IteratorUtil.IteratorScope.majc, IteratorUtil.IteratorScope.minc,
+                IteratorUtil.IteratorScope.scan));
+      }
+
+      // Set the array combiner
+      IteratorSetting settings = new IteratorSetting(7, BlobStoreCombiner.class);
+      BlobStoreCombiner.setColumns(settings,
+          Lists.newArrayList(new IteratorSetting.Column(TYPE_ARRAY)));
+      BlobStoreCombiner.setReduceOnFullCompactionOnly(settings, true);
+
+      configurations().tableOperations().attachIterator(tableName(), settings);
+
+      // Set locality groups
+      return addLocalityGroups(Sets.newHashSet(TYPE_STRING, TYPE_FILE, TYPE_JSON, TYPE_ARRAY));
+
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      logger_.error(LogFormatter.create(true).message(e).formatError());
+    }
+    return false;
   }
 
   /**
@@ -143,26 +228,66 @@ final public class BlobStore extends AbstractStorage {
   }
 
   /**
+   * Persist a string. If two or more strings share the same key, they will be added to an array.
+   *
+   * @param writer batch writer.
+   * @param dataset dataset/namespace.
+   * @param key key.
+   * @param labels visibility labels.
+   * @param value JSON string.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean putArray(BatchWriter writer, String dataset, String key, Set<String> labels,
+      String value) {
+    return add(writer, Blob.fromArray(dataset, key, labels, value));
+  }
+
+  /**
    * Get all blobs. Note that using a BatchScanner improves performances a lot.
    *
    * @param scanner scanner.
    * @param dataset dataset/namespace.
    * @return an iterator of (key, value) pairs.
    */
-  public Iterator<Blob<Value>> get(ScannerBase scanner, String dataset) {
-    return get(scanner, dataset, null, null);
+  public Iterator<Blob<Value>> getStrings(ScannerBase scanner, String dataset, Set<String> keys,
+      Set<String> fields) {
+    return get(scanner, dataset, TYPE_STRING, keys, fields);
   }
 
   /**
-   * Get a single blob.
+   * Get all blobs. Note that using a BatchScanner improves performances a lot.
    *
    * @param scanner scanner.
    * @param dataset dataset/namespace.
-   * @param key key.
    * @return an iterator of (key, value) pairs.
    */
-  public Iterator<Blob<Value>> get(ScannerBase scanner, String dataset, String key) {
-    return get(scanner, dataset, Sets.newHashSet(key), null);
+  public Iterator<Blob<Value>> getJsons(ScannerBase scanner, String dataset, Set<String> keys,
+      Set<String> fields) {
+    return get(scanner, dataset, TYPE_JSON, keys, fields);
+  }
+
+  /**
+   * Get all blobs. Note that using a BatchScanner improves performances a lot.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset/namespace.
+   * @return an iterator of (key, value) pairs.
+   */
+  public Iterator<Blob<Value>> getFiles(ScannerBase scanner, String dataset, Set<String> keys,
+      Set<String> fields) {
+    return get(scanner, dataset, TYPE_FILE, keys, fields);
+  }
+
+  /**
+   * Get all blobs. Note that using a BatchScanner improves performances a lot.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset/namespace.
+   * @return an iterator of (key, value) pairs.
+   */
+  public Iterator<Blob<Value>> getArrays(ScannerBase scanner, String dataset, Set<String> keys,
+      Set<String> fields) {
+    return get(scanner, dataset, TYPE_ARRAY, keys, fields);
   }
 
   /**
@@ -174,24 +299,27 @@ final public class BlobStore extends AbstractStorage {
    *
    * @param scanner scanner.
    * @param dataset dataset/namespace.
+   * @param blobType the type of blob to retrieve.
    * @param keys keys (optional).
    * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public Iterator<Blob<Value>> get(ScannerBase scanner, String dataset, Set<String> keys,
-      Set<String> fields) {
+  private Iterator<Blob<Value>> get(ScannerBase scanner, String dataset, String blobType,
+      Set<String> keys, Set<String> fields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(blobType, "blobType should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("has_fields", fields != null).add("has_keys", keys != null).formatDebug());
+          .add("blob_type", blobType).add("has_fields", fields != null)
+          .add("has_keys", keys != null).formatDebug());
     }
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(TEXT_EMPTY);
+    scanner.fetchColumnFamily(new Text(blobType));
 
     @Var
     int priority = 21;
