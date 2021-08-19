@@ -1,6 +1,10 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_ARRAY;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_INDEX;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_INDEX;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -241,8 +245,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
-  public void testRunRowLevelAuthorizationsOneHundredTimes() throws Exception {
-    for (int i = 0; i < 100; i++) {
+  public void testRunRowLevelAuthorizationsFiftyTimes() throws Exception {
+    for (int i = 0; i < 50; i++) {
       testRowLevelAuthorizations();
     }
   }
@@ -698,25 +702,28 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(6, blobs.size());
 
-      List<Map.Entry<String, String>> pairs =
-          blobs.stream().map(t -> new AbstractMap.SimpleEntry<>(t.getKey().getRow().toString(),
-              t.getValue().toString())).collect(Collectors.toList());
+      List<String> items = blobs.stream()
+          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
+              + t.getValue().toString())
+          .collect(Collectors.toList());
 
       // Hash index
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\u00006174693c483abae057d822c6cc4c67b9\0age", "row_1")));
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\u00008c979aa1006083b505eadf7fdbbd786c\0birthdate", "row_1")));
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\u000088fecf016203005fdbeb018c1376c333\0first_name", "row_1")));
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\u00004b5c86196dd52c0cf2673d2d0a569431\0last_name", "row_1")));
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\u0000717c7b8afebbfb7137f6f0f99beb2a94\0id", "row_1")));
+      Assert.assertTrue(
+          items.contains("dataset_1\u00006174693c483abae057d822c6cc4c67b9|ARR|age|row_1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\u00008c979aa1006083b505eadf7fdbbd786c|ARR|birthdate|row_1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\u000088fecf016203005fdbeb018c1376c333|ARR|first_name|row_1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\u00004b5c86196dd52c0cf2673d2d0a569431|ARR|last_name|row_1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\u0000717c7b8afebbfb7137f6f0f99beb2a94|ARR|id|row_1"));
 
       // Raw data
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>("dataset_1\0row_1",
-          "{\"birthdate\":\"2004-04-01T00:00:00Z\",\"last_name\":\"doe\",\"id\":\"1\",\"first_name\":\"john\",\"age\":17}")));
+      Assert.assertTrue(items.contains(
+          "dataset_1\0row_1|JSO||{\"birthdate\":\"2004-04-01T00:00:00Z\",\"last_name\":\"doe\",\"id\":\"1\",\"first_name\":\"john\",\"age\":17}"));
     }
 
     try (Scanner scanner = dataStore.termStore().scanner(auths)) {
@@ -726,33 +733,42 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(39, terms.size());
 
-      List<Map.Entry<Key, Value>> bcnt =
-          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().equals("BCNT"))
-              .collect(Collectors.toList());
+      List<String> items = terms.stream()
+          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
+              + t.getValue().toString())
+          .collect(Collectors.toList());
 
-      Assert.assertEquals(2, bcnt.size());
-      Assert.assertEquals(2,
-          bcnt.stream().mapToInt(kv -> Integer.parseInt(kv.getValue().toString(), 10)).sum());
-
-      List<Map.Entry<Key, Value>> fcnt =
-          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().equals("FCNT"))
-              .collect(Collectors.toList());
-
-      Assert.assertEquals(5, fcnt.size());
-      Assert.assertEquals(5,
-          fcnt.stream().mapToInt(kv -> Integer.parseInt(kv.getValue().toString(), 10)).sum());
-
-      List<Map.Entry<Key, Value>> bidx =
-          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().equals("BIDX"))
-              .collect(Collectors.toList());
-
-      Assert.assertEquals(2, bidx.size());
-
-      List<Map.Entry<Key, Value>> fidx =
-          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().equals("FIDX"))
-              .collect(Collectors.toList());
-
-      Assert.assertEquals(5, fidx.size());
+      // Check all items but the ones in the LU, DT and TT column families
+      Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FCNT|birthdate\0003|1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\0002004-04-01T00:00:00Z|FIDX|row_1\000birthdate\0003|1"));
+      Assert.assertTrue(items.contains("dataset_1\000?1*|FCNT|id\0002|1"));
+      Assert.assertTrue(items.contains("dataset_1\000?1*|FIDX|row_1\000id\0002|1"));
+      Assert.assertTrue(items.contains("dataset_1\000??217*|FCNT|age\0002|1"));
+      Assert.assertTrue(items.contains("dataset_1\000??217*|FIDX|row_1\000age\0002|1"));
+      Assert.assertTrue(items.contains("dataset_1\000age\0002|VIZ||ADM\000DATASET_1_AGE"));
+      Assert.assertTrue(items.contains("dataset_1\000age\0005|DB||1"));
+      Assert
+          .assertTrue(items.contains("dataset_1\000birthdate\0003|VIZ||ADM\0DATASET_1_BIRTHDATE"));
+      Assert.assertTrue(items.contains("dataset_1\000birthdate\0005|DB||1"));
+      Assert.assertTrue(items.contains("dataset_1\000doe|FCNT|last_name\0001|1"));
+      Assert.assertTrue(items.contains("dataset_1\000doe|FIDX|row_1\000last_name\0001|1"));
+      Assert.assertTrue(items.contains("dataset_1\000eod|BCNT|last_name\0001|1"));
+      Assert.assertTrue(items.contains("dataset_1\000eod|BIDX|row_1\000last_name\0001|1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\000first_name\0001|VIZ||DATASET_1_FIRST_NAME\000ADM"));
+      Assert.assertTrue(items.contains("dataset_1\000first_name\0005|DB||1"));
+      Assert.assertTrue(items.contains("dataset_1\000id\0002|VIZ||DATASET_1_ID\000ADM"));
+      Assert.assertTrue(items.contains("dataset_1\000id\0005|DB||1"));
+      Assert.assertTrue(items.contains("dataset_1\000john|FCNT|first_name\0001|1"));
+      Assert.assertTrue(items.contains("dataset_1\000john|FIDX|row_1\000first_name\0001|1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\000last_name\0001|VIZ||DATASET_1_LAST_NAME\000ADM"));
+      Assert.assertTrue(items.contains("dataset_1\000last_name\0005|DB||1"));
+      Assert.assertTrue(items.contains("dataset_1\000nhoj|BCNT|first_name\0001|1"));
+      Assert.assertTrue(items.contains("dataset_1\000nhoj|BIDX|row_1\000first_name\0001|1"));
     }
 
     // Remove all terms
@@ -771,27 +787,33 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
 
-      List<Map.Entry<Key, Value>> terms = new ArrayList<>();
-      scanner.iterator().forEachRemaining(terms::add);
+      List<Map.Entry<Key, Value>> blobs = new ArrayList<>();
+      scanner.iterator().forEachRemaining(blobs::add);
 
-      Assert.assertEquals(6, terms.size());
+      Assert.assertEquals(6, blobs.size());
 
-      List<Map.Entry<String, String>> pairs =
-          terms.stream().map(t -> new AbstractMap.SimpleEntry<>(t.getKey().getRow().toString(),
-              t.getValue().toString())).collect(Collectors.toList());
+      List<String> items = blobs.stream()
+          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
+              + t.getValue().toString())
+          .collect(Collectors.toList());
 
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\u00006174693c483abae057d822c6cc4c67b9\0age", "row_1")));
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\u00008c979aa1006083b505eadf7fdbbd786c\0birthdate", "row_1")));
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\u000088fecf016203005fdbeb018c1376c333\0first_name", "row_1")));
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\u00004b5c86196dd52c0cf2673d2d0a569431\0last_name", "row_1")));
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>(
-          "dataset_1\u0000717c7b8afebbfb7137f6f0f99beb2a94\0id", "row_1")));
-      Assert.assertTrue(pairs.contains(new AbstractMap.SimpleEntry<>("dataset_1\0row_1",
-          "{\"birthdate\":\"2004-04-01T00:00:00Z\",\"last_name\":\"doe\",\"id\":\"1\",\"first_name\":\"john\",\"age\":17}")));
+      // Hash index
+      Assert.assertTrue(
+          items.contains("dataset_1\u00006174693c483abae057d822c6cc4c67b9|ARR|age|row_1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\u00008c979aa1006083b505eadf7fdbbd786c|ARR|birthdate|row_1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\u000088fecf016203005fdbeb018c1376c333|ARR|first_name|row_1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\u00004b5c86196dd52c0cf2673d2d0a569431|ARR|last_name|row_1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\u0000717c7b8afebbfb7137f6f0f99beb2a94|ARR|id|row_1"));
+
+      // Raw data
+      Assert.assertTrue(items.contains(
+          "dataset_1\0row_1|JSO||{\"birthdate\":\"2004-04-01T00:00:00Z\",\"last_name\":\"doe\",\"id\":\"1\",\"first_name\":\"john\",\"age\":17}"));
     }
 
     try (Scanner scanner = dataStore.termStore().scanner(auths)) {
@@ -801,33 +823,42 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(39, terms.size());
 
-      List<Map.Entry<Key, Value>> bcnt =
-          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().equals("BCNT"))
-              .collect(Collectors.toList());
+      List<String> items = terms.stream()
+          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
+              + t.getValue().toString())
+          .collect(Collectors.toList());
 
-      Assert.assertEquals(2, bcnt.size());
-      Assert.assertEquals(2,
-          bcnt.stream().mapToInt(kv -> Integer.parseInt(kv.getValue().toString(), 10)).sum());
-
-      List<Map.Entry<Key, Value>> fcnt =
-          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().equals("FCNT"))
-              .collect(Collectors.toList());
-
-      Assert.assertEquals(5, fcnt.size());
-      Assert.assertEquals(5,
-          fcnt.stream().mapToInt(kv -> Integer.parseInt(kv.getValue().toString(), 10)).sum());
-
-      List<Map.Entry<Key, Value>> bidx =
-          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().equals("BIDX"))
-              .collect(Collectors.toList());
-
-      Assert.assertEquals(2, bidx.size());
-
-      List<Map.Entry<Key, Value>> fidx =
-          terms.stream().filter(kv -> kv.getKey().getColumnFamily().toString().equals("FIDX"))
-              .collect(Collectors.toList());
-
-      Assert.assertEquals(5, fidx.size());
+      // Check all items but the ones in the LU, DT and TT column families
+      Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FCNT|birthdate\0003|1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\0002004-04-01T00:00:00Z|FIDX|row_1\000birthdate\0003|1"));
+      Assert.assertTrue(items.contains("dataset_1\000?1*|FCNT|id\0002|1"));
+      Assert.assertTrue(items.contains("dataset_1\000?1*|FIDX|row_1\000id\0002|1"));
+      Assert.assertTrue(items.contains("dataset_1\000??217*|FCNT|age\0002|1"));
+      Assert.assertTrue(items.contains("dataset_1\000??217*|FIDX|row_1\000age\0002|1"));
+      Assert.assertTrue(items.contains("dataset_1\000age\0002|VIZ||ADM\000DATASET_1_AGE"));
+      Assert.assertTrue(items.contains("dataset_1\000age\0005|DB||1"));
+      Assert
+          .assertTrue(items.contains("dataset_1\000birthdate\0003|VIZ||ADM\0DATASET_1_BIRTHDATE"));
+      Assert.assertTrue(items.contains("dataset_1\000birthdate\0005|DB||1"));
+      Assert.assertTrue(items.contains("dataset_1\000doe|FCNT|last_name\0001|1"));
+      Assert.assertTrue(items.contains("dataset_1\000doe|FIDX|row_1\000last_name\0001|1"));
+      Assert.assertTrue(items.contains("dataset_1\000eod|BCNT|last_name\0001|1"));
+      Assert.assertTrue(items.contains("dataset_1\000eod|BIDX|row_1\000last_name\0001|1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\000first_name\0001|VIZ||DATASET_1_FIRST_NAME\000ADM"));
+      Assert.assertTrue(items.contains("dataset_1\000first_name\0005|DB||1"));
+      Assert.assertTrue(items.contains("dataset_1\000id\0002|VIZ||DATASET_1_ID\000ADM"));
+      Assert.assertTrue(items.contains("dataset_1\000id\0005|DB||1"));
+      Assert.assertTrue(items.contains("dataset_1\000john|FCNT|first_name\0001|1"));
+      Assert.assertTrue(items.contains("dataset_1\000john|FIDX|row_1\000first_name\0001|1"));
+      Assert.assertTrue(
+          items.contains("dataset_1\000last_name\0001|VIZ||DATASET_1_LAST_NAME\000ADM"));
+      Assert.assertTrue(items.contains("dataset_1\000last_name\0005|DB||1"));
+      Assert.assertTrue(items.contains("dataset_1\000nhoj|BCNT|first_name\0001|1"));
+      Assert.assertTrue(items.contains("dataset_1\000nhoj|BIDX|row_1\000first_name\0001|1"));
     }
   }
 
@@ -858,9 +889,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
         String row = blob.getKey().getRow().toString();
         String cf = blob.getKey().getColumnFamily().toString();
+        String cq = blob.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\u0000365ccfea623eaebf17f36c5a0cdc4ddc\0id" /* 0001 */)
-            && cf.equals("hidx");
+        return row.equals("dataset\u0000365ccfea623eaebf17f36c5a0cdc4ddc" /* 0001 */)
+            && cf.equals(TYPE_ARRAY) && cq.equals("id");
       });
 
       Assert.assertTrue(hasId);
@@ -869,9 +901,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
         String row = blob.getKey().getRow().toString();
         String cf = blob.getKey().getColumnFamily().toString();
+        String cq = blob.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\0af6196f63905efa61c2d1376b8482eae\0code_postal" /* 01800 */)
-            && cf.equals("hidx");
+        return row.equals("dataset\0af6196f63905efa61c2d1376b8482eae" /* 01800 */)
+            && cf.equals(TYPE_ARRAY) && cq.equals("code_postal");
       });
 
       Assert.assertTrue(hasCodePostal);
@@ -880,9 +913,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
         String row = blob.getKey().getRow().toString();
         String cf = blob.getKey().getColumnFamily().toString();
+        String cq = blob.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\u000080a346d5bedec92a095e873ce5e98d3a\0nb_connexions" /* 0 */)
-            && cf.equals("hidx");
+        return row.equals("dataset\u000080a346d5bedec92a095e873ce5e98d3a" /* 0 */)
+            && cf.equals(TYPE_ARRAY) && cq.equals("nb_connexions");
       });
 
       Assert.assertTrue(hasNbConnexions);
@@ -903,7 +937,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cf = term.getKey().getColumnFamily().toString();
         String cq = term.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\u00000001" /* 0001 */) && cf.equals("FIDX")
+        return row.equals("dataset\u00000001" /* 0001 */) && cf.equals(FORWARD_INDEX)
             && cq.equals("row_1\0id\u00001");
       });
 
@@ -915,7 +949,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cf = term.getKey().getColumnFamily().toString();
         String cq = term.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\u00001000" /* 0001 */) && cf.equals("BIDX")
+        return row.equals("dataset\u00001000" /* 0001 */) && cf.equals(BACKWARD_INDEX)
             && cq.equals("row_1\0id\u00001");
       });
 
@@ -928,7 +962,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cf = term.getKey().getColumnFamily().toString();
         String cq = term.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\u000001800" /* 01800 */) && cf.equals("FIDX")
+        return row.equals("dataset\u000001800" /* 01800 */) && cf.equals(FORWARD_INDEX)
             && cq.equals("row_1\0code_postal\u00001");
       });
 
@@ -940,7 +974,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cf = term.getKey().getColumnFamily().toString();
         String cq = term.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\u000000810" /* 01800 */) && cf.equals("BIDX")
+        return row.equals("dataset\u000000810" /* 01800 */) && cf.equals(BACKWARD_INDEX)
             && cq.equals("row_1\0code_postal\u00001");
       });
 
@@ -952,7 +986,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cf = term.getKey().getColumnFamily().toString();
         String cq = term.getKey().getColumnQualifier().toString();
 
-        return row.equals("dataset\u0000?0*" /* 0 */) && cf.equals("FIDX")
+        return row.equals("dataset\u0000?0*" /* 0 */) && cf.equals(FORWARD_INDEX)
             && cq.equals("row_1\0nb_connexions\u00002");
       });
 
