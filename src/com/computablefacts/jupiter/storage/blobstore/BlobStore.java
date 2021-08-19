@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 
 import java.util.Iterator;
 import java.util.List;
@@ -190,6 +191,7 @@ final public class BlobStore extends AbstractStorage {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
+    scanner.fetchColumnFamily(TEXT_EMPTY);
 
     @Var
     int priority = 21;
