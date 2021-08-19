@@ -1,4 +1,4 @@
-package com.computablefacts.jupiter.storage.datastore;
+package com.computablefacts.jupiter.storage.cache;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
@@ -18,13 +18,20 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
+import com.computablefacts.jupiter.storage.blobstore.BlobStore;
+import com.computablefacts.jupiter.storage.datastore.DataStore;
+import com.computablefacts.jupiter.storage.datastore.Scanners;
+import com.computablefacts.jupiter.storage.datastore.Writers;
 import com.computablefacts.logfmt.LogFormatter;
+import com.computablefacts.nona.Generated;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
@@ -57,15 +64,89 @@ import com.google.errorprone.annotations.Var;
  * ========================+========================+========================+========================+========================
  *  <dataset>\0<uuid>      | (empty)                | <hashed_string>        | (empty)                | <cached_string>
  * </pre>
- * 
+ *
  */
 @CheckReturnValue
-final public class DataStoreCache {
+public final class Cache {
 
-  private static final Logger logger_ = LoggerFactory.getLogger(DataStoreCache.class);
+  private static final Logger logger_ = LoggerFactory.getLogger(Cache.class);
   private static final ExecutorService executorService_ = Executors.newFixedThreadPool(3);
 
-  private DataStoreCache() {}
+  private final String tableName_;
+  private final BlobStore cache_;
+
+  public Cache(Configurations configurations, String tableName) {
+    tableName_ =
+        Preconditions.checkNotNull(tableName, "tableName should neither be null nor empty");
+    cache_ = new BlobStore(configurations, tableName);
+  }
+
+  /**
+   * Get the table name.
+   *
+   * @return table name.
+   */
+  @Generated
+  public String tableName() {
+    return tableName_;
+  }
+
+  /**
+   * Get the cluster configuration.
+   *
+   * @return the cluster configuration.
+   */
+  @Generated
+  public Configurations configurations() {
+    return cache_.configurations();
+  }
+
+  /**
+   * Check if the storage layer has been initialized.
+   *
+   * @return true if the storage layer is ready to be used, false otherwise.
+   */
+  @Generated
+  public boolean isReady() {
+    return cache_.isReady();
+  }
+
+  /**
+   * Initialize the storage layer.
+   *
+   * @return true if the storage layer already exists or has been successfully initialized, false
+   *         otherwise.
+   */
+  @Generated
+  public boolean create() {
+    return cache_.create();
+  }
+
+  /**
+   * Destroy the storage layer.
+   *
+   * @return true if the storage layer does not exist or has been successfully destroyed, false
+   *         otherwise.
+   */
+  @Generated
+  public boolean destroy() {
+    return cache_.destroy();
+  }
+
+  /**
+   * Remove all data from the table. Existing splits are kept.
+   *
+   * @return true if the operation succeeded, false otherwise.
+   */
+  @Generated
+  public boolean truncate() {
+    return cache_.truncate();
+  }
+
+  @Deprecated
+  public BatchDeleter deleter(Authorizations authorizations) {
+    return cache_.deleter(authorizations);
+  }
 
   /**
    * Remove cached data for a given dataset.
@@ -74,7 +155,7 @@ final public class DataStoreCache {
    * @param dataset dataset.
    * @return true if the operation succeeded, false otherwise.
    */
-  public static boolean remove(BatchDeleter deleter, String dataset) {
+  public boolean remove(BatchDeleter deleter, String dataset) {
 
     Preconditions.checkNotNull(deleter, "deleter should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -101,7 +182,7 @@ final public class DataStoreCache {
    * @param cacheId the cache id.
    * @return true iif the cache id already exists, false otherwise.
    */
-  public static boolean hasData(Scanners scanners, String dataset, String cacheId) {
+  public boolean hasData(Scanners scanners, String dataset, String cacheId) {
     return read(scanners, dataset, cacheId).hasNext();
   }
 
@@ -113,7 +194,7 @@ final public class DataStoreCache {
    * @param cacheId the cache id.
    * @return a list of values.
    */
-  public static Iterator<String> read(Scanners scanners, String dataset, String cacheId) {
+  public Iterator<String> read(Scanners scanners, String dataset, String cacheId) {
     return read(scanners, dataset, cacheId, null);
   }
 
@@ -126,7 +207,7 @@ final public class DataStoreCache {
    * @param nextValue where to start iterating.
    * @return a list of values.
    */
-  public static Iterator<String> read(Scanners scanners, String dataset, String cacheId,
+  public Iterator<String> read(Scanners scanners, String dataset, String cacheId,
       String nextValue) {
     return read(scanners, dataset, cacheId, nextValue, false);
   }
@@ -142,8 +223,8 @@ final public class DataStoreCache {
    *        stored in the row column qualifier.
    * @return a list of values.
    */
-  public static Iterator<String> read(Scanners scanners, String dataset, String cacheId,
-      String nextValue, boolean isHashed) {
+  public Iterator<String> read(Scanners scanners, String dataset, String cacheId, String nextValue,
+      boolean isHashed) {
 
     Preconditions.checkNotNull(scanners, "scanners should neither be null nor empty");
     Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
@@ -181,7 +262,7 @@ final public class DataStoreCache {
    * @param cacheId the cache id.
    * @param iterator the values to cache.
    */
-  public static void write(Scanners scanners, Writers writers, String dataset, String cacheId,
+  public void write(Scanners scanners, Writers writers, String dataset, String cacheId,
       Iterator<String> iterator) {
     write(scanners, writers, dataset, cacheId, iterator, -1);
   }
@@ -199,7 +280,7 @@ final public class DataStoreCache {
    *        If this number is less than or equals to zero, performs the whole operation
    *        synchronously.
    */
-  public static void write(Scanners scanners, Writers writers, String dataset, String cacheId,
+  public void write(Scanners scanners, Writers writers, String dataset, String cacheId,
       Iterator<String> iterator, @Var int delegateToBackgroundThreadAfter) {
     write(scanners, writers, dataset, cacheId, iterator, delegateToBackgroundThreadAfter, false);
   }
@@ -220,7 +301,7 @@ final public class DataStoreCache {
    *        qualifier and the raw value to cache will be set in the row value. If hash is false, the
    *        value to cache will be stored as-is in the row column qualifier.
    */
-  public static void write(Scanners scanners, Writers writers, String dataset, String cacheId,
+  public void write(Scanners scanners, Writers writers, String dataset, String cacheId,
       Iterator<String> iterator, @Var int delegateToBackgroundThreadAfter, boolean hash) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");
@@ -238,7 +319,7 @@ final public class DataStoreCache {
     }
   }
 
-  private static void writeCache(Scanners scanners, Writers writers, String dataset, String cacheId,
+  private void writeCache(Scanners scanners, Writers writers, String dataset, String cacheId,
       Iterator<String> iterator, @Var int maxElementsToWrite, boolean hash) {
 
     Preconditions.checkNotNull(writers, "writers should not be null");

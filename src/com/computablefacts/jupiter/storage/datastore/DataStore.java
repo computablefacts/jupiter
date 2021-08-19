@@ -52,6 +52,7 @@ import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.FlattenIterator;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
+import com.computablefacts.jupiter.storage.cache.Cache;
 import com.computablefacts.jupiter.storage.termstore.FieldDistinctBuckets;
 import com.computablefacts.jupiter.storage.termstore.FieldDistinctTerms;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
@@ -124,13 +125,13 @@ final public class DataStore {
   private final String name_;
   private final BlobStore blobStore_;
   private final TermStore termStore_;
-  private final BlobStore cache_;
+  private final Cache cache_;
 
   public DataStore(Configurations configurations, String name) {
     name_ = Preconditions.checkNotNull(name, "name should neither be null nor empty");
     blobStore_ = new BlobStore(configurations, blobStoreName(name));
     termStore_ = new TermStore(configurations, termStoreName(name));
-    cache_ = new BlobStore(configurations, cacheName(name));
+    cache_ = new Cache(configurations, cacheName(name));
   }
 
   static String normalize(String str) {
@@ -175,10 +176,10 @@ final public class DataStore {
   /**
    * Get a direct access to the underlying cache.
    *
-   * @return {@link BlobStore}
+   * @return {@link Cache}
    */
   @Generated
-  public BlobStore cache() {
+  public Cache cache() {
     return cache_;
   }
 
@@ -494,7 +495,7 @@ final public class DataStore {
       isOk = isOk && blobStore_.removeDataset(deleter, dataset);
     }
     try (BatchDeleter deleter = cache_.deleter(auths)) {
-      isOk = isOk && DataStoreCache.remove(deleter, dataset);
+      isOk = isOk && cache_.remove(deleter, dataset);
     }
     return isOk;
   }
@@ -822,7 +823,7 @@ final public class DataStore {
 
     String cacheId = MaskingIterator.hash(null, Joiner.on(SEPARATOR_NUL).join(params));
 
-    if (DataStoreCache.hasData(scanners, newDataset, cacheId)) {
+    if (cache_.hasData(scanners, newDataset, cacheId)) {
       if (logger_.isDebugEnabled()) {
         logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
             .add("cache_hit", true).add("cache_id", cacheId).formatDebug());
@@ -838,11 +839,11 @@ final public class DataStore {
           termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset, fields, term, docsIds),
           t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
-      DataStoreCache.write(scanners, writers, newDataset, cacheId, bucketsIds);
+      cache_.write(scanners, writers, newDataset, cacheId, bucketsIds);
     }
 
     // Returns an iterator over the documents ids
-    return DataStoreCache.read(scanners, newDataset, cacheId);
+    return cache_.read(scanners, newDataset, cacheId);
   }
 
   /**
@@ -892,7 +893,7 @@ final public class DataStore {
 
     String cacheId = MaskingIterator.hash(null, Joiner.on(SEPARATOR_NUL).join(params));
 
-    if (DataStoreCache.hasData(scanners, newDataset, cacheId)) {
+    if (cache_.hasData(scanners, newDataset, cacheId)) {
       if (logger_.isDebugEnabled()) {
         logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
             .add("cache_hit", true).add("cache_id", cacheId).formatDebug());
@@ -908,11 +909,11 @@ final public class DataStore {
           Iterators.transform(termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset,
               fields, minTerm, maxTerm, docsIds), t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
 
-      DataStoreCache.write(scanners, writers, newDataset, cacheId, bucketsIds);
+      cache_.write(scanners, writers, newDataset, cacheId, bucketsIds);
     }
 
     // Returns an iterator over the documents ids
-    return DataStoreCache.read(scanners, newDataset, cacheId);
+    return cache_.read(scanners, newDataset, cacheId);
   }
 
   /**
