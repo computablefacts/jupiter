@@ -7,8 +7,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -97,23 +95,6 @@ final public class BlobStore extends AbstractStorage {
     }
 
     try {
-
-      // Set default splits on [a-zA-Z0-9]
-      SortedSet<Text> splits = new TreeSet<>();
-
-      for (char i = '0'; i < '9' + 1; i++) {
-        splits.add(new Text(Character.toString(i)));
-      }
-
-      for (char i = 'a'; i < 'z' + 1; i++) {
-        splits.add(new Text(Character.toString(i)));
-      }
-
-      for (char i = 'A'; i < 'Z' + 1; i++) {
-        splits.add(new Text(Character.toString(i)));
-      }
-
-      configurations().tableOperations().addSplits(tableName(), splits);
 
       // Remove legacy iterators from the BlobStore
       Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators =

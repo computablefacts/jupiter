@@ -3,6 +3,7 @@ package com.computablefacts.jupiter.shell;
 import static com.computablefacts.jupiter.Users.authorizations;
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
 import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -13,6 +14,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -23,6 +26,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -387,6 +391,34 @@ public class Shell {
     Stopwatch stopwatch = Stopwatch.createStarted();
     DataStore ds = new DataStore(configurations, datastore);
     AtomicInteger count = new AtomicInteger(0);
+
+    try {
+
+      SortedSet<Text> splits = new TreeSet<>();
+
+      for (char i = '0'; i < '9' + 1; i++) {
+        splits.add(new Text(dataset + SEPARATOR_NUL + i));
+      }
+
+      for (char i = 'a'; i < 'z' + 1; i++) {
+        splits.add(new Text(dataset + SEPARATOR_NUL + i));
+      }
+
+      for (char i = 'A'; i < 'Z' + 1; i++) {
+        splits.add(new Text(dataset + SEPARATOR_NUL + i));
+      }
+
+      ds.blobStore().configurations().tableOperations().addSplits(ds.blobStore().tableName(),
+          splits);
+
+      ds.termStore().configurations().tableOperations().addSplits(ds.termStore().tableName(),
+          splits);
+
+      ds.cache().configurations().tableOperations().addSplits(ds.cache().tableName(), splits);
+
+    } catch (Exception e) {
+      logger_.error(LogFormatter.create(true).message(e).formatError());
+    }
 
     try (Writers writers = ds.writers()) {
 

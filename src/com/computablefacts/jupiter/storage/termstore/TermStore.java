@@ -211,23 +211,6 @@ final public class TermStore extends AbstractStorage {
 
       configurations().tableOperations().attachIterator(tableName(), setting);
 
-      // Set default splits on [a-zA-Z0-9]
-      SortedSet<Text> splits = new TreeSet<>();
-
-      for (char i = '0'; i < '9' + 1; i++) {
-        splits.add(new Text(Character.toString(i)));
-      }
-
-      for (char i = 'a'; i < 'z' + 1; i++) {
-        splits.add(new Text(Character.toString(i)));
-      }
-
-      for (char i = 'A'; i < 'Z' + 1; i++) {
-        splits.add(new Text(Character.toString(i)));
-      }
-
-      configurations().tableOperations().addSplits(tableName(), splits);
-
       // Set locality groups
       return addLocalityGroups(Sets.newHashSet(TOP_TERMS, DISTINCT_TERMS, DISTINCT_BUCKETS,
           LAST_UPDATE, VISIBILITY, FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX));
