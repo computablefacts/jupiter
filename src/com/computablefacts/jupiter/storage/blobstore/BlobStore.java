@@ -1,8 +1,5 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
-import static com.computablefacts.jupiter.storage.Constants.ITERATOR_BLOBSTORE_COMBINER_PRIORITY;
-import static com.computablefacts.jupiter.storage.Constants.ITERATOR_BLOBSTORE_FILTER_OUT_JSON_FIELDS_PRIORITY;
-import static com.computablefacts.jupiter.storage.Constants.ITERATOR_BLOBSTORE_MASKING_PRIORITY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.util.EnumSet;
@@ -71,6 +68,10 @@ final public class BlobStore extends AbstractStorage {
   public static final String TYPE_JSON = "JSO";
   public static final String TYPE_ARRAY = "ARR";
 
+  private static final int BLOBSTORE_COMBINER_PRIORITY = 10;
+  private static final int FILTER_OUT_JSON_FIELDS_ITERATOR_PRIORITY = 30;
+  private static final int MASKING_ITERATOR_PRIORITY = 31;
+
   private static final Logger logger_ = LoggerFactory.getLogger(BlobStore.class);
 
   public BlobStore(Configurations configurations, String name) {
@@ -117,7 +118,7 @@ final public class BlobStore extends AbstractStorage {
 
       // Set the array combiner
       IteratorSetting settings =
-          new IteratorSetting(ITERATOR_BLOBSTORE_COMBINER_PRIORITY, BlobStoreCombiner.class);
+          new IteratorSetting(BLOBSTORE_COMBINER_PRIORITY, BlobStoreCombiner.class);
       BlobStoreCombiner.setColumns(settings,
           Lists.newArrayList(new IteratorSetting.Column(TYPE_ARRAY)));
       BlobStoreCombiner.setReduceOnFullCompactionOnly(settings, true);
@@ -307,16 +308,15 @@ final public class BlobStore extends AbstractStorage {
 
     if (fields != null && !fields.isEmpty()) {
 
-      IteratorSetting setting =
-          new IteratorSetting(ITERATOR_BLOBSTORE_FILTER_OUT_JSON_FIELDS_PRIORITY,
-              BlobStoreFilterOutJsonFieldsIterator.class);
+      IteratorSetting setting = new IteratorSetting(FILTER_OUT_JSON_FIELDS_ITERATOR_PRIORITY,
+          BlobStoreFilterOutJsonFieldsIterator.class);
       BlobStoreFilterOutJsonFieldsIterator.setFieldsToKeep(setting, fields);
 
       scanner.addScanIterator(setting);
     }
 
     IteratorSetting setting =
-        new IteratorSetting(ITERATOR_BLOBSTORE_MASKING_PRIORITY, BlobStoreMaskingIterator.class);
+        new IteratorSetting(MASKING_ITERATOR_PRIORITY, BlobStoreMaskingIterator.class);
     BlobStoreMaskingIterator.setAuthorizations(setting, scanner.getAuthorizations());
     // TODO : set salt
 

@@ -1,6 +1,5 @@
 package com.computablefacts.jupiter.storage.cache;
 
-import static com.computablefacts.jupiter.storage.Constants.ITERATOR_CACHE_AGE_OFF_PERIOD_FILTER_PRIORITY;
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
@@ -76,6 +75,9 @@ import com.google.errorprone.annotations.Var;
 @CheckReturnValue
 public final class Cache {
 
+  private static final int AGE_OFF_PERIOD_FILTER_PRIORITY =
+      10 + 1 /* ensure we are above the BLOBSTORE_COMBINER_PRIORITY */;
+
   private static final Logger logger_ = LoggerFactory.getLogger(Cache.class);
   private static final ExecutorService executorService_ = Executors.newFixedThreadPool(3);
 
@@ -147,8 +149,8 @@ public final class Cache {
       }
 
       // Set a 3 hours TTL on all cached data
-      IteratorSetting settings = new IteratorSetting(ITERATOR_CACHE_AGE_OFF_PERIOD_FILTER_PRIORITY,
-          AgeOffPeriodFilter.class);
+      IteratorSetting settings =
+          new IteratorSetting(AGE_OFF_PERIOD_FILTER_PRIORITY, AgeOffPeriodFilter.class);
       AgeOffPeriodFilter.setTtl(settings, 3);
       AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");
 
