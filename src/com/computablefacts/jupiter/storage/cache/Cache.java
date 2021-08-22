@@ -1,5 +1,6 @@
 package com.computablefacts.jupiter.storage.cache;
 
+import static com.computablefacts.jupiter.storage.Constants.ITERATOR_CACHE_AGE_OFF_PERIOD_FILTER_PRIORITY;
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
@@ -146,7 +147,7 @@ public final class Cache {
       }
 
       // Set a 3 hours TTL on all cached data
-      IteratorSetting settings = new IteratorSetting(7 + 1 /* one above the BlobStore iterator */,
+      IteratorSetting settings = new IteratorSetting(ITERATOR_CACHE_AGE_OFF_PERIOD_FILTER_PRIORITY,
           AgeOffPeriodFilter.class);
       AgeOffPeriodFilter.setTtl(settings, 3);
       AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");

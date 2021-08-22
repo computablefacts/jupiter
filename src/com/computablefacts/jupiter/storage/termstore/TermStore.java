@@ -1,6 +1,10 @@
 package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.ITERATOR_TERMSTORE_BUCKET_FIELD_FILTER_PRIORITY;
+import static com.computablefacts.jupiter.storage.Constants.ITERATOR_TERMSTORE_COMBINER_PRIORITY;
+import static com.computablefacts.jupiter.storage.Constants.ITERATOR_TERMSTORE_FIELD_FILTER_PRIORITY;
+import static com.computablefacts.jupiter.storage.Constants.ITERATOR_TERMSTORE_WILDCARD_FILTER_PRIORITY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
@@ -119,8 +123,8 @@ final public class TermStore extends AbstractStorage {
       scanner.fetchColumnFamily(new Text(FORWARD_COUNT));
     }
     if (fields != null && !fields.isEmpty()) {
-      IteratorSetting setting =
-          new IteratorSetting(22, "TermStoreFieldFilter", TermStoreFieldFilter.class);
+      IteratorSetting setting = new IteratorSetting(ITERATOR_TERMSTORE_FIELD_FILTER_PRIORITY,
+          "TermStoreFieldFilter", TermStoreFieldFilter.class);
       TermStoreFieldFilter.setFieldsToKeep(setting, fields);
       scanner.addScanIterator(setting);
     }
@@ -149,8 +153,8 @@ final public class TermStore extends AbstractStorage {
 
     @Var
     boolean add = false;
-    IteratorSetting setting =
-        new IteratorSetting(22, "TermStoreBucketFieldFilter", TermStoreBucketFieldFilter.class);
+    IteratorSetting setting = new IteratorSetting(ITERATOR_TERMSTORE_BUCKET_FIELD_FILTER_PRIORITY,
+        "TermStoreBucketFieldFilter", TermStoreBucketFieldFilter.class);
 
     if (fields != null && !fields.isEmpty()) {
       add = true;
@@ -205,7 +209,8 @@ final public class TermStore extends AbstractStorage {
       }
 
       // Set combiner
-      IteratorSetting setting = new IteratorSetting(7, TermStoreCombiner.class);
+      IteratorSetting setting =
+          new IteratorSetting(ITERATOR_TERMSTORE_COMBINER_PRIORITY, TermStoreCombiner.class);
       TermStoreCombiner.setCombineAllColumns(setting, true);
       TermStoreCombiner.setReduceOnFullCompactionOnly(setting, true);
 
@@ -800,7 +805,8 @@ final public class TermStore extends AbstractStorage {
 
       range = Range.prefix(dataset + SEPARATOR_NUL + WildcardMatcher.prefix(newTerm));
 
-      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter1", WildcardFilter.class);
+      IteratorSetting setting = new IteratorSetting(ITERATOR_TERMSTORE_WILDCARD_FILTER_PRIORITY,
+          "WildcardFilter1", WildcardFilter.class);
       WildcardFilter.applyOnRow(setting);
       WildcardFilter.addWildcard(setting, dataset + SEPARATOR_NUL + newTerm);
 
@@ -867,7 +873,8 @@ final public class TermStore extends AbstractStorage {
 
       range = Range.prefix(dataset + SEPARATOR_NUL + WildcardMatcher.prefix(newTerm));
 
-      IteratorSetting setting = new IteratorSetting(21, "WildcardFilter1", WildcardFilter.class);
+      IteratorSetting setting = new IteratorSetting(ITERATOR_TERMSTORE_WILDCARD_FILTER_PRIORITY,
+          "WildcardFilter1", WildcardFilter.class);
       WildcardFilter.applyOnRow(setting);
       WildcardFilter.addWildcard(setting, dataset + SEPARATOR_NUL + newTerm);
 

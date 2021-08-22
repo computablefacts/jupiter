@@ -26,4 +26,13 @@ final public class Constants {
   public static final Authorizations AUTH_ADM = new Authorizations(STRING_ADM);
   public static final int NB_QUERY_THREADS = 3;
   public static final HashFunction MURMUR3_128 = Hashing.murmur3_128();
+  public static final int ITERATOR_BLOBSTORE_COMBINER_PRIORITY = 30;
+  public static final int ITERATOR_BLOBSTORE_FILTER_OUT_JSON_FIELDS_PRIORITY = 31;
+  public static final int ITERATOR_BLOBSTORE_MASKING_PRIORITY = 32;
+  public static final int ITERATOR_TERMSTORE_COMBINER_PRIORITY = 30;
+  public static final int ITERATOR_TERMSTORE_WILDCARD_FILTER_PRIORITY = 31;
+  public static final int ITERATOR_TERMSTORE_FIELD_FILTER_PRIORITY = 32;
+  public static final int ITERATOR_TERMSTORE_BUCKET_FIELD_FILTER_PRIORITY = 32;
+  public static final int ITERATOR_CACHE_AGE_OFF_PERIOD_FILTER_PRIORITY =
+      ITERATOR_BLOBSTORE_COMBINER_PRIORITY + 1;
 }
