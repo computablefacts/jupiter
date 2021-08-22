@@ -371,20 +371,11 @@ final public class DataStore {
       logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
 
-    if (!blobStore_.isReady()) {
-      if (!blobStore_.create()) {
-        return false;
-      }
-    }
-    if (!termStore_.isReady()) {
-      if (!termStore_.create()) {
-        return false;
-      }
-    }
-    if (!cache_.isReady()) {
-      return cache_.create();
-    }
-    return true;
+    boolean isOk = blobStore_.create();
+    isOk = isOk && termStore_.create();
+    isOk = isOk && cache_.create();
+
+    return isOk;
   }
 
   /**
