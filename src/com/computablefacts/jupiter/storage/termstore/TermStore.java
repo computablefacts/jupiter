@@ -11,8 +11,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -242,35 +240,11 @@ final public class TermStore extends AbstractStorage {
     if (!super.truncate()) {
       return false;
     }
-    try {
 
-      // Set default splits on [a-zA-Z0-9]
-      SortedSet<Text> splits = new TreeSet<>();
+    Set<String> cfs = Sets.newHashSet(TOP_TERMS, DISTINCT_TERMS, DISTINCT_BUCKETS, LAST_UPDATE,
+        VISIBILITY, FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX);
 
-      for (char i = '0'; i < '9' + 1; i++) {
-        splits.add(new Text(Character.toString(i)));
-      }
-
-      for (char i = 'a'; i < 'z' + 1; i++) {
-        splits.add(new Text(Character.toString(i)));
-      }
-
-      for (char i = 'A'; i < 'Z' + 1; i++) {
-        splits.add(new Text(Character.toString(i)));
-      }
-
-      configurations().tableOperations().addSplits(tableName(), splits);
-
-      Set<String> cfs = Sets.newHashSet(TOP_TERMS, DISTINCT_TERMS, DISTINCT_BUCKETS, LAST_UPDATE,
-          VISIBILITY, FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX);
-
-      addLocalityGroups(cfs);
-
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-      logger_.error(LogFormatter.create(true).message(e).formatError());
-      return false;
-    }
-    return true;
+    return addLocalityGroups(cfs);
   }
 
   /**
