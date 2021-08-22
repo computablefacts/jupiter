@@ -371,6 +371,7 @@ final public class DataStore {
       logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
     }
 
+    @Var
     boolean isOk = blobStore_.create();
     isOk = isOk && termStore_.create();
     isOk = isOk && cache_.create();
