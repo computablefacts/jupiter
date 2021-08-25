@@ -87,7 +87,7 @@ public abstract class AbstractMapReduceJob implements Tool {
           .withInstance(input_.instanceName()).withZkHosts(input_.zooKeepers()));
       AccumuloInputFormat.setInputTableName(job, inputTableName_);
       AccumuloInputFormat.setScanAuthorizations(job, scanAuthorizations());
-      AccumuloInputFormat.setRanges(job, scanRanges(MAX_MAPPERS));
+      // AccumuloInputFormat.setRanges(job, scanRanges(MAX_MAPPERS));
       AccumuloInputFormat.setAutoAdjustRanges(job, false); // ensure 1 mapper per declared range
 
       setupAccumuloInput(job);
@@ -144,8 +144,8 @@ public abstract class AbstractMapReduceJob implements Tool {
           .formatInfo());
 
       return 0;
-    } catch (IOException | InterruptedException | ClassNotFoundException | AccumuloException
-        | AccumuloSecurityException | TableNotFoundException e) {
+    } catch (IOException | InterruptedException | ClassNotFoundException
+        | AccumuloSecurityException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return 1;
@@ -170,7 +170,16 @@ public abstract class AbstractMapReduceJob implements Tool {
 
   protected Set<Range> scanRanges(int maxMappers)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return input_.connector().tableOperations().splitRangeByTablets(inputTableName_, new Range(),
+    return scanRanges(new Range(), maxMappers);
+  }
+
+  protected Set<Range> scanRanges(Range range, int maxMappers)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+
+    Preconditions.checkNotNull(range, "range should not be null");
+    Preconditions.checkArgument(maxMappers > 0, "maxMappers must be > 0");
+
+    return input_.connector().tableOperations().splitRangeByTablets(inputTableName_, range,
         maxMappers);
   }
 
