@@ -22,7 +22,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -399,8 +398,7 @@ final public class DataStore {
   }
 
   /**
-   * Remove all data for a given dataset. The caller MUST HAVE the ADM visibility label for this
-   * call to succeed.
+   * Remove all data for a given dataset.
    *
    * @param dataset dataset.
    * @return true if the operation succeeded, false otherwise.
@@ -415,18 +413,10 @@ final public class DataStore {
     }
 
     @Var
-    boolean isOk = true;
-    Authorizations auths = new Authorizations(STRING_ADM);
+    boolean isOk = termStore_.removeDataset(dataset);
+    isOk = isOk && blobStore_.removeDataset(dataset);
+    isOk = isOk && cache_.removeDataset(dataset);
 
-    try (BatchDeleter deleter = termStore_.deleter(auths)) {
-      isOk = isOk && termStore_.removeDataset(deleter, dataset);
-    }
-    try (BatchDeleter deleter = blobStore_.deleter(auths)) {
-      isOk = isOk && blobStore_.removeDataset(deleter, dataset);
-    }
-    try (BatchDeleter deleter = cache_.deleter(auths)) {
-      isOk = isOk && cache_.remove(deleter, dataset);
-    }
     return isOk;
   }
 

@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -24,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.combiners.BlobStoreCombiner;
 import com.computablefacts.jupiter.combiners.DataStoreHashIndexCombiner;
 import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterator;
@@ -137,19 +137,23 @@ final public class BlobStore extends AbstractStorage {
   /**
    * Remove all data for a given dataset.
    *
-   * @param deleter batch deleter.
    * @param dataset dataset.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean removeDataset(BatchDeleter deleter, String dataset) {
+  public boolean removeDataset(String dataset) {
 
-    Preconditions.checkNotNull(deleter, "deleter should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
           .formatDebug());
     }
-    return removeRanges(deleter, Sets.newHashSet(Range.prefix(dataset + SEPARATOR_NUL)));
+
+    String begin = dataset + SEPARATOR_NUL;
+    String end =
+        begin.substring(0, begin.length() - 1) + (char) (begin.charAt(begin.length() - 1) + 1);
+
+    return Tables.deleteRows(configurations().tableOperations(), tableName(), begin, end);
   }
 
   /**

@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.security.Authorizations;
@@ -187,9 +186,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     }
 
     // Remove "dataset_1"
-    try (BatchDeleter deleter = termStore.deleter(auths)) {
-      Assert.assertTrue(termStore.removeDataset(deleter, "dataset_1"));
-    }
+    Assert.assertTrue(termStore.removeDataset("dataset_1"));
 
     // Check the index has been updated
     try (Scanner scanner = termStore.scanner(auths)) {

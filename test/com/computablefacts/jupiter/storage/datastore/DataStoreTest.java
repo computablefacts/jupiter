@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -772,9 +771,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     }
 
     // Remove all terms
-    try (BatchDeleter deleter = dataStore.termStore().deleter(AUTH_ADM)) {
-      Assert.assertTrue(dataStore.termStore().removeDataset(deleter, "dataset_1"));
-    }
+    Assert.assertTrue(dataStore.termStore().removeDataset("dataset_1"));
 
     // Reindex -> do not update blobs but rebuild the whole terms index
     try (Writers writers = dataStore.writers()) {

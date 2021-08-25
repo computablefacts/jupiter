@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
@@ -162,6 +163,28 @@ public final class Cache {
       logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
+  }
+
+  /**
+   * Remove all data for a given dataset.
+   *
+   * @param dataset dataset.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean removeDataset(String dataset) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    if (logger_.isDebugEnabled()) {
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
+          .formatDebug());
+    }
+
+    String begin = dataset + SEPARATOR_NUL;
+    String end =
+        begin.substring(0, begin.length() - 1) + (char) (begin.charAt(begin.length() - 1) + 1);
+
+    return Tables.deleteRows(configurations().tableOperations(), tableName(), begin, end);
   }
 
   /**

@@ -1,7 +1,6 @@
 package com.computablefacts.jupiter.shell;
 
 import static com.computablefacts.jupiter.Users.authorizations;
-import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
 import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
@@ -21,7 +20,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.data.Value;
@@ -501,12 +499,10 @@ public class Shell {
     Stopwatch stopwatch = Stopwatch.createStarted();
     DataStore ds = new DataStore(configurations, datastore);
 
-    try (BatchDeleter deleter = ds.termStore().deleter(AUTH_ADM)) {
-      if (!ds.termStore().removeDataset(deleter, dataset)) {
-        logger_.error(LogFormatter.create(true)
-            .message(String.format("Dataset %s cannot be removed", dataset)).formatError());
-        return false;
-      }
+    if (!ds.termStore().removeDataset(dataset)) {
+      logger_.error(LogFormatter.create(true)
+          .message(String.format("Dataset %s cannot be removed", dataset)).formatError());
+      return false;
     }
 
     AtomicInteger count = new AtomicInteger(0);

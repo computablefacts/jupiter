@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -43,9 +42,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.putJson(writer, dataset, "3", labels, json));
     }
 
-    try (BatchDeleter deleter = blobStore.deleter(auths)) {
-      Assert.assertTrue(blobStore.removeDataset(deleter, dataset));
-    }
+    Assert.assertTrue(blobStore.removeDataset(dataset));
 
     try (BatchScanner scanner = blobStore.batchScanner(auths, 1)) {
 
