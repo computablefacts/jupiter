@@ -576,7 +576,8 @@ public class Shell {
 
     try (Scanners scanners = ds.scanners(authorizations(auths))) {
       try (FileOutputStream fos = new FileOutputStream(f)) {
-        try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos))) {
+        try (BufferedWriter bw =
+            new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {
 
           AtomicInteger count = new AtomicInteger(0);
           Iterator<Blob<Value>> iterator =
