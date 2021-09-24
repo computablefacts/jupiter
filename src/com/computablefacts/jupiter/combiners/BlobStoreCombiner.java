@@ -29,7 +29,7 @@ public class BlobStoreCombiner extends Combiner {
 
     String cf = key.getColumnFamily().toString();
 
-    if (cf.equals(TYPE_ARRAY)) {
+    if (cf.startsWith(TYPE_ARRAY)) {
 
       Set<String> values = new HashSet<>();
       iter.forEachRemaining(value -> values.addAll(Lists.newArrayList(Splitter

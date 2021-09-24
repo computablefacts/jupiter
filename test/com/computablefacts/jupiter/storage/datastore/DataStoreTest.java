@@ -2,7 +2,6 @@ package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
-import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_ARRAY;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_INDEX;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_INDEX;
 
@@ -26,6 +25,7 @@ import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.queries.AbstractNode;
 import com.computablefacts.jupiter.queries.QueryBuilder;
+import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -710,15 +710,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       // Hash index
       Assert.assertTrue(
-          items.contains("dataset_1\u00006174693c483abae057d822c6cc4c67b9|ARR|age|row_1"));
+          items.contains("dataset_1\u00006174693c483abae057d822c6cc4c67b9|ARR43|age|row_1"));
       Assert.assertTrue(
-          items.contains("dataset_1\u00008c979aa1006083b505eadf7fdbbd786c|ARR|birthdate|row_1"));
+          items.contains("dataset_1\u00008c979aa1006083b505eadf7fdbbd786c|ARR43|birthdate|row_1"));
       Assert.assertTrue(
-          items.contains("dataset_1\u000088fecf016203005fdbeb018c1376c333|ARR|first_name|row_1"));
+          items.contains("dataset_1\u000088fecf016203005fdbeb018c1376c333|ARR43|first_name|row_1"));
       Assert.assertTrue(
-          items.contains("dataset_1\u00004b5c86196dd52c0cf2673d2d0a569431|ARR|last_name|row_1"));
+          items.contains("dataset_1\u00004b5c86196dd52c0cf2673d2d0a569431|ARR43|last_name|row_1"));
       Assert.assertTrue(
-          items.contains("dataset_1\u0000717c7b8afebbfb7137f6f0f99beb2a94|ARR|id|row_1"));
+          items.contains("dataset_1\u0000717c7b8afebbfb7137f6f0f99beb2a94|ARR43|id|row_1"));
 
       // Raw data
       Assert.assertTrue(items.contains(
@@ -798,15 +798,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       // Hash index
       Assert.assertTrue(
-          items.contains("dataset_1\u00006174693c483abae057d822c6cc4c67b9|ARR|age|row_1"));
+          items.contains("dataset_1\u00006174693c483abae057d822c6cc4c67b9|ARR43|age|row_1"));
       Assert.assertTrue(
-          items.contains("dataset_1\u00008c979aa1006083b505eadf7fdbbd786c|ARR|birthdate|row_1"));
+          items.contains("dataset_1\u00008c979aa1006083b505eadf7fdbbd786c|ARR43|birthdate|row_1"));
       Assert.assertTrue(
-          items.contains("dataset_1\u000088fecf016203005fdbeb018c1376c333|ARR|first_name|row_1"));
+          items.contains("dataset_1\u000088fecf016203005fdbeb018c1376c333|ARR43|first_name|row_1"));
       Assert.assertTrue(
-          items.contains("dataset_1\u00004b5c86196dd52c0cf2673d2d0a569431|ARR|last_name|row_1"));
+          items.contains("dataset_1\u00004b5c86196dd52c0cf2673d2d0a569431|ARR43|last_name|row_1"));
       Assert.assertTrue(
-          items.contains("dataset_1\u0000717c7b8afebbfb7137f6f0f99beb2a94|ARR|id|row_1"));
+          items.contains("dataset_1\u0000717c7b8afebbfb7137f6f0f99beb2a94|ARR43|id|row_1"));
 
       // Raw data
       Assert.assertTrue(items.contains(
@@ -889,7 +889,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cq = blob.getKey().getColumnQualifier().toString();
 
         return row.equals("dataset\u0000365ccfea623eaebf17f36c5a0cdc4ddc" /* 0001 */)
-            && cf.equals(TYPE_ARRAY) && cq.equals("id");
+            && cf.equals(BlobStore.arrayShard("row_1")) && cq.equals("id");
       });
 
       Assert.assertTrue(hasId);
@@ -901,7 +901,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cq = blob.getKey().getColumnQualifier().toString();
 
         return row.equals("dataset\0af6196f63905efa61c2d1376b8482eae" /* 01800 */)
-            && cf.equals(TYPE_ARRAY) && cq.equals("code_postal");
+            && cf.equals(BlobStore.arrayShard("row_1")) && cq.equals("code_postal");
       });
 
       Assert.assertTrue(hasCodePostal);
@@ -913,7 +913,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
         String cq = blob.getKey().getColumnQualifier().toString();
 
         return row.equals("dataset\u000080a346d5bedec92a095e873ce5e98d3a" /* 0 */)
-            && cf.equals(TYPE_ARRAY) && cq.equals("nb_connexions");
+            && cf.equals(BlobStore.arrayShard("row_1")) && cq.equals("nb_connexions");
       });
 
       Assert.assertTrue(hasNbConnexions);

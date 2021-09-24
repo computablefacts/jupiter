@@ -79,7 +79,7 @@ final public class Blob<T> {
 
   public static boolean isArray(Key key) {
     return key != null && key.getColumnFamily() != null
-        && key.getColumnFamily().toString().equals(TYPE_ARRAY);
+        && key.getColumnFamily().toString().startsWith(TYPE_ARRAY);
   }
 
   public static Mutation fromString(String dataset, String key, Set<String> labels, String value) {
@@ -130,7 +130,7 @@ final public class Blob<T> {
     Preconditions.checkNotNull(labels, "labels should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    return newMutation(dataset, key, new HashSet<>(labels), TYPE_ARRAY,
+    return newMutation(dataset, key, new HashSet<>(labels), BlobStore.arrayShard(key),
         value.getBytes(StandardCharsets.UTF_8), null);
   }
 
@@ -267,6 +267,6 @@ final public class Blob<T> {
 
   @Generated
   public boolean isArray() {
-    return TYPE_ARRAY.equals(type_);
+    return type_.startsWith(TYPE_ARRAY);
   }
 }

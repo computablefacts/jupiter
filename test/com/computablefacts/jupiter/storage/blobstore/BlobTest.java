@@ -138,7 +138,7 @@ public class BlobTest {
     String uuid = UUID.randomUUID().toString();
 
     byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
-    byte[] cf = TYPE_ARRAY.getBytes(StandardCharsets.UTF_8);
+    byte[] cf = BlobStore.arrayShard(uuid).getBytes(StandardCharsets.UTF_8);
     byte[] cq = "".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_DATA").getExpression();
     byte[] val = "value1\0value2".getBytes(StandardCharsets.UTF_8);

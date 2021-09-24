@@ -359,7 +359,7 @@ final public class TermStore extends AbstractStorage {
    *     Call n°3: (dataset_1, bucket_1, field_1)
    * </pre>
    *
-   * but this sequence is will not :
+   * but this sequence will not :
    *
    * <pre>
    *     Call n°1: (dataset_1, bucket_1, field_1)

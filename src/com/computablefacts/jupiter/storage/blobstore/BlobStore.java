@@ -3,6 +3,7 @@ package com.computablefacts.jupiter.storage.blobstore;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -25,18 +26,19 @@ import org.slf4j.LoggerFactory;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.combiners.BlobStoreCombiner;
-import com.computablefacts.jupiter.combiners.DataStoreHashIndexCombiner;
 import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterator;
 import com.computablefacts.jupiter.iterators.BlobStoreMaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.logfmt.LogFormatter;
+import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 
 /**
  * <p>
@@ -71,11 +73,49 @@ final public class BlobStore extends AbstractStorage {
   private static final int BLOBSTORE_COMBINER_PRIORITY = 10;
   private static final int FILTER_OUT_JSON_FIELDS_ITERATOR_PRIORITY = 30;
   private static final int MASKING_ITERATOR_PRIORITY = 31;
+  private static final int MAX_NUMBER_OF_SHARDS = 100;
+  private static final Set<String> ARRAY_SHARDS;
 
   private static final Logger logger_ = LoggerFactory.getLogger(BlobStore.class);
 
+  static {
+    Set<String> set = new HashSet<>();
+    set.add(TYPE_ARRAY); // for backward compatibility only
+    for (int i = 0; i < MAX_NUMBER_OF_SHARDS; i++) {
+      set.add(TYPE_ARRAY + (i < 10 ? "0" + i : i));
+    }
+    ARRAY_SHARDS = ImmutableSet.copyOf(set);
+  }
+
   public BlobStore(Configurations configurations, String name) {
     super(configurations, name);
+  }
+
+  @Generated
+  public static Set<String> allArrayShards() {
+    return ARRAY_SHARDS;
+  }
+
+  /**
+   * This method is here to ensure that rows sharing the same key belong to the same array shard.
+   *
+   * @param key the row key.
+   * @return the array shard.
+   */
+  public static String arrayShard(String key) {
+
+    Preconditions.checkNotNull(key, "key should not be null");
+
+    int length = key.length();
+    @Var
+    long hash = 1125899906842597L; // prime
+
+    for (int i = 0; i < length; i++) {
+      hash = 31 * hash + key.charAt(i);
+    }
+
+    int shard = (int) ((hash < 0L ? -1L * hash : hash) % MAX_NUMBER_OF_SHARDS);
+    return TYPE_ARRAY + (shard < 10 ? "0" + shard : shard);
   }
 
   /**
@@ -109,24 +149,23 @@ final public class BlobStore extends AbstractStorage {
                 IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
       }
 
-      if (iterators.containsKey("DataStoreHashIndexCombiner")) { // TODO : remove after migration
-        configurations().tableOperations().removeIterator(tableName(),
-            DataStoreHashIndexCombiner.class.getSimpleName(),
-            EnumSet.of(IteratorUtil.IteratorScope.majc, IteratorUtil.IteratorScope.minc,
-                IteratorUtil.IteratorScope.scan));
-      }
-
       // Set the array combiner
       IteratorSetting settings =
           new IteratorSetting(BLOBSTORE_COMBINER_PRIORITY, BlobStoreCombiner.class);
       BlobStoreCombiner.setColumns(settings,
-          Lists.newArrayList(new IteratorSetting.Column(TYPE_ARRAY)));
+          allArrayShards().stream().map(IteratorSetting.Column::new).collect(Collectors.toList()));
       BlobStoreCombiner.setReduceOnFullCompactionOnly(settings, true);
 
       configurations().tableOperations().attachIterator(tableName(), settings);
 
       // Set locality groups
-      return addLocalityGroups(Sets.newHashSet(TYPE_STRING, TYPE_FILE, TYPE_JSON, TYPE_ARRAY));
+      Set<String> groups = new HashSet<>();
+      groups.add(TYPE_STRING);
+      groups.add(TYPE_FILE);
+      groups.add(TYPE_JSON);
+      groups.addAll(allArrayShards());
+
+      return addLocalityGroups(groups);
 
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
@@ -308,8 +347,12 @@ final public class BlobStore extends AbstractStorage {
 
     scanner.clearColumns();
     scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(blobType));
 
+    if (TYPE_ARRAY.equals(blobType)) {
+      allArrayShards().forEach(cf -> scanner.fetchColumnFamily(new Text(cf)));
+    } else {
+      scanner.fetchColumnFamily(new Text(blobType));
+    }
     if (fields != null && !fields.isEmpty()) {
 
       IteratorSetting setting = new IteratorSetting(FILTER_OUT_JSON_FIELDS_ITERATOR_PRIORITY,

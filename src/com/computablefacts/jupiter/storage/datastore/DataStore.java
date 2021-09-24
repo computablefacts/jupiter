@@ -6,7 +6,6 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_S
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
-import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_ARRAY;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -15,6 +14,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1255,7 +1255,7 @@ final public class DataStore {
     Preconditions.checkNotNull(docId, "docId should neither be null nor empty");
 
     Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + MaskingIterator.hash(null, value));
-    mutation.put(TYPE_ARRAY, field, docId);
+    mutation.put(BlobStore.arrayShard(docId), field, docId);
 
     try {
       writers.blob().addMutation(mutation);
@@ -1294,22 +1294,24 @@ final public class DataStore {
     scanner.clearScanIterators();
 
     if (field != null) {
-      scanner.fetchColumn(new Text(TYPE_ARRAY), new Text(field));
+      BlobStore.allArrayShards().forEach(cf -> scanner.fetchColumn(new Text(cf), new Text(field)));
     } else {
-      scanner.fetchColumnFamily(new Text(TYPE_ARRAY));
+      BlobStore.allArrayShards().forEach(cf -> scanner.fetchColumnFamily(new Text(cf)));
     }
 
-    Range range;
+    Set<Range> ranges = new HashSet<>();
 
     if (hash != null && field != null) {
-      range = Range.exact(dataset + SEPARATOR_NUL + hash, TYPE_ARRAY, field);
+      BlobStore.allArrayShards()
+          .forEach(cf -> ranges.add(Range.exact(dataset + SEPARATOR_NUL + hash, cf, field)));
     } else if (hash != null) {
-      range = Range.exact(dataset + SEPARATOR_NUL + hash, TYPE_ARRAY);
+      BlobStore.allArrayShards()
+          .forEach(cf -> ranges.add(Range.exact(dataset + SEPARATOR_NUL + hash, cf)));
     } else {
-      range = Range.prefix(dataset + SEPARATOR_NUL);
+      ranges.add(Range.prefix(dataset + SEPARATOR_NUL));
     }
 
-    if (!AbstractStorage.setRange(scanner, range)) {
+    if (!AbstractStorage.setRanges(scanner, ranges)) {
       return ITERATOR_EMPTY;
     }
     return new FlattenIterator<>(scanner.iterator(), entry -> {

@@ -307,7 +307,7 @@
                     <parallel>classes</parallel>
                     <threadCount>3</threadCount>
                     <reuseForks>false</reuseForks>
-                    <skipTests>false</skipTests>
+                    <skipTests>true</skipTests>
                 </configuration>
             </plugin>
         </plugins>

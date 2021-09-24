@@ -1,6 +1,8 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
 import java.io.File;
+import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +13,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.math3.stat.inference.ChiSquareTest;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -18,11 +21,47 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Data;
 import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
+import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.nona.helpers.Codecs;
+import com.computablefacts.nona.helpers.RandomString;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class BlobStoreTest extends MiniAccumuloClusterTest {
+
+  @Test
+  public void testArrayShard() {
+
+    RandomString ticketsGenerator =
+        new RandomString(5, new SecureRandom(), RandomString.digits + RandomString.lower);
+
+    for (int i = 0; i < 1000 /* how many times the test should be run */; i++) {
+
+      long[][] table = new long[2][100];
+
+      for (int k = 0; k < 100 /* MAX_NUMBER_OF_SHARDS */; k++) {
+        table[0][k] = 1;
+      }
+
+      for (int k = 0; k < 100 /* MAX_NUMBER_OF_SHARDS */; k++) {
+        String key =
+            ticketsGenerator.nextString() + Constants.SEPARATOR_PIPE + Instant.now().toString();
+        String shard = BlobStore.arrayShard(key);
+        table[1][Integer.parseInt(shard.substring("ARR".length()), 10)]++;
+      }
+
+      double alpha = 0.01; // confidence level 99%
+      ChiSquareTest test = new ChiSquareTest();
+
+      double pval = test.chiSquareTest(table);
+      System.out.printf("p-value: %.9f\n", pval);
+
+      boolean rejected = test.chiSquareTest(table, alpha);
+      System.out.println("X^2 Test: " + ((!rejected) ? ("PASS") : ("FAIL")));
+
+      Assert.assertFalse(rejected);
+    }
+  }
 
   @Test
   public void testRemoveDataset() throws Exception {
