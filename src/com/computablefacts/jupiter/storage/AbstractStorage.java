@@ -1,5 +1,6 @@
 package com.computablefacts.jupiter.storage;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -18,6 +19,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
+import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -464,7 +466,27 @@ public abstract class AbstractStorage {
     try {
       writer.addMutation(mutation);
     } catch (MutationsRejectedException e) {
+
       handleExceptions(e);
+
+      if (mutation.numBytes() >= 1048576L) {
+
+        // Extracted from org.apache.accumulo.core.constraints.DefaultKeySizeConstraint
+        for (ColumnUpdate cu : mutation.getUpdates()) {
+          long size = mutation.getRow().length;
+          size += cu.getColumnFamily().length;
+          size += cu.getColumnQualifier().length;
+          size += cu.getColumnVisibility().length;
+          if (size > 1048576L) {
+            logger_.error(LogFormatter.create(true).add("constraint", "DefaultKeySizeConstraint")
+                .add("row", new String(mutation.getRow(), StandardCharsets.UTF_8))
+                .add("cf", new String(cu.getColumnFamily(), StandardCharsets.UTF_8))
+                .add("cq", new String(cu.getColumnQualifier(), StandardCharsets.UTF_8))
+                .add("cv", new String(cu.getColumnVisibility(), StandardCharsets.UTF_8))
+                .formatError());
+          }
+        }
+      }
       return false;
     }
     return true;
