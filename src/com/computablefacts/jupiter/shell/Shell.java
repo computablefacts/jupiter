@@ -542,6 +542,7 @@ public class Shell {
           if (!ds.reindex(writers, dataset, document.docId(), json)) {
             logger_.error(LogFormatter.create(true)
                 .message("Re-indexation of " + document.docId() + " failed").formatError());
+            break;
           }
         }
 
