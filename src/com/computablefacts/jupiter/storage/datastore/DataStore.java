@@ -1069,6 +1069,7 @@ final public class DataStore {
                 .message(String.format(
                     "Persistence of the hash for field %s failed for document %s.", field, docId))
                 .formatError());
+        return false;
       }
 
       if (!(value instanceof String)) {
@@ -1109,9 +1110,8 @@ final public class DataStore {
 
     for (Map.Entry<String, Multiset<Object>> field : fields.entrySet()) {
       for (Multiset.Entry<Object> term : field.getValue().entrySet()) {
-        isOk =
-            persistTerm(writers, dataset, docId, field.getKey(), term.getElement(), term.getCount())
-                && isOk;
+        isOk = isOk && persistTerm(writers, dataset, docId, field.getKey(), term.getElement(),
+            term.getCount());
       }
     }
     return isOk;

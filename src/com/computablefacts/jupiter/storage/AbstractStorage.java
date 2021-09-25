@@ -473,6 +473,7 @@ public abstract class AbstractStorage {
 
         // Extracted from org.apache.accumulo.core.constraints.DefaultKeySizeConstraint
         for (ColumnUpdate cu : mutation.getUpdates()) {
+          @Var
           long size = mutation.getRow().length;
           size += cu.getColumnFamily().length;
           size += cu.getColumnQualifier().length;
