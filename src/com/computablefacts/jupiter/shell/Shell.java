@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.jupiter.Streams;
 import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
@@ -422,7 +423,7 @@ public class Shell {
 
       ds.beginIngest();
 
-      Files.compressedLineStream(f, StandardCharsets.UTF_8).forEach(line -> {
+      Streams.forEach(Files.compressedLineStream(f, StandardCharsets.UTF_8), (line, breaker) -> {
 
         String row = line.getValue();
 
@@ -444,9 +445,11 @@ public class Shell {
           if (!ds.persist(writers, dataset, document.docId(), row)) {
             logger_.error(LogFormatter.create(true)
                 .message("Persistence of " + document.docId() + " failed").formatError());
+            breaker.stop();
           }
 
-          if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
+          if ((count.incrementAndGet() % 100 == 0 || breaker.shouldBreak())
+              && logger_.isInfoEnabled()) {
             logger_.info(LogFormatter.create(true)
                 .message("Number of JSON processed : " + count.get()).formatInfo());
           }
