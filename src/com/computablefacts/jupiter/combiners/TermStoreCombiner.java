@@ -102,7 +102,7 @@ public class TermStoreCombiner extends Combiner {
     long sum = 0L;
 
     while (iter.hasNext()) {
-      sum += Long.parseLong(iter.next().toString(), 10);
+      sum += tryParseLong(iter.next().toString(), 0);
     }
     return new Value(Long.toString(sum, 10));
   }
@@ -123,9 +123,9 @@ public class TermStoreCombiner extends Combiner {
       int index = value.indexOf(Constants.SEPARATOR_NUL);
 
       if (index < 0) {
-        sum += Long.parseLong(value, 10);
+        sum += tryParseLong(value, 0);
       } else {
-        sum += Long.parseLong(value.substring(0, index), 10);
+        sum += tryParseLong(value.substring(0, index), 0);
         builder.append(value.substring(index + 1));
       }
     }
@@ -154,5 +154,13 @@ public class TermStoreCombiner extends Combiner {
     ItemsSketch<String> sketch = TopKSketch.union(sketches);
 
     return new Value(sketch.toByteArray(new ArrayOfStringsSerDe()));
+  }
+
+  private long tryParseLong(String str, long defaultValue) {
+    try {
+      return Long.parseLong(str, 10);
+    } catch (NumberFormatException e) {
+      return defaultValue;
+    }
   }
 }
