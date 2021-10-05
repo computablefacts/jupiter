@@ -1,6 +1,8 @@
 package com.computablefacts.jupiter.queries;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -187,11 +189,11 @@ final public class InternalNode extends AbstractNode {
             .message("ill-formed query : (A OR NOT B) or (NOT A OR B)").formatError());
       }
       if (child1_.exclude()) {
-        return child2_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer); // NOT A
-                                                                                           // OR B
+        // NOT A OR B
+        return child2_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer);
       }
-      return child1_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer); // A OR
-                                                                                         // NOT B
+      // A OR NOT B
+      return child1_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer);
     }
 
     Iterator<String> ids1 =
@@ -202,9 +204,9 @@ final public class InternalNode extends AbstractNode {
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B}
     if (eConjunctionTypes.And.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {
       if (child1_.exclude()) {
-        return new DifferenceIterator<>(ids2, ids1); // NOT A AND B
+        return compact(new DifferenceIterator<>(ids2, ids1)); // NOT A AND B
       }
-      return new DifferenceIterator<>(ids1, ids2); // A AND NOT B
+      return compact(new DifferenceIterator<>(ids1, ids2)); // A AND NOT B
     }
 
     // Here, the query is in {A OR B, A AND B}
@@ -212,13 +214,13 @@ final public class InternalNode extends AbstractNode {
 
       // Advance both iterators synchronously. The assumption is that both iterators are sorted.
       // Hence, DataStore.Scanners should have been initialized with nbQueryThreads=1
-      return new DedupIterator<>(
-          Iterators.mergeSorted(Lists.newArrayList(ids1, ids2), String::compareTo));
+      return compact(new DedupIterator<>(
+          Iterators.mergeSorted(Lists.newArrayList(ids1, ids2), String::compareTo)));
     }
 
     // Advance both iterators synchronously. The assumption is that both iterators are sorted.
     // Hence, DataStore.Scanners should have been initialized with nbQueryThreads=1
-    return new SynchronousIterator<>(ids1, ids2);
+    return compact(new SynchronousIterator<>(ids1, ids2));
   }
 
   public eConjunctionTypes conjunction() {
@@ -243,6 +245,12 @@ final public class InternalNode extends AbstractNode {
 
   public void child2(AbstractNode child) {
     child2_ = child;
+  }
+
+  private Iterator<String> compact(Iterator<String> iterator) {
+    List<String> docsIds = new ArrayList<>();
+    iterator.forEachRemaining(docsIds::add);
+    return docsIds.iterator();
   }
 
   public enum eConjunctionTypes {

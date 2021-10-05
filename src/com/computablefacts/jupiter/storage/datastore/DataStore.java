@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,13 +59,10 @@ import com.computablefacts.nona.types.SpanSequence;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -725,45 +721,15 @@ final public class DataStore {
     Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
 
-    String newDataset = Strings.nullToEmpty(dataset);
-
-    // Build a cache key
-    List<String> params = Lists.newArrayList(newDataset, term);
-    params.addAll(Splitter.on(',').trimResults().omitEmptyStrings()
-        .splitToList(scanners.index().getAuthorizations().toString()));
-
-    if (fields != null) {
-      params.addAll(fields);
-    }
-    if (docsIds != null) {
-      params.add(BloomFilters.toString(docsIds));
-    }
-
-    Collections.sort(params);
-
-    String cacheId = MaskingIterator.hash(null, Joiner.on(SEPARATOR_NUL).join(params));
-
-    if (cache_.hasData(scanners, newDataset, cacheId)) {
-      if (logger_.isDebugEnabled()) {
-        logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-            .add("cache_hit", true).add("cache_id", cacheId).formatDebug());
-      }
-    } else {
-      if (logger_.isDebugEnabled()) {
-        logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-            .add("cache_miss", true).add("cache_id", cacheId).formatDebug());
-      }
-
-      // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
-      Iterator<String> bucketsIds = Iterators.transform(
-          termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset, fields, term, docsIds),
-          t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
-
-      cache_.write(scanners, writers, newDataset, cacheId, bucketsIds);
-    }
+    // Extract buckets ids, i.e. documents ids, from the TermStore
+    // TODO : load docs on-demand to prevent segfault
+    Set<String> bucketsIds = new HashSet<>();
+    Iterators.transform(
+        termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset, fields, term, docsIds),
+        t -> t.bucketId() + SEPARATOR_NUL + t.dataset()).forEachRemaining(bucketsIds::add);
 
     // Returns an iterator over the documents ids
-    return cache_.read(scanners, newDataset, cacheId);
+    return bucketsIds.stream().sorted().distinct().iterator();
   }
 
   /**
@@ -789,51 +755,16 @@ final public class DataStore {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    String newDataset = Strings.nullToEmpty(dataset);
-
-    // Build a cache key
-    List<String> params = Lists.newArrayList(newDataset);
-    params.addAll(Splitter.on(',').trimResults().omitEmptyStrings()
-        .splitToList(scanners.index().getAuthorizations().toString()));
-
-    if (minTerm != null) {
-      params.add(minTerm.toString());
-    }
-    if (maxTerm != null) {
-      params.add(maxTerm.toString());
-    }
-    if (fields != null) {
-      params.addAll(fields);
-    }
-    if (docsIds != null) {
-      params.add(BloomFilters.toString(docsIds));
-    }
-
-    Collections.sort(params);
-
-    String cacheId = MaskingIterator.hash(null, Joiner.on(SEPARATOR_NUL).join(params));
-
-    if (cache_.hasData(scanners, newDataset, cacheId)) {
-      if (logger_.isDebugEnabled()) {
-        logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-            .add("cache_hit", true).add("cache_id", cacheId).formatDebug());
-      }
-    } else {
-      if (logger_.isDebugEnabled()) {
-        logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-            .add("cache_miss", true).add("cache_id", cacheId).formatDebug());
-      }
-
-      // Extract buckets ids, i.e. documents ids, from the TermStore and cache them
-      Iterator<String> bucketsIds =
-          Iterators.transform(termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset,
-              fields, minTerm, maxTerm, docsIds), t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
-
-      cache_.write(scanners, writers, newDataset, cacheId, bucketsIds);
-    }
+    // Extract buckets ids, i.e. documents ids, from the TermStore
+    // TODO : load docs on-demand to prevent segfault
+    Set<String> bucketsIds = new HashSet<>();
+    Iterators
+        .transform(termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset, fields, minTerm,
+            maxTerm, docsIds), t -> t.bucketId() + SEPARATOR_NUL + t.dataset())
+        .forEachRemaining(bucketsIds::add);
 
     // Returns an iterator over the documents ids
-    return cache_.read(scanners, newDataset, cacheId);
+    return bucketsIds.stream().sorted().distinct().iterator();
   }
 
   /**
@@ -1009,7 +940,9 @@ final public class DataStore {
           value = true;
         } else if ("false".equalsIgnoreCase(text)) {
           value = false;
-        } else if (com.computablefacts.nona.helpers.Strings.isNumber(text)) {
+        } else if (!text.contains("E") && !text.contains("e")
+        /* ensure 79E2863560 is not coerced to 7.9E+2863561 */
+            && com.computablefacts.nona.helpers.Strings.isNumber(text)) {
           try {
 
             value = new BigInteger(text);
@@ -1239,7 +1172,7 @@ final public class DataStore {
    *
    * WARNING : bypass {@link BlobStore#putArray(BatchWriter, String, String, Set, String)} because
    * we expect the column visibility to be empty.
-   * 
+   *
    * @param writers writers.
    * @param dataset dataset.
    * @param field the field.
@@ -1254,7 +1187,8 @@ final public class DataStore {
     Preconditions.checkNotNull(value, "value should neither be null nor empty");
     Preconditions.checkNotNull(docId, "docId should neither be null nor empty");
 
-    Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + MaskingIterator.hash(null, value));
+    String hash = MaskingIterator.hash(null, value);
+    Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + hash);
     mutation.put(BlobStore.arrayShard(docId), field, docId);
 
     try {
