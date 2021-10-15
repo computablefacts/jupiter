@@ -1,6 +1,5 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 
@@ -25,12 +24,14 @@ final public class AccumuloBlobProcessor extends AbstractBlobProcessor {
 
   private final BlobStore blobStore_;
   private final Authorizations authorizations_;
+  private final int nbQueryThreads_;
   private BatchWriter writer_;
   private ScannerBase reader_;
 
-  public AccumuloBlobProcessor(BlobStore blobStore, Authorizations authorizations) {
+  AccumuloBlobProcessor(BlobStore blobStore, Authorizations authorizations, int nbQueryThreads) {
     blobStore_ = Preconditions.checkNotNull(blobStore, "blobStore should not be null");
     authorizations_ = authorizations == null ? Authorizations.EMPTY : authorizations;
+    nbQueryThreads_ = nbQueryThreads <= 0 ? 1 : nbQueryThreads;
   }
 
   @Override
@@ -86,7 +87,11 @@ final public class AccumuloBlobProcessor extends AbstractBlobProcessor {
 
   public ScannerBase scanner() {
     if (reader_ == null) {
-      reader_ = blobStore_.batchScanner(authorizations_, NB_QUERY_THREADS);
+      if (nbQueryThreads_ == 1) {
+        reader_ = blobStore_.scanner(authorizations_);
+      } else {
+        reader_ = blobStore_.batchScanner(authorizations_, nbQueryThreads_);
+      }
     }
     return reader_;
   }

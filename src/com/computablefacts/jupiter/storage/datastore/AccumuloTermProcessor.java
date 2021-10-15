@@ -1,6 +1,5 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
@@ -34,12 +33,14 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
 
   private final TermStore termStore_;
   private final Authorizations authorizations_;
+  private final int nbQueryThreads_;
   private BatchWriter writer_;
   private ScannerBase reader_;
 
-  public AccumuloTermProcessor(TermStore termStore, Authorizations authorizations) {
+  AccumuloTermProcessor(TermStore termStore, Authorizations authorizations, int nbQueryThreads) {
     termStore_ = Preconditions.checkNotNull(termStore, "termStore should not be null");
     authorizations_ = authorizations == null ? Authorizations.EMPTY : authorizations;
+    nbQueryThreads_ = nbQueryThreads <= 0 ? 1 : nbQueryThreads;
   }
 
   @Override
@@ -144,7 +145,11 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
 
   public ScannerBase scanner() {
     if (reader_ == null) {
-      reader_ = termStore_.batchScanner(authorizations_, NB_QUERY_THREADS);
+      if (nbQueryThreads_ == 1) {
+        reader_ = termStore_.scanner(authorizations_);
+      } else {
+        reader_ = termStore_.batchScanner(authorizations_, nbQueryThreads_);
+      }
     }
     return reader_;
   }

@@ -1,7 +1,6 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
-import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.util.Date;
@@ -36,13 +35,15 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
 
   private final BlobStore blobStore_;
   private final Authorizations authorizations_;
+  private final int nbQueryThreads_;
   private BatchWriter writer_;
   private ScannerBase reader_;
 
-  public AccumuloHashProcessor(BlobStore blobStore, Authorizations authorizations) {
+  AccumuloHashProcessor(BlobStore blobStore, Authorizations authorizations, int nbQueryThreads) {
     blobStore_ =
         Preconditions.checkNotNull(blobStore, "blobStore should neither be null nor empty");
     authorizations_ = authorizations == null ? Authorizations.EMPTY : authorizations;
+    nbQueryThreads_ = nbQueryThreads <= 0 ? 1 : nbQueryThreads;
   }
 
   @Override
@@ -151,7 +152,11 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
 
   public ScannerBase scanner() {
     if (reader_ == null) {
-      reader_ = blobStore_.batchScanner(authorizations_, NB_QUERY_THREADS);
+      if (nbQueryThreads_ == 1) {
+        reader_ = blobStore_.scanner(authorizations_);
+      } else {
+        reader_ = blobStore_.batchScanner(authorizations_, nbQueryThreads_);
+      }
     }
     return reader_;
   }

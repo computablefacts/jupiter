@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
+import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_INDEX;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_INDEX;
@@ -53,16 +54,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     DataStore dataStore = newDataStore(AUTH_ADM);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
 
     AbstractNode query = QueryBuilder.build("doe");
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     List<Map.Entry<String, String>> docsIds = new ArrayList<>();
     query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
@@ -78,8 +76,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertTrue(dataStore.truncate());
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     docsIds.clear();
     query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
@@ -97,16 +95,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     DataStore dataStore = newDataStore(AUTH_ADM);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
 
     AbstractNode query = QueryBuilder.build("doe");
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     List<Map.Entry<String, String>> docsIds = new ArrayList<>();
     query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
@@ -122,8 +117,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertTrue(dataStore.remove("dataset_1"));
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     docsIds.clear();
     query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
@@ -143,9 +138,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
 
@@ -156,8 +148,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     AbstractNode query = QueryBuilder.build("joh? AND doe");
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     List<Map.Entry<String, String>> docsIds = new ArrayList<>();
     query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
@@ -177,9 +169,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
 
@@ -190,8 +179,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     AbstractNode query = QueryBuilder.build("doe AND NOT jan?");
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     List<Map.Entry<String, String>> docsIds = new ArrayList<>();
     query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
@@ -211,9 +200,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
 
@@ -224,8 +210,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     List<Map.Entry<String, String>> docsIds = new ArrayList<>();
     query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
@@ -247,9 +233,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore =
         newDataStore(new Authorizations("ADM", "DATASET_1_ROW_1", "DATASET_1_ROW_2"), username);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
 
@@ -260,10 +243,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
-    dataStore.setBlobProcessor(
-        new AccumuloBlobProcessor(dataStore.blobStore(), new Authorizations("DATASET_1_ROW_1")));
-    dataStore.setTermProcessor(
-        new AccumuloTermProcessor(dataStore.termStore(), new Authorizations("DATASET_1_ROW_1")));
+    dataStore.setBlobProcessor(dataStore
+        .newAccumuloBlobProcessor(new Authorizations("DATASET_1_ROW_1"), NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore
+        .newAccumuloTermProcessor(new Authorizations("DATASET_1_ROW_1"), NB_QUERY_THREADS));
 
     List<Map.Entry<String, String>> docsIds = new ArrayList<>();
     query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
@@ -271,10 +254,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-    dataStore.setBlobProcessor(
-        new AccumuloBlobProcessor(dataStore.blobStore(), new Authorizations("DATASET_1_ROW_2")));
-    dataStore.setTermProcessor(
-        new AccumuloTermProcessor(dataStore.termStore(), new Authorizations("DATASET_1_ROW_2")));
+    dataStore.setBlobProcessor(dataStore
+        .newAccumuloBlobProcessor(new Authorizations("DATASET_1_ROW_2"), NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore
+        .newAccumuloTermProcessor(new Authorizations("DATASET_1_ROW_2"), NB_QUERY_THREADS));
 
     docsIds.clear();
     query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
@@ -289,9 +272,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
 
@@ -299,6 +279,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
+
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     @Var
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
@@ -332,9 +315,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
 
@@ -342,6 +322,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
+
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     @Var
     AbstractNode query = QueryBuilder.build("age:[* TO 20]");
@@ -368,9 +351,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
 
@@ -382,8 +362,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     @Var
     AbstractNode query = QueryBuilder.build("age:[* TO 20]");
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     List<Map.Entry<String, String>> docsIds = new ArrayList<>();
     query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
@@ -426,10 +406,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), null));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json(1)));
     Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json(2)));
 
@@ -438,9 +414,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
-    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setHashProcessor(dataStore.newAccumuloHashProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     List<String> docsIds = new ArrayList<>();
     dataStore.matchValue("dataset_1", "Actors[*]¤name", "Tom Cruise")
@@ -486,10 +462,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), null));
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json(1)));
     Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json(2)));
 
@@ -498,9 +470,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
-    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setHashProcessor(dataStore.newAccumuloHashProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
     List<String> docsIds = new ArrayList<>();
     dataStore.matchHash("dataset_1", "Actors[*]¤name", "8f8a04ea49585975fcf1e452b988e085")
@@ -549,9 +521,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
-
     dataStore.beginIngest();
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
@@ -562,7 +531,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    DataStoreInfos infos = dataStore.infos(Sets.newHashSet("dataset_1"), AUTH_ADM);
+    dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
+    dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
+
+    DataStoreInfos infos = dataStore.infos(Sets.newHashSet("dataset_1"));
     Map<String, Object> json = infos.json();
 
     List<Map<String, Object>> jsons =
@@ -658,10 +630,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore = newDataStore(auths);
 
     // Index
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), null));
-
     dataStore.beginIngest();
 
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
@@ -749,10 +717,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.termStore().removeDataset("dataset_1"));
 
     // Reindex -> do not update blobs but rebuild the whole terms index
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), null));
-
     dataStore.beginIngest();
 
     Assert.assertTrue(dataStore.reindex("dataset_1", "row_1", Data.json2(1)));
@@ -844,10 +808,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore = newDataStore(auths);
 
     // Index
-    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
-    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
-    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), null));
-
     dataStore.beginIngest();
 
     Assert.assertTrue(dataStore.persist("dataset", "row_1", Data.json4()));

@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 
 import java.math.BigDecimal;
@@ -43,6 +44,7 @@ import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
 import com.github.wnameless.json.flattener.JsonFlattener;
+import com.google.common.annotations.Beta;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
@@ -105,6 +107,20 @@ final public class DataStore implements AutoCloseable {
     blobStore_ = new BlobStore(configurations, blobStoreName(name));
     termStore_ = new TermStore(configurations, termStoreName(name));
     cache_ = new Cache(configurations, cacheName(name));
+    blobProcessor_ = newAccumuloBlobProcessor();
+    termProcessor_ = newAccumuloTermProcessor();
+    hashProcessor_ = newAccumuloHashProcessor();
+  }
+
+  @Beta
+  public DataStore(Configurations configurations, String name, Authorizations authorizations) {
+    name_ = Preconditions.checkNotNull(name, "name should neither be null nor empty");
+    blobStore_ = new BlobStore(configurations, blobStoreName(name));
+    termStore_ = new TermStore(configurations, termStoreName(name));
+    cache_ = new Cache(configurations, cacheName(name));
+    blobProcessor_ = newAccumuloBlobProcessor(authorizations, NB_QUERY_THREADS);
+    termProcessor_ = newAccumuloTermProcessor(authorizations, NB_QUERY_THREADS);
+    hashProcessor_ = newAccumuloHashProcessor(authorizations, NB_QUERY_THREADS);
   }
 
   static String normalize(String str) {
@@ -136,6 +152,39 @@ final public class DataStore implements AutoCloseable {
   @Override
   protected void finalize() {
     flush();
+  }
+
+  @Beta
+  public AccumuloBlobProcessor newAccumuloBlobProcessor() {
+    return newAccumuloBlobProcessor(null, NB_QUERY_THREADS);
+  }
+
+  @Beta
+  public AccumuloBlobProcessor newAccumuloBlobProcessor(Authorizations authorizations,
+      int nbQueryThreads) {
+    return new AccumuloBlobProcessor(blobStore_, authorizations, nbQueryThreads);
+  }
+
+  @Beta
+  public AccumuloTermProcessor newAccumuloTermProcessor() {
+    return newAccumuloTermProcessor(null, NB_QUERY_THREADS);
+  }
+
+  @Beta
+  public AccumuloTermProcessor newAccumuloTermProcessor(Authorizations authorizations,
+      int nbQueryThreads) {
+    return new AccumuloTermProcessor(termStore_, authorizations, nbQueryThreads);
+  }
+
+  @Beta
+  public AccumuloHashProcessor newAccumuloHashProcessor() {
+    return newAccumuloHashProcessor(null, NB_QUERY_THREADS);
+  }
+
+  @Beta
+  public AccumuloHashProcessor newAccumuloHashProcessor(Authorizations authorizations,
+      int nbQueryThreads) {
+    return new AccumuloHashProcessor(blobStore_, authorizations, nbQueryThreads);
   }
 
   /**
@@ -836,10 +885,9 @@ final public class DataStore implements AutoCloseable {
    * Return misc. infos about a given list of datasets.
    *
    * @param datasets a list of datasets.
-   * @param auths the user authorizations.
    * @return {@link DataStoreInfos}.
    */
-  public DataStoreInfos infos(Set<String> datasets, Authorizations auths) {
+  public DataStoreInfos infos(Set<String> datasets) {
 
     DataStoreInfos infos = new DataStoreInfos(name());
 

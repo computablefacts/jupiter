@@ -31,9 +31,6 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Streams;
 import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
-import com.computablefacts.jupiter.storage.datastore.AccumuloBlobProcessor;
-import com.computablefacts.jupiter.storage.datastore.AccumuloHashProcessor;
-import com.computablefacts.jupiter.storage.datastore.AccumuloTermProcessor;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.Codecs;
@@ -387,89 +384,78 @@ public class Shell {
 
     Preconditions.checkArgument(f.exists(), "File does not exist : %s", f.getAbsolutePath());
 
-    Stopwatch stopwatch = Stopwatch.createStarted();
-    DataStore ds = new DataStore(configurations, datastore);
     AtomicInteger count = new AtomicInteger(0);
+    Stopwatch stopwatch = Stopwatch.createStarted();
 
-    try {
+    try (DataStore ds = new DataStore(configurations, datastore)) {
+      try {
 
-      SortedSet<Text> splits = new TreeSet<>();
+        SortedSet<Text> splits = new TreeSet<>();
 
-      for (char i = '0'; i < '9' + 1; i++) {
-        splits.add(new Text(dataset + SEPARATOR_NUL + i));
-      }
-
-      for (char i = 'a'; i < 'z' + 1; i++) {
-        splits.add(new Text(dataset + SEPARATOR_NUL + i));
-      }
-
-      for (char i = 'A'; i < 'Z' + 1; i++) {
-        splits.add(new Text(dataset + SEPARATOR_NUL + i));
-      }
-
-      ds.blobStore().configurations().tableOperations().addSplits(ds.blobStore().tableName(),
-          splits);
-
-      ds.termStore().configurations().tableOperations().addSplits(ds.termStore().tableName(),
-          splits);
-
-      ds.cache().configurations().tableOperations().addSplits(ds.cache().tableName(), splits);
-
-    } catch (Exception e) {
-      logger_.error(LogFormatter.create(true).message(e).formatError());
-    }
-
-    try (AccumuloBlobProcessor blobProcessor = new AccumuloBlobProcessor(ds.blobStore(), null)) {
-      try (AccumuloTermProcessor termProcessor = new AccumuloTermProcessor(ds.termStore(), null)) {
-        try (
-            AccumuloHashProcessor hashProcessor = new AccumuloHashProcessor(ds.blobStore(), null)) {
-
-          ds.setBlobProcessor(blobProcessor);
-          ds.setTermProcessor(termProcessor);
-          ds.setHashProcessor(hashProcessor);
-          ds.beginIngest();
-
-          Streams.forEach(Files.compressedLineStream(f, StandardCharsets.UTF_8),
-              (line, breaker) -> {
-
-                String row = line.getValue();
-
-                if (Strings.isNullOrEmpty(row)) {
-                  return;
-                }
-                try {
-                  Map<String, Object> json = Codecs.asObject(row);
-                  Document document = new Document(json);
-
-                  // if (!document.fileExists()) { // do not reindex missing files
-                  // if (logger_.isInfoEnabled()) {
-                  // logger_.info(LogFormatter.create(true).message(
-                  // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " +
-                  // document.path())
-                  // .formatInfo());
-                  // }
-                  // } else {
-
-                  if (!ds.persist(dataset, document.docId(), row)) {
-                    logger_.error(LogFormatter.create(true)
-                        .message("Persistence of " + document.docId() + " failed").formatError());
-                    breaker.stop();
-                  }
-
-                  if ((count.incrementAndGet() % 100 == 0 || breaker.shouldBreak())
-                      && logger_.isInfoEnabled()) {
-                    logger_.info(LogFormatter.create(true)
-                        .message("Number of JSON processed : " + count.get()).formatInfo());
-                  }
-                  // }
-                } catch (Exception e) {
-                  logger_.error(LogFormatter.create(true).message(e).formatError());
-                }
-              });
-
-          ds.endIngest(dataset);
+        for (char i = '0'; i < '9' + 1; i++) {
+          splits.add(new Text(dataset + SEPARATOR_NUL + i));
         }
+
+        for (char i = 'a'; i < 'z' + 1; i++) {
+          splits.add(new Text(dataset + SEPARATOR_NUL + i));
+        }
+
+        for (char i = 'A'; i < 'Z' + 1; i++) {
+          splits.add(new Text(dataset + SEPARATOR_NUL + i));
+        }
+
+        ds.blobStore().configurations().tableOperations().addSplits(ds.blobStore().tableName(),
+            splits);
+
+        ds.termStore().configurations().tableOperations().addSplits(ds.termStore().tableName(),
+            splits);
+
+        ds.cache().configurations().tableOperations().addSplits(ds.cache().tableName(), splits);
+
+      } catch (Exception e) {
+        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
+
+      ds.beginIngest();
+
+      Streams.forEach(Files.compressedLineStream(f, StandardCharsets.UTF_8), (line, breaker) -> {
+
+        String row = line.getValue();
+
+        if (Strings.isNullOrEmpty(row)) {
+          return;
+        }
+        try {
+          Map<String, Object> json = Codecs.asObject(row);
+          Document document = new Document(json);
+
+          // if (!document.fileExists()) { // do not reindex missing files
+          // if (logger_.isInfoEnabled()) {
+          // logger_.info(LogFormatter.create(true).message(
+          // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " +
+          // document.path())
+          // .formatInfo());
+          // }
+          // } else {
+
+          if (!ds.persist(dataset, document.docId(), row)) {
+            logger_.error(LogFormatter.create(true)
+                .message("Persistence of " + document.docId() + " failed").formatError());
+            breaker.stop();
+          }
+
+          if ((count.incrementAndGet() % 100 == 0 || breaker.shouldBreak())
+              && logger_.isInfoEnabled()) {
+            logger_.info(LogFormatter.create(true)
+                .message("Number of JSON processed : " + count.get()).formatInfo());
+          }
+          // }
+        } catch (Exception e) {
+          logger_.error(LogFormatter.create(true).message(e).formatError());
+        }
+      });
+
+      ds.endIngest(dataset);
     }
 
     stopwatch.stop();
@@ -509,63 +495,49 @@ public class Shell {
     Preconditions.checkNotNull(datastore, "datastore should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    Stopwatch stopwatch = Stopwatch.createStarted();
-    DataStore ds = new DataStore(configurations, datastore);
-
-    if (!ds.termStore().removeDataset(dataset)) {
-      logger_.error(LogFormatter.create(true)
-          .message(String.format("Dataset %s cannot be removed", dataset)).formatError());
-      return false;
-    }
-
     AtomicInteger count = new AtomicInteger(0);
     AtomicInteger ignored = new AtomicInteger(0);
+    Stopwatch stopwatch = Stopwatch.createStarted();
 
-    try (AccumuloBlobProcessor blobProcessor =
-        new AccumuloBlobProcessor(ds.blobStore(), authorizations(auths))) {
-      try (AccumuloTermProcessor termProcessor =
-          new AccumuloTermProcessor(ds.termStore(), authorizations(auths))) {
-        try (AccumuloHashProcessor hashProcessor =
-            new AccumuloHashProcessor(ds.blobStore(), authorizations(auths))) {
+    try (DataStore ds = new DataStore(configurations, datastore, authorizations(auths))) {
 
-          ds.setBlobProcessor(blobProcessor);
-          ds.setTermProcessor(termProcessor);
-          ds.setHashProcessor(hashProcessor);
-          ds.beginIngest();
+      if (!ds.termStore().removeDataset(dataset)) {
+        logger_.error(LogFormatter.create(true)
+            .message(String.format("Dataset %s cannot be removed", dataset)).formatError());
+        return false;
+      }
 
-          Iterator<Blob<Value>> iterator =
-              ds.blobStore().getJsons(blobProcessor.scanner(), dataset, null, null);
+      ds.beginIngest();
 
-          while (iterator.hasNext()) {
+      Iterator<Blob<Value>> iterator = ds.jsonScan(dataset, null);
 
-            Blob<Value> blob = iterator.next();
+      while (iterator.hasNext()) {
 
-            if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
-              if (logger_.isInfoEnabled()) {
-                logger_.info(LogFormatter.create(true)
-                    .message("Number of JSON written : " + count.get()).formatInfo());
-              }
-            }
-            if (!blob.isJson()) {
-              logger_.warn(LogFormatter.create(true)
-                  .message("Total number of JSON ignored : " + ignored.incrementAndGet())
-                  .formatWarn());
-              continue;
-            }
+        Blob<Value> blob = iterator.next();
 
-            Map<String, Object> json = Codecs.asObject(blob.value().toString());
-            Document document = new Document(json);
-
-            if (!ds.reindex(dataset, document.docId(), json)) {
-              logger_.error(LogFormatter.create(true)
-                  .message("Re-indexation of " + document.docId() + " failed").formatError());
-              break;
-            }
+        if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
+          if (logger_.isInfoEnabled()) {
+            logger_.info(LogFormatter.create(true)
+                .message("Number of JSON written : " + count.get()).formatInfo());
           }
+        }
+        if (!blob.isJson()) {
+          logger_.warn(LogFormatter.create(true)
+              .message("Total number of JSON ignored : " + ignored.incrementAndGet()).formatWarn());
+          continue;
+        }
 
-          ds.endIngest(dataset);
+        Map<String, Object> json = Codecs.asObject(blob.value().toString());
+        Document document = new Document(json);
+
+        if (!ds.reindex(dataset, document.docId(), json)) {
+          logger_.error(LogFormatter.create(true)
+              .message("Re-indexation of " + document.docId() + " failed").formatError());
+          break;
         }
       }
+
+      ds.endIngest(dataset);
     }
 
     stopwatch.stop();
@@ -594,17 +566,14 @@ public class Shell {
     Preconditions.checkArgument(!f.exists(), "File exists : %s", f.getAbsolutePath());
 
     Stopwatch stopwatch = Stopwatch.createStarted();
-    DataStore ds = new DataStore(configurations, datastore);
 
-    try (AccumuloBlobProcessor blobProcessor =
-        new AccumuloBlobProcessor(ds.blobStore(), authorizations(auths))) {
+    try (DataStore ds = new DataStore(configurations, datastore, authorizations(auths))) {
       try (FileOutputStream fos = new FileOutputStream(f)) {
         try (BufferedWriter bw =
             new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {
 
           AtomicInteger count = new AtomicInteger(0);
-          Iterator<Blob<Value>> iterator =
-              ds.blobStore().getJsons(blobProcessor.scanner(), dataset, null, null);
+          Iterator<Blob<Value>> iterator = ds.jsonScan(dataset, null);
 
           while (iterator.hasNext()) {
 
