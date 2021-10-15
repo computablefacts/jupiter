@@ -22,8 +22,6 @@ import org.slf4j.LoggerFactory;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.storage.DedupIterator;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
-import com.computablefacts.jupiter.storage.datastore.Scanners;
-import com.computablefacts.jupiter.storage.datastore.Writers;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
@@ -116,11 +114,10 @@ final public class TerminalNode extends AbstractNode {
   }
 
   @Override
-  public long cardinality(DataStore dataStore, Scanners scanners, String dataset,
+  public long cardinality(DataStore dataStore, String dataset,
       Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
@@ -152,7 +149,7 @@ final public class TerminalNode extends AbstractNode {
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.termCardinalityEstimationForBuckets(scanners, dataset, fields,
+          return dataStore.termCardinalityEstimationForBuckets(dataset, fields,
               minTerm == null ? null : new BigDecimal(minTerm),
               maxTerm == null ? null : new BigDecimal(maxTerm));
         }
@@ -170,13 +167,13 @@ final public class TerminalNode extends AbstractNode {
       return 0;
     }
     if (Inflectional.equals(form_)) {
-      return terms.stream().mapToLong(
-          term -> dataStore.termCardinalityEstimationForBuckets(scanners, dataset, fields(), term))
+      return terms.stream()
+          .mapToLong(term -> dataStore.termCardinalityEstimationForBuckets(dataset, fields(), term))
           .sum();
     }
     if (Literal.equals(form_)) {
-      return terms.stream().mapToLong(
-          term -> dataStore.termCardinalityEstimationForBuckets(scanners, dataset, fields(), term))
+      return terms.stream()
+          .mapToLong(term -> dataStore.termCardinalityEstimationForBuckets(dataset, fields(), term))
           .max().orElse(0);
     }
     if (Thesaurus.equals(form_)) {
@@ -186,12 +183,10 @@ final public class TerminalNode extends AbstractNode {
   }
 
   @Override
-  public Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,
-      String dataset, BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer) {
+  public Iterator<String> execute(DataStore dataStore, String dataset, BloomFilters<String> docsIds,
+      Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(writers, "writers should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(
@@ -224,7 +219,7 @@ final public class TerminalNode extends AbstractNode {
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.docsIds(scanners, writers, dataset, fields,
+          return dataStore.docsIds(dataset, fields,
               minTerm == null ? null : new BigDecimal(minTerm),
               maxTerm == null ? null : new BigDecimal(maxTerm), docsIds);
         }
@@ -246,7 +241,7 @@ final public class TerminalNode extends AbstractNode {
       List<Iterator<String>> ids = new ArrayList<>();
 
       for (String term : terms) {
-        ids.add(dataStore.docsIds(scanners, writers, dataset,
+        ids.add(dataStore.docsIds(dataset,
             WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"),
             fields(), docsIds));
       }
@@ -263,8 +258,7 @@ final public class TerminalNode extends AbstractNode {
 
       for (int i = 0; i < terms.size() - 1; i++) {
 
-        Iterator<String> iter =
-            dataStore.docsIds(scanners, writers, dataset, terms.get(i), fields(), bfs);
+        Iterator<String> iter = dataStore.docsIds(dataset, terms.get(i), fields(), bfs);
 
         if (!iter.hasNext()) {
           return ITERATOR_EMPTY;
@@ -276,8 +270,7 @@ final public class TerminalNode extends AbstractNode {
           bfs.put(iter.next());
         }
       }
-      return dataStore.docsIds(scanners, writers, dataset, terms.get(terms.size() - 1), fields(),
-          bfs);
+      return dataStore.docsIds(dataset, terms.get(terms.size() - 1), fields(), bfs);
     }
     if (Thesaurus.equals(form_)) {
       // TODO : backport code

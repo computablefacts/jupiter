@@ -14,8 +14,6 @@ import com.computablefacts.jupiter.storage.DedupIterator;
 import com.computablefacts.jupiter.storage.DifferenceIterator;
 import com.computablefacts.jupiter.storage.SynchronousIterator;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
-import com.computablefacts.jupiter.storage.datastore.Scanners;
-import com.computablefacts.jupiter.storage.datastore.Writers;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.types.SpanSequence;
 import com.google.common.base.Function;
@@ -68,11 +66,10 @@ final public class InternalNode extends AbstractNode {
   }
 
   @Override
-  public long cardinality(DataStore dataStore, Scanners scanners, String dataset,
+  public long cardinality(DataStore dataStore, String dataset,
       Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_
@@ -87,13 +84,13 @@ final public class InternalNode extends AbstractNode {
     if (child1_ == null) {
       cardChild1 = 0;
     } else {
-      cardChild1 = child1_.cardinality(dataStore, scanners, dataset, tokenizer);
+      cardChild1 = child1_.cardinality(dataStore, dataset, tokenizer);
     }
 
     if (child2_ == null) {
       cardChild2 = 0;
     } else {
-      cardChild2 = child2_.cardinality(dataStore, scanners, dataset, tokenizer);
+      cardChild2 = child2_.cardinality(dataStore, dataset, tokenizer);
     }
 
     if (child1_ != null && child2_ != null) {
@@ -131,12 +128,10 @@ final public class InternalNode extends AbstractNode {
   }
 
   @Override
-  public Iterator<String> execute(DataStore dataStore, Scanners scanners, Writers writers,
-      String dataset, BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer) {
+  public Iterator<String> execute(DataStore dataStore, String dataset, BloomFilters<String> docsIds,
+      Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(writers, "writers should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_
@@ -156,7 +151,7 @@ final public class InternalNode extends AbstractNode {
         return Constants.ITERATOR_EMPTY;
       }
       return eConjunctionTypes.Or.equals(conjunction_)
-          ? child2_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer)
+          ? child2_.execute(dataStore, dataset, docsIds, tokenizer)
           : Constants.ITERATOR_EMPTY;
     }
     if (child2_ == null) {
@@ -168,7 +163,7 @@ final public class InternalNode extends AbstractNode {
         return Constants.ITERATOR_EMPTY;
       }
       return eConjunctionTypes.Or.equals(conjunction_)
-          ? child1_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer)
+          ? child1_.execute(dataStore, dataset, docsIds, tokenizer)
           : Constants.ITERATOR_EMPTY;
     }
 
@@ -190,16 +185,14 @@ final public class InternalNode extends AbstractNode {
       }
       if (child1_.exclude()) {
         // NOT A OR B
-        return child2_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer);
+        return child2_.execute(dataStore, dataset, docsIds, tokenizer);
       }
       // A OR NOT B
-      return child1_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer);
+      return child1_.execute(dataStore, dataset, docsIds, tokenizer);
     }
 
-    Iterator<String> ids1 =
-        child1_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer);
-    Iterator<String> ids2 =
-        child2_.execute(dataStore, scanners, writers, dataset, docsIds, tokenizer);
+    Iterator<String> ids1 = child1_.execute(dataStore, dataset, docsIds, tokenizer);
+    Iterator<String> ids2 = child2_.execute(dataStore, dataset, docsIds, tokenizer);
 
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B}
     if (eConjunctionTypes.And.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {

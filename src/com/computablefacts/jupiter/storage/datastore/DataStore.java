@@ -1,11 +1,7 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
-import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
-import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -13,23 +9,15 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +25,6 @@ import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
-import com.computablefacts.jupiter.storage.AbstractStorage;
-import com.computablefacts.jupiter.storage.FlattenIterator;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.jupiter.storage.cache.Cache;
@@ -57,12 +43,9 @@ import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
 import com.github.wnameless.json.flattener.JsonFlattener;
-import com.google.common.annotations.Beta;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -103,7 +86,7 @@ import com.google.errorprone.annotations.Var;
  * </p>
  */
 @CheckReturnValue
-final public class DataStore {
+final public class DataStore implements AutoCloseable {
 
   private static final Base64.Decoder b64Decoder_ = Base64.getDecoder();
   private static final Logger logger_ = LoggerFactory.getLogger(DataStore.class);
@@ -112,6 +95,10 @@ final public class DataStore {
   private final BlobStore blobStore_;
   private final TermStore termStore_;
   private final Cache cache_;
+
+  private AbstractBlobProcessor blobProcessor_;
+  private AbstractTermProcessor termProcessor_;
+  private AbstractHashProcessor hashProcessor_;
 
   public DataStore(Configurations configurations, String name) {
     name_ = Preconditions.checkNotNull(name, "name should neither be null nor empty");
@@ -137,6 +124,18 @@ final public class DataStore {
   @Generated
   public static String cacheName(String name) {
     return name + "Cache";
+  }
+
+  @Generated
+  @Override
+  public void close() {
+    flush();
+  }
+
+  @Generated
+  @Override
+  protected void finalize() {
+    flush();
   }
 
   /**
@@ -190,24 +189,85 @@ final public class DataStore {
   }
 
   /**
-   * Get scanners.
+   * Set the blob processor.
    *
-   * @param authorizations authorizations.
-   * @return scanners.
+   * @param blobProcessor the processor used to deal with terms when
+   *        {@link #persistBlob(String, String, String)} is called.
    */
-  @Deprecated
-  public Scanners scanners(Authorizations authorizations) {
-    return new Scanners(configurations(), name(), authorizations);
+  @Generated
+  public void setBlobProcessor(AbstractBlobProcessor blobProcessor) {
+    if (blobProcessor_ != null) {
+      try {
+        blobProcessor_.close();
+      } catch (Exception e) {
+        logger_.error(LogFormatter.create(true).message(e).formatError());
+      }
+    }
+    blobProcessor_ = blobProcessor;
   }
 
   /**
-   * Get writers.
+   * Set the term processor.
    *
-   * @return writers.
+   * @param termProcessor the processor used to deal with terms when
+   *        {@link #persistTerm(String, String, String, Object, int)},
+   *        {@link #docsIds(String, String, Set, BloomFilters)} or
+   *        {@link #docsIds(String, Set, Object, Object, BloomFilters)} is called.
    */
-  @Deprecated
-  public Writers writers() {
-    return new Writers(configurations(), name());
+  @Generated
+  public void setTermProcessor(AbstractTermProcessor termProcessor) {
+    if (termProcessor_ != null) {
+      try {
+        termProcessor_.close();
+      } catch (Exception e) {
+        logger_.error(LogFormatter.create(true).message(e).formatError());
+      }
+    }
+    termProcessor_ = termProcessor;
+  }
+
+  /**
+   * Set the hash processor.
+   *
+   * @param hashProcessor the processor used to deal with hashes when
+   *        {@link #persistHash(String, String, String, Object)},
+   *        {@link #matchHash(String, String, String)} or
+   *        {@link #matchValue(String, String, Object)} is called.
+   */
+  @Generated
+  public void setHashProcessor(AbstractHashProcessor hashProcessor) {
+    if (hashProcessor_ != null) {
+      try {
+        hashProcessor_.close();
+      } catch (Exception e) {
+        logger_.error(LogFormatter.create(true).message(e).formatError());
+      }
+    }
+    hashProcessor_ = hashProcessor;
+  }
+
+  public void flush() {
+    if (blobProcessor_ != null) {
+      try {
+        blobProcessor_.close();
+      } catch (Exception e) {
+        logger_.error(LogFormatter.create(true).message(e).formatError());
+      }
+    }
+    if (termProcessor_ != null) {
+      try {
+        termProcessor_.close();
+      } catch (Exception e) {
+        logger_.error(LogFormatter.create(true).message(e).formatError());
+      }
+    }
+    if (hashProcessor_ != null) {
+      try {
+        hashProcessor_.close();
+      } catch (Exception e) {
+        logger_.error(LogFormatter.create(true).message(e).formatError());
+      }
+    }
   }
 
   public boolean grantWritePermissionOnBlobStore(String username) {
@@ -419,8 +479,8 @@ final public class DataStore {
   /**
    * This method should be called once, at the end of the ingest process.
    *
-   * If the {@link #beginIngest()} and {@link #endIngest(Writers, String)} methods are called too
-   * often, the estimators may be heavily skewed towards a subset of the data.
+   * If the {@link #beginIngest()} and {@link #endIngest(String)} methods are called too often, the
+   * estimators may be heavily skewed towards a subset of the data.
    */
   public void beginIngest() {
     termStore_.beginIngest();
@@ -429,166 +489,158 @@ final public class DataStore {
   /**
    * This method should be called once, at the end of the ingest process.
    *
-   * If the {@link #beginIngest()} and {@link #endIngest(Writers, String)} methods are called too
-   * often, the estimators may be heavily skewed towards a subset of the data.
+   * If the {@link #beginIngest()} and {@link #endIngest(String)} methods are called too often, the
+   * estimators may be heavily skewed towards a subset of the data.
    *
-   * @param writers writers.
    * @param dataset the dataset.
    * @return true if the write operations succeeded, false otherwise.
    */
   @CanIgnoreReturnValue
-  public boolean endIngest(Writers writers, String dataset) {
-
-    Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return termStore_.endIngest(writers.index(), dataset);
+  public boolean endIngest(String dataset) {
+    return termProcessor_ == null || (termProcessor_ instanceof AccumuloTermProcessor
+        && termStore_.endIngest(((AccumuloTermProcessor) termProcessor_).writer(), dataset));
   }
 
   /**
    * Persist a single JSON object.
    *
-   * @param writers writers.
    * @param dataset dataset.
    * @param docId unique identifier.
    * @param json JSON object.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean persist(Writers writers, String dataset, String docId, String json) {
-    return persistJson(writers, dataset, docId, json, key -> true, Codecs.defaultTokenizer, true);
+  public boolean persist(String dataset, String docId, String json) {
+    return persistJson(dataset, docId, json, key -> true, Codecs.defaultTokenizer, true);
   }
 
   /**
    * Persist a single JSON object.
    *
-   * @param writers writers.
    * @param dataset dataset.
    * @param docId unique identifier.
    * @param json JSON object.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean persist(Writers writers, String dataset, String docId, Map<String, Object> json) {
-    return persistJson(writers, dataset, docId, Codecs.asString(json), key -> true,
-        Codecs.defaultTokenizer, true);
+  public boolean persist(String dataset, String docId, Map<String, Object> json) {
+    return persistJson(dataset, docId, Codecs.asString(json), key -> true, Codecs.defaultTokenizer,
+        true);
   }
 
   /**
    * Reindex a single JSON object.
    *
-   * @param writers writers.
    * @param dataset dataset.
    * @param docId unique identifier.
    * @param json JSON object.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean reindex(Writers writers, String dataset, String docId, String json) {
-    return persistJson(writers, dataset, docId, json, key -> true, Codecs.defaultTokenizer, false);
+  public boolean reindex(String dataset, String docId, String json) {
+    return persistJson(dataset, docId, json, key -> true, Codecs.defaultTokenizer, false);
   }
 
   /**
    * Reindex a single JSON object.
    *
-   * @param writers writers.
    * @param dataset dataset.
    * @param docId unique identifier.
    * @param json JSON object.
    * @return true if the operation succeeded, false otherwise.
    */
-  public boolean reindex(Writers writers, String dataset, String docId, Map<String, Object> json) {
-    return persistJson(writers, dataset, docId, Codecs.asString(json), key -> true,
-        Codecs.defaultTokenizer, false);
+  public boolean reindex(String dataset, String docId, Map<String, Object> json) {
+    return persistJson(dataset, docId, Codecs.asString(json), key -> true, Codecs.defaultTokenizer,
+        false);
   }
 
   /**
    * Get the visibility labels available for a given field.
    *
-   * @param scanners scanners.
    * @param dataset dataset.
    * @param field field.
    * @return visibility labels. No particular order should be expected from the returned iterator.
    */
-  public Iterator<FieldLabels> fieldVisibilityLabels(Scanners scanners, String dataset,
-      String field) {
+  public Iterator<FieldLabels> fieldVisibilityLabels(String dataset, String field) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldVisibilityLabels(scanners.index(NB_QUERY_THREADS), dataset,
-        field == null ? null : Sets.newHashSet(field));
+    return termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)
+        ? ITERATOR_EMPTY
+        : termStore_.fieldVisibilityLabels(((AccumuloTermProcessor) termProcessor_).scanner(),
+            dataset, field == null ? null : Sets.newHashSet(field));
   }
 
   /**
    * Get the date of last of a given field.
    *
-   * @param scanners scanners.
    * @param dataset dataset.
    * @param field field.
    * @return last update as an UTC timestamp. No particular order should be expected from the
    *         returned iterator.
    */
-  public Iterator<FieldLastUpdate> fieldLastUpdate(Scanners scanners, String dataset,
-      String field) {
+  public Iterator<FieldLastUpdate> fieldLastUpdate(String dataset, String field) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldLastUpdate(scanners.index(NB_QUERY_THREADS), dataset,
-        field == null ? null : Sets.newHashSet(field));
+    return termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)
+        ? ITERATOR_EMPTY
+        : termStore_.fieldLastUpdate(((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
+            field == null ? null : Sets.newHashSet(field));
   }
 
   /**
    * Get the number of distinct terms for a given field.
    *
-   * @param scanners scanners.
    * @param dataset dataset.
    * @param field field.
    * @return cardinality estimation. No particular order should be expected from the returned
    *         iterator.
    */
-  public Iterator<FieldDistinctTerms> fieldCardinalityEstimationForTerms(Scanners scanners,
-      String dataset, String field) {
+  public Iterator<FieldDistinctTerms> fieldCardinalityEstimationForTerms(String dataset,
+      String field) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldCardinalityEstimationForTerms(scanners.index(NB_QUERY_THREADS), dataset,
-        field == null ? null : Sets.newHashSet(field));
+    return termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)
+        ? ITERATOR_EMPTY
+        : termStore_.fieldCardinalityEstimationForTerms(
+            ((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
+            field == null ? null : Sets.newHashSet(field));
   }
 
   /**
    * Get the number of distinct buckets for a given field.
    *
-   * @param scanners scanners.
    * @param dataset dataset.
    * @param field field.
    * @return cardinality estimation. No particular order should be expected from the returned
    *         iterator.
    */
-  public Iterator<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(Scanners scanners,
-      String dataset, String field) {
+  public Iterator<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(String dataset,
+      String field) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldCardinalityEstimationForBuckets(scanners.index(NB_QUERY_THREADS),
-        dataset, field == null ? null : Sets.newHashSet(field));
+    return termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)
+        ? ITERATOR_EMPTY
+        : termStore_.fieldCardinalityEstimationForBuckets(
+            ((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
+            field == null ? null : Sets.newHashSet(field));
   }
 
   /**
    * Get the number of distinct buckets for a given field.
    *
-   * @param scanners scanners.
    * @param dataset dataset.
    * @param field field.
    * @return top terms. No particular order should be expected from the returned iterator.
    */
-  public Iterator<FieldTopTerms> fieldTopTerms(Scanners scanners, String dataset, String field) {
+  public Iterator<FieldTopTerms> fieldTopTerms(String dataset, String field) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termStore_.fieldTopTerms(scanners.index(NB_QUERY_THREADS), dataset,
-        field == null ? null : Sets.newHashSet(field));
+    return termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)
+        ? ITERATOR_EMPTY
+        : termStore_.fieldTopTerms(((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
+            field == null ? null : Sets.newHashSet(field));
   }
 
   /**
@@ -598,20 +650,19 @@ final public class DataStore {
    * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
    * must also have the <dataset>_<field> auth for each requested field.
    *
-   * @param scanners scanners.
    * @param dataset dataset.
    * @param fields JSON fields to keep (optional).
-   * @param nbQueryThreads JSON fields to keep (optional).
    * @return list of documents. No particular order should be expected from the returned iterator if
    *         {@code nbQueryThreads} is set to a value above 1.
    */
-  public Iterator<Blob<Value>> jsonScan(Scanners scanners, String dataset, Set<String> fields,
-      int nbQueryThreads) {
+  public Iterator<Blob<Value>> jsonScan(String dataset, Set<String> fields) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return blobStore_.getJsons(scanners.blob(nbQueryThreads), dataset, null, fields);
+    return blobProcessor_ == null || !(blobProcessor_ instanceof AccumuloBlobProcessor)
+        ? ITERATOR_EMPTY
+        : blobStore_.getJsons(((AccumuloBlobProcessor) blobProcessor_).scanner(), dataset, null,
+            fields);
   }
 
   /**
@@ -620,47 +671,47 @@ final public class DataStore {
    * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
    * must also have the <dataset>_<field> auth for each requested field.
    *
-   * @param scanners scanners.
    * @param dataset dataset.
    * @param fields JSON fields to keep (optional).
    * @param docsIds documents unique identifiers.
-   * @param nbQueryThreads JSON fields to keep (optional).
    * @return list of documents. No particular order should be expected from the returned iterator if
    *         {@code nbQueryThreads} is set to a value above 1.
    */
-  public Iterator<Blob<Value>> jsonScan(Scanners scanners, String dataset, Set<String> fields,
-      Set<String> docsIds, int nbQueryThreads) {
+  public Iterator<Blob<Value>> jsonScan(String dataset, Set<String> fields, Set<String> docsIds) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docsIds, "docsIds should not be null");
 
-    return blobStore_.getJsons(scanners.blob(nbQueryThreads), dataset, docsIds, fields);
+    return blobProcessor_ == null || !(blobProcessor_ instanceof AccumuloBlobProcessor)
+        ? ITERATOR_EMPTY
+        : blobStore_.getJsons(((AccumuloBlobProcessor) blobProcessor_).scanner(), dataset, docsIds,
+            fields);
   }
 
   /**
    * Estimate the number of buckets with at least one of occurrence of a given term.
    *
-   * @param scanners scanners.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
    * @return the estimated number of occurrences of the given term.
    */
-  public long termCardinalityEstimationForBuckets(Scanners scanners, String dataset,
-      Set<String> fields, String term) {
+  public long termCardinalityEstimationForBuckets(String dataset, Set<String> fields, String term) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkArgument(
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
         "term cannot start AND end with a wildcard");
 
+    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
+      return 0;
+    }
+
     @Var
     long count = 0;
 
     Iterator<TermDistinctBuckets> iter = termStore_.termCardinalityEstimationForBuckets(
-        scanners.index(NB_QUERY_THREADS), dataset, fields, term);
+        ((AccumuloTermProcessor) termProcessor_).scanner(), dataset, fields, term);
 
     while (iter.hasNext()) {
       TermDistinctBuckets termCount = iter.next();
@@ -673,28 +724,30 @@ final public class DataStore {
    * Estimate the number of buckets with at least one of occurrence of all terms in [minTerm,
    * maxTerm].
    *
-   * @param scanners scanners.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param minTerm first searched term (included). Wildcard characters are not allowed.
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @return the estimated number of terms in [minTerm, maxTerm].
    */
-  public long termCardinalityEstimationForBuckets(Scanners scanners, String dataset,
-      Set<String> fields, Object minTerm, Object maxTerm) {
+  public long termCardinalityEstimationForBuckets(String dataset, Set<String> fields,
+      Object minTerm, Object maxTerm) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
         "minTerm and maxTerm cannot be null at the same time");
     Preconditions.checkArgument(
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
+    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
+      return 0;
+    }
+
     @Var
     long count = 0;
 
     Iterator<TermDistinctBuckets> iter = termStore_.termCardinalityEstimationForBuckets(
-        scanners.index(NB_QUERY_THREADS), dataset, fields, minTerm, maxTerm);
+        ((AccumuloTermProcessor) termProcessor_).scanner(), dataset, fields, minTerm, maxTerm);
 
     while (iter.hasNext()) {
       TermDistinctBuckets termCount = iter.next();
@@ -706,37 +759,21 @@ final public class DataStore {
   /**
    * Get the ids of all documents where at least one token matches "term".
    *
-   * @param scanners scanners.
-   * @param writers writers.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  public Iterator<String> docsIds(Scanners scanners, Writers writers, String dataset, String term,
-      Set<String> fields, BloomFilters<String> docsIds) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-
-    // Extract buckets ids, i.e. documents ids, from the TermStore
-    // TODO : load docs on-demand to prevent segfault
-    Set<String> bucketsIds = new HashSet<>();
-    Iterators.transform(
-        termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset, fields, term, docsIds),
-        t -> t.bucketId() + SEPARATOR_NUL + t.dataset()).forEachRemaining(bucketsIds::add);
-
-    // Returns an iterator over the documents ids
-    return bucketsIds.stream().sorted().distinct().iterator();
+  public Iterator<String> docsIds(String dataset, String term, Set<String> fields,
+      BloomFilters<String> docsIds) {
+    return termProcessor_ == null ? ITERATOR_EMPTY
+        : termProcessor_.read(dataset, term, fields, docsIds);
   }
 
   /**
    * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm].
    *
-   * @param scanners scanners.
-   * @param writers writers.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param minTerm first searched term (included). Wildcard characters are not allowed.
@@ -744,74 +781,55 @@ final public class DataStore {
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  public Iterator<String> docsIds(Scanners scanners, Writers writers, String dataset,
-      Set<String> fields, Object minTerm, Object maxTerm, BloomFilters<String> docsIds) {
-
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
-    Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkArgument(minTerm != null || maxTerm != null,
-        "minTerm and maxTerm cannot be null at the same time");
-    Preconditions.checkArgument(
-        minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
-        "minTerm and maxTerm must be of the same type");
-
-    // Extract buckets ids, i.e. documents ids, from the TermStore
-    // TODO : load docs on-demand to prevent segfault
-    Set<String> bucketsIds = new HashSet<>();
-    Iterators
-        .transform(termStore_.bucketsIds(scanners.index(NB_QUERY_THREADS), dataset, fields, minTerm,
-            maxTerm, docsIds), t -> t.bucketId() + SEPARATOR_NUL + t.dataset())
-        .forEachRemaining(bucketsIds::add);
-
-    // Returns an iterator over the documents ids
-    return bucketsIds.stream().sorted().distinct().iterator();
+  public Iterator<String> docsIds(String dataset, Set<String> fields, Object minTerm,
+      Object maxTerm, BloomFilters<String> docsIds) {
+    return termProcessor_ == null ? ITERATOR_EMPTY
+        : termProcessor_.read(dataset, fields, minTerm, maxTerm, docsIds);
   }
 
   /**
    * Get the ids of all documents where a field value exactly matches a given value.
    *
-   * @param scanners scanners.
    * @param dataset dataset.
    * @param field which field must be considered.
    * @param value the value to match.
    * @return an unordered stream of documents ids.
    */
-  public Iterator<String> matchValue(Scanners scanners, String dataset, String field,
-      Object value) {
+  public Iterator<String> matchValue(String dataset, String field, Object value) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-          .add("field", field).add("value", value).formatDebug());
+          .add("field", field).add("value", value).add("has_hash_processor", hashProcessor_ != null)
+          .formatDebug());
     }
-    return readHash(scanners, dataset, field, MaskingIterator.hash(null, value.toString()));
+    return hashProcessor_ == null ? ITERATOR_EMPTY
+        : hashProcessor_.read(dataset, field, MaskingIterator.hash(null, value.toString()));
   }
 
   /**
    * Get the ids of all documents where a field hashed value exactly matches a given hash.
    *
-   * @param scanners scanners.
    * @param dataset dataset.
    * @param field which field must be considered.
    * @param hash the hash to match.
    * @return an unordered stream of documents ids.
    */
-  public Iterator<String> matchHash(Scanners scanners, String dataset, String field, String hash) {
+  public Iterator<String> matchHash(String dataset, String field, String hash) {
 
-    Preconditions.checkNotNull(scanners, "scanners should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(hash, "hash should not be null");
 
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-          .add("field", field).add("hash", hash).formatDebug());
+          .add("field", field).add("hash", hash).add("has_hash_processor", hashProcessor_ != null)
+          .formatDebug());
     }
-    return readHash(scanners, dataset, field, hash);
+    return hashProcessor_ == null ? ITERATOR_EMPTY : hashProcessor_.read(dataset, field, hash);
   }
 
   /**
@@ -821,66 +839,61 @@ final public class DataStore {
    * @param auths the user authorizations.
    * @return {@link DataStoreInfos}.
    */
-  @Beta
   public DataStoreInfos infos(Set<String> datasets, Authorizations auths) {
 
     DataStoreInfos infos = new DataStoreInfos(name());
 
-    try (Scanners scanners = scanners(auths)) {
+    datasets.forEach(dataset -> {
 
-      datasets.forEach(dataset -> {
+      Iterator<FieldDistinctTerms> cardEstForTermsIterator =
+          fieldCardinalityEstimationForTerms(dataset, null);
 
-        Iterator<FieldDistinctTerms> cardEstForTermsIterator =
-            fieldCardinalityEstimationForTerms(scanners, dataset, null);
+      while (cardEstForTermsIterator.hasNext()) {
+        FieldDistinctTerms distinctTerms = cardEstForTermsIterator.next();
+        infos.addCardinalityEstimationForTerms(dataset, distinctTerms.field(), distinctTerms.type(),
+            distinctTerms.estimate());
+      }
 
-        while (cardEstForTermsIterator.hasNext()) {
-          FieldDistinctTerms distinctTerms = cardEstForTermsIterator.next();
-          infos.addCardinalityEstimationForTerms(dataset, distinctTerms.field(),
-              distinctTerms.type(), distinctTerms.estimate());
-        }
+      Iterator<FieldDistinctBuckets> cardEstForBucketsIterator =
+          fieldCardinalityEstimationForBuckets(dataset, null);
 
-        Iterator<FieldDistinctBuckets> cardEstForBucketsIterator =
-            fieldCardinalityEstimationForBuckets(scanners, dataset, null);
+      while (cardEstForBucketsIterator.hasNext()) {
+        FieldDistinctBuckets distinctBuckets = cardEstForBucketsIterator.next();
+        infos.addCardinalityEstimationForBuckets(dataset, distinctBuckets.field(),
+            distinctBuckets.type(), distinctBuckets.estimate());
+      }
 
-        while (cardEstForBucketsIterator.hasNext()) {
-          FieldDistinctBuckets distinctBuckets = cardEstForBucketsIterator.next();
-          infos.addCardinalityEstimationForBuckets(dataset, distinctBuckets.field(),
-              distinctBuckets.type(), distinctBuckets.estimate());
-        }
+      Iterator<FieldTopTerms> topTermsIterator = fieldTopTerms(dataset, null);
 
-        Iterator<FieldTopTerms> topTermsIterator = fieldTopTerms(scanners, dataset, null);
+      while (topTermsIterator.hasNext()) {
+        FieldTopTerms topTerms = topTermsIterator.next();
+        infos.addTopTermsNoFalsePositives(dataset, topTerms.field(), topTerms.type(),
+            topTerms.topTermsNoFalsePositives());
+        infos.addTopTermsNoFalseNegatives(dataset, topTerms.field(), topTerms.type(),
+            topTerms.topTermsNoFalseNegatives());
+      }
 
-        while (topTermsIterator.hasNext()) {
-          FieldTopTerms topTerms = topTermsIterator.next();
-          infos.addTopTermsNoFalsePositives(dataset, topTerms.field(), topTerms.type(),
-              topTerms.topTermsNoFalsePositives());
-          infos.addTopTermsNoFalseNegatives(dataset, topTerms.field(), topTerms.type(),
-              topTerms.topTermsNoFalseNegatives());
-        }
+      Iterator<FieldLabels> labelsIterator = fieldVisibilityLabels(dataset, null);
 
-        Iterator<FieldLabels> labelsIterator = fieldVisibilityLabels(scanners, dataset, null);
+      while (labelsIterator.hasNext()) {
+        FieldLabels labels = labelsIterator.next();
+        infos.addVisibilityLabels(dataset, labels.field(), labels.type(), labels.termLabels());
+      }
 
-        while (labelsIterator.hasNext()) {
-          FieldLabels labels = labelsIterator.next();
-          infos.addVisibilityLabels(dataset, labels.field(), labels.type(), labels.termLabels());
-        }
+      Iterator<FieldLastUpdate> lastUpdateIterator = fieldLastUpdate(dataset, null);
 
-        Iterator<FieldLastUpdate> lastUpdateIterator = fieldLastUpdate(scanners, dataset, null);
-
-        while (lastUpdateIterator.hasNext()) {
-          FieldLastUpdate lastUpdate = lastUpdateIterator.next();
-          infos.addLastUpdate(dataset, lastUpdate.field(), lastUpdate.type(),
-              lastUpdate.lastUpdate());
-        }
-      });
-    }
+      while (lastUpdateIterator.hasNext()) {
+        FieldLastUpdate lastUpdate = lastUpdateIterator.next();
+        infos.addLastUpdate(dataset, lastUpdate.field(), lastUpdate.type(),
+            lastUpdate.lastUpdate());
+      }
+    });
     return infos;
   }
 
   /**
    * Persist a single JSON object.
    *
-   * @param writers writers.
    * @param dataset the dataset.
    * @param docId the document identifier
    * @param json the JSON object as a String.
@@ -890,10 +903,9 @@ final public class DataStore {
    * @param jsonAsBlob the json will be persisted as a blob iif this parameter is set to true.
    * @return true if the operation succeeded, false otherwise.
    */
-  private boolean persistJson(Writers writers, String dataset, String docId, String json,
+  private boolean persistJson(String dataset, String docId, String json,
       Predicate<String> keepField, Function<String, SpanSequence> tokenizer, boolean jsonAsBlob) {
 
-    Preconditions.checkNotNull(writers, "writers should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(json, "json should not be null");
@@ -905,7 +917,7 @@ final public class DataStore {
     }
 
     if (jsonAsBlob) {
-      if (!persistBlob(writers, dataset, docId, json)) {
+      if (!persistBlob(dataset, docId, json)) {
         return false;
       }
     }
@@ -996,7 +1008,7 @@ final public class DataStore {
         fields.put(newField, HashMultiset.create());
       }
 
-      if (!persistHash(writers, dataset, docId, newField, value)) {
+      if (!persistHash(dataset, docId, newField, value)) {
         logger_
             .error(LogFormatter.create(true)
                 .message(String.format(
@@ -1043,215 +1055,24 @@ final public class DataStore {
 
     for (Map.Entry<String, Multiset<Object>> field : fields.entrySet()) {
       for (Multiset.Entry<Object> term : field.getValue().entrySet()) {
-        isOk = isOk && persistTerm(writers, dataset, docId, field.getKey(), term.getElement(),
-            term.getCount());
+        isOk =
+            isOk && persistTerm(dataset, docId, field.getKey(), term.getElement(), term.getCount());
       }
     }
     return isOk;
   }
 
-  /**
-   * Persist a single JSON object.
-   *
-   * @param writers writers.
-   * @param dataset the dataset.
-   * @param docId the document identifier.
-   * @param blob the JSON string.
-   * @return true if the write operation succeeded, false otherwise.
-   */
-  private boolean persistBlob(Writers writers, String dataset, String docId, String blob) {
-
-    Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(docId, "docId should not be null");
-    Preconditions.checkNotNull(blob, "blob should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-          .add("doc_id", docId).add("blob", blob).formatDebug());
-    }
-
-    String vizAdm = STRING_ADM; // for backward compatibility
-    String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
-    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(docId);
-    String vizRawData = vizDataset + STRING_RAW_DATA;
-
-    if (!blobStore_.putJson(writers.blob(), dataset, docId,
-        Sets.newHashSet(vizAdm, vizUuid, vizRawData), blob)) {
-
-      logger_.error(LogFormatter.create(true).message("write failed").add("dataset", dataset)
-          .add("doc_id", docId).add("blob", blob).formatError());
-
-      return false;
-    }
-    return true;
+  private boolean persistBlob(String dataset, String docId, String blob) {
+    return blobProcessor_ == null || blobProcessor_.write(dataset, docId, blob);
   }
 
-  /**
-   * Persist a single term.
-   *
-   * @param writers writers.
-   * @param dataset the dataset.
-   * @param docId the document identifier.
-   * @param field the field name.
-   * @param term the term to index.
-   * @param nbOccurrencesInDoc the number of occurrences of the term in the document.
-   * @return true if the write operation succeeded, false otherwise.
-   */
-  private boolean persistTerm(Writers writers, String dataset, String docId, String field,
-      Object term, int nbOccurrencesInDoc) {
-
-    Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(docId, "docId should not be null");
-    Preconditions.checkNotNull(field, "field should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkArgument(nbOccurrencesInDoc > 0, "nbOccurrencesInDoc must be > 0");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-          .add("doc_id", docId).add("field", field).add("term", term)
-          .add("nb_occurrences_in_doc", nbOccurrencesInDoc).formatDebug());
-    }
-
-    List<String> path =
-        Splitter.on(SEPARATOR_CURRENCY_SIGN).trimResults().omitEmptyStrings().splitToList(field);
-
-    String vizAdm = STRING_ADM; // for backward compatibility
-    String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
-    String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(docId);
-
-    Set<String> vizDocSpecific = Sets.newHashSet(vizUuid);
-    Set<String> vizFieldSpecific = Sets.newHashSet(vizAdm);
-
-    AbstractStorage.toVisibilityLabels(path)
-        .forEach(label -> vizFieldSpecific.add(vizDataset + label));
-
-    boolean isOk = termStore_.put(writers.index(), dataset, docId, field, term, nbOccurrencesInDoc,
-        vizDocSpecific, vizFieldSpecific);
-
-    if (!isOk) {
-      logger_.error(LogFormatter.create(true).message("write failed").add("dataset", dataset)
-          .add("doc_id", docId).add("field", field).add("term", term).formatError());
-    }
-    return isOk;
+  private boolean persistTerm(String dataset, String docId, String field, Object term,
+      int nbOccurrencesInDoc) {
+    return termProcessor_ == null
+        || termProcessor_.write(dataset, docId, field, term, nbOccurrencesInDoc);
   }
 
-  /**
-   * Persist a field value as a hash.
-   *
-   * @param writers writers.
-   * @param dataset the dataset.
-   * @param docId the document identifier.
-   * @param field the field name.
-   * @param value the value to hash and index.
-   * @return true if the write operation succeeded, false otherwise.
-   */
-  private boolean persistHash(Writers writers, String dataset, String docId, String field,
-      Object value) {
-
-    Preconditions.checkNotNull(writers, "writers should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(docId, "docId should not be null");
-    Preconditions.checkNotNull(field, "field should not be null");
-    Preconditions.checkNotNull(value, "value should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-          .add("doc_id", docId).add("field", field).add("value", value).formatDebug());
-    }
-
-    if (value instanceof Date) {
-      return writeHash(writers, dataset, field, ((Date) value).toInstant().toString(), docId);
-    }
-    return writeHash(writers, dataset, field, value.toString(), docId);
-  }
-
-  /**
-   * Cache fields and values.
-   *
-   * WARNING : bypass {@link BlobStore#putArray(BatchWriter, String, String, Set, String)} because
-   * we expect the column visibility to be empty.
-   *
-   * @param writers writers.
-   * @param dataset dataset.
-   * @param field the field.
-   * @param value the field value.
-   * @param docId the document id.
-   */
-  private boolean writeHash(Writers writers, String dataset, String field, String value,
-      String docId) {
-
-    Preconditions.checkNotNull(writers, "writers should neither be null nor empty");
-    Preconditions.checkNotNull(field, "field should neither be null nor empty");
-    Preconditions.checkNotNull(value, "value should neither be null nor empty");
-    Preconditions.checkNotNull(docId, "docId should neither be null nor empty");
-
-    String hash = MaskingIterator.hash(null, value);
-    Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + hash);
-    mutation.put(BlobStore.arrayShard(docId), field, docId);
-
-    try {
-      writers.blob().addMutation(mutation);
-      return true;
-    } catch (MutationsRejectedException e) {
-      logger_.error(LogFormatter.create(true).message(e).formatError());
-    }
-    return false;
-  }
-
-  /**
-   * Get documents ids.
-   *
-   * WARNING : bypass {@link BlobStore#getArrays(ScannerBase, String, Set, Set)} because we expect
-   * the column visibility to be empty.
-   *
-   * @param scanners scanners.
-   * @param dataset dataset.
-   * @param field the field.
-   * @param hash the field hashed value.
-   * @return an unordered set of docs ids.
-   */
-  private Iterator<String> readHash(Scanners scanners, String dataset, String field, String hash) {
-
-    Preconditions.checkNotNull(scanners, "scanners should neither be null nor empty");
-    Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("field", field)
-          .add("hash", hash).formatDebug());
-    }
-
-    ScannerBase scanner = scanners.blob(NB_QUERY_THREADS);
-
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-
-    if (field != null) {
-      BlobStore.allArrayShards().forEach(cf -> scanner.fetchColumn(new Text(cf), new Text(field)));
-    } else {
-      BlobStore.allArrayShards().forEach(cf -> scanner.fetchColumnFamily(new Text(cf)));
-    }
-
-    Set<Range> ranges = new HashSet<>();
-
-    if (hash != null && field != null) {
-      BlobStore.allArrayShards()
-          .forEach(cf -> ranges.add(Range.exact(dataset + SEPARATOR_NUL + hash, cf, field)));
-    } else if (hash != null) {
-      BlobStore.allArrayShards()
-          .forEach(cf -> ranges.add(Range.exact(dataset + SEPARATOR_NUL + hash, cf)));
-    } else {
-      ranges.add(Range.prefix(dataset + SEPARATOR_NUL));
-    }
-
-    if (!AbstractStorage.setRanges(scanner, ranges)) {
-      return ITERATOR_EMPTY;
-    }
-    return new FlattenIterator<>(scanner.iterator(), entry -> {
-      Value val = entry.getValue();
-      return Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings()
-          .splitToList(val.toString());
-    });
+  private boolean persistHash(String dataset, String docId, String field, Object value) {
+    return hashProcessor_ == null || hashProcessor_.write(dataset, docId, field, value);
   }
 }

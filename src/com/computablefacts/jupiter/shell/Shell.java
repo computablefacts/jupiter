@@ -1,7 +1,6 @@
 package com.computablefacts.jupiter.shell;
 
 import static com.computablefacts.jupiter.Users.authorizations;
-import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.io.BufferedWriter;
@@ -32,9 +31,10 @@ import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Streams;
 import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
+import com.computablefacts.jupiter.storage.datastore.AccumuloBlobProcessor;
+import com.computablefacts.jupiter.storage.datastore.AccumuloHashProcessor;
+import com.computablefacts.jupiter.storage.datastore.AccumuloTermProcessor;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
-import com.computablefacts.jupiter.storage.datastore.Scanners;
-import com.computablefacts.jupiter.storage.datastore.Writers;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.Document;
@@ -419,47 +419,57 @@ public class Shell {
       logger_.error(LogFormatter.create(true).message(e).formatError());
     }
 
-    try (Writers writers = ds.writers()) {
+    try (AccumuloBlobProcessor blobProcessor = new AccumuloBlobProcessor(ds.blobStore(), null)) {
+      try (AccumuloTermProcessor termProcessor = new AccumuloTermProcessor(ds.termStore(), null)) {
+        try (
+            AccumuloHashProcessor hashProcessor = new AccumuloHashProcessor(ds.blobStore(), null)) {
 
-      ds.beginIngest();
+          ds.setBlobProcessor(blobProcessor);
+          ds.setTermProcessor(termProcessor);
+          ds.setHashProcessor(hashProcessor);
+          ds.beginIngest();
 
-      Streams.forEach(Files.compressedLineStream(f, StandardCharsets.UTF_8), (line, breaker) -> {
+          Streams.forEach(Files.compressedLineStream(f, StandardCharsets.UTF_8),
+              (line, breaker) -> {
 
-        String row = line.getValue();
+                String row = line.getValue();
 
-        if (Strings.isNullOrEmpty(row)) {
-          return;
+                if (Strings.isNullOrEmpty(row)) {
+                  return;
+                }
+                try {
+                  Map<String, Object> json = Codecs.asObject(row);
+                  Document document = new Document(json);
+
+                  // if (!document.fileExists()) { // do not reindex missing files
+                  // if (logger_.isInfoEnabled()) {
+                  // logger_.info(LogFormatter.create(true).message(
+                  // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " +
+                  // document.path())
+                  // .formatInfo());
+                  // }
+                  // } else {
+
+                  if (!ds.persist(dataset, document.docId(), row)) {
+                    logger_.error(LogFormatter.create(true)
+                        .message("Persistence of " + document.docId() + " failed").formatError());
+                    breaker.stop();
+                  }
+
+                  if ((count.incrementAndGet() % 100 == 0 || breaker.shouldBreak())
+                      && logger_.isInfoEnabled()) {
+                    logger_.info(LogFormatter.create(true)
+                        .message("Number of JSON processed : " + count.get()).formatInfo());
+                  }
+                  // }
+                } catch (Exception e) {
+                  logger_.error(LogFormatter.create(true).message(e).formatError());
+                }
+              });
+
+          ds.endIngest(dataset);
         }
-        try {
-          Map<String, Object> json = Codecs.asObject(row);
-          Document document = new Document(json);
-
-          // if (!document.fileExists()) { // do not reindex missing files
-          // if (logger_.isInfoEnabled()) {
-          // logger_.info(LogFormatter.create(true).message(
-          // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " + document.path())
-          // .formatInfo());
-          // }
-          // } else {
-
-          if (!ds.persist(writers, dataset, document.docId(), row)) {
-            logger_.error(LogFormatter.create(true)
-                .message("Persistence of " + document.docId() + " failed").formatError());
-            breaker.stop();
-          }
-
-          if ((count.incrementAndGet() % 100 == 0 || breaker.shouldBreak())
-              && logger_.isInfoEnabled()) {
-            logger_.info(LogFormatter.create(true)
-                .message("Number of JSON processed : " + count.get()).formatInfo());
-          }
-          // }
-        } catch (Exception e) {
-          logger_.error(LogFormatter.create(true).message(e).formatError());
-        }
-      });
-
-      ds.endIngest(writers, dataset);
+      }
     }
 
     stopwatch.stop();
@@ -511,42 +521,50 @@ public class Shell {
     AtomicInteger count = new AtomicInteger(0);
     AtomicInteger ignored = new AtomicInteger(0);
 
-    try (Scanners scanners = ds.scanners(authorizations(auths))) {
-      try (Writers writers = ds.writers()) {
+    try (AccumuloBlobProcessor blobProcessor =
+        new AccumuloBlobProcessor(ds.blobStore(), authorizations(auths))) {
+      try (AccumuloTermProcessor termProcessor =
+          new AccumuloTermProcessor(ds.termStore(), authorizations(auths))) {
+        try (AccumuloHashProcessor hashProcessor =
+            new AccumuloHashProcessor(ds.blobStore(), authorizations(auths))) {
 
-        ds.beginIngest();
+          ds.setBlobProcessor(blobProcessor);
+          ds.setTermProcessor(termProcessor);
+          ds.setHashProcessor(hashProcessor);
+          ds.beginIngest();
 
-        Iterator<Blob<Value>> iterator =
-            ds.blobStore().getJsons(scanners.blob(NB_QUERY_THREADS), dataset, null, null);
+          Iterator<Blob<Value>> iterator =
+              ds.blobStore().getJsons(blobProcessor.scanner(), dataset, null, null);
 
-        while (iterator.hasNext()) {
+          while (iterator.hasNext()) {
 
-          Blob<Value> blob = iterator.next();
+            Blob<Value> blob = iterator.next();
 
-          if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
-            if (logger_.isInfoEnabled()) {
-              logger_.info(LogFormatter.create(true)
-                  .message("Number of JSON written : " + count.get()).formatInfo());
+            if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
+              if (logger_.isInfoEnabled()) {
+                logger_.info(LogFormatter.create(true)
+                    .message("Number of JSON written : " + count.get()).formatInfo());
+              }
+            }
+            if (!blob.isJson()) {
+              logger_.warn(LogFormatter.create(true)
+                  .message("Total number of JSON ignored : " + ignored.incrementAndGet())
+                  .formatWarn());
+              continue;
+            }
+
+            Map<String, Object> json = Codecs.asObject(blob.value().toString());
+            Document document = new Document(json);
+
+            if (!ds.reindex(dataset, document.docId(), json)) {
+              logger_.error(LogFormatter.create(true)
+                  .message("Re-indexation of " + document.docId() + " failed").formatError());
+              break;
             }
           }
-          if (!blob.isJson()) {
-            logger_.warn(LogFormatter.create(true)
-                .message("Total number of JSON ignored : " + ignored.incrementAndGet())
-                .formatWarn());
-            continue;
-          }
 
-          Map<String, Object> json = Codecs.asObject(blob.value().toString());
-          Document document = new Document(json);
-
-          if (!ds.reindex(writers, dataset, document.docId(), json)) {
-            logger_.error(LogFormatter.create(true)
-                .message("Re-indexation of " + document.docId() + " failed").formatError());
-            break;
-          }
+          ds.endIngest(dataset);
         }
-
-        ds.endIngest(writers, dataset);
       }
     }
 
@@ -578,14 +596,15 @@ public class Shell {
     Stopwatch stopwatch = Stopwatch.createStarted();
     DataStore ds = new DataStore(configurations, datastore);
 
-    try (Scanners scanners = ds.scanners(authorizations(auths))) {
+    try (AccumuloBlobProcessor blobProcessor =
+        new AccumuloBlobProcessor(ds.blobStore(), authorizations(auths))) {
       try (FileOutputStream fos = new FileOutputStream(f)) {
         try (BufferedWriter bw =
             new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {
 
           AtomicInteger count = new AtomicInteger(0);
           Iterator<Blob<Value>> iterator =
-              ds.blobStore().getJsons(scanners.blob(NB_QUERY_THREADS), dataset, null, null);
+              ds.blobStore().getJsons(blobProcessor.scanner(), dataset, null, null);
 
           while (iterator.hasNext()) {
 

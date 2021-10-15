@@ -53,46 +53,43 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     DataStore dataStore = newDataStore(AUTH_ADM);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_2", "row_1", Data.json3(1)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
 
     AbstractNode query = QueryBuilder.build("doe");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-        docsIds.clear();
-        query.execute(dataStore, scanners, writers, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
-      }
-    }
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
 
     Assert.assertTrue(dataStore.truncate());
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        Assert.assertTrue(docsIds.isEmpty()); // because the cache has been trashed
+    Assert.assertTrue(docsIds.isEmpty()); // because the cache has been trashed
 
-        docsIds.clear();
-        query.execute(dataStore, scanners, writers, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
 
-        Assert.assertTrue(docsIds.isEmpty()); // because the cache has been trashed
-      }
-    }
+    Assert.assertTrue(docsIds.isEmpty()); // because the cache has been trashed
   }
 
   @Test
@@ -100,47 +97,44 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     DataStore dataStore = newDataStore(AUTH_ADM);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_2", "row_1", Data.json3(1)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
 
     AbstractNode query = QueryBuilder.build("doe");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-        docsIds.clear();
-        query.execute(dataStore, scanners, writers, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
-      }
-    }
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
 
     Assert.assertTrue(dataStore.remove("dataset_1"));
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(0, docsIds.size());
+    Assert.assertEquals(0, docsIds.size());
 
-        docsIds.clear();
-        query.execute(dataStore, scanners, writers, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
-      }
-    }
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
   }
 
   @Test
@@ -149,31 +143,32 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_2", "row_1", Data.json3(1)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
+
+    dataStore.flush();
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     AbstractNode query = QueryBuilder.build("joh? AND doe");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-        docsIds.clear();
-        query.execute(dataStore, scanners, writers, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
 
-        Assert.assertTrue(docsIds.isEmpty());
-      }
-    }
+    Assert.assertTrue(docsIds.isEmpty());
   }
 
   @Test
@@ -182,31 +177,32 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_2", "row_1", Data.json3(1)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
+
+    dataStore.flush();
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     AbstractNode query = QueryBuilder.build("doe AND NOT jan?");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-        docsIds.clear();
-        query.execute(dataStore, scanners, writers, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
 
-        Assert.assertTrue(docsIds.isEmpty());
-      }
-    }
+    Assert.assertTrue(docsIds.isEmpty());
   }
 
   @Test
@@ -215,39 +211,33 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_2", "row_1", Data.json3(1)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
+
+    dataStore.flush();
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-        docsIds.clear();
-        query.execute(dataStore, scanners, writers, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
-      }
-    }
-  }
-
-  @Test
-  public void testRunRowLevelAuthorizationsFiftyTimes() throws Exception {
-    for (int i = 0; i < 50; i++) {
-      testRowLevelAuthorizations();
-    }
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
   }
 
   @Test
@@ -257,37 +247,40 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore =
         newDataStore(new Authorizations("ADM", "DATASET_1_ROW_1", "DATASET_1_ROW_2"), username);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
+
+    dataStore.flush();
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
-    try (Scanners scanners = dataStore.scanners(new Authorizations("DATASET_1_ROW_1"))) {
-      try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(
+        new AccumuloBlobProcessor(dataStore.blobStore(), new Authorizations("DATASET_1_ROW_1")));
+    dataStore.setTermProcessor(
+        new AccumuloTermProcessor(dataStore.termStore(), new Authorizations("DATASET_1_ROW_1")));
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
-      }
-    }
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-    try (Scanners scanners = dataStore.scanners(new Authorizations("DATASET_1_ROW_2"))) {
-      try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(
+        new AccumuloBlobProcessor(dataStore.blobStore(), new Authorizations("DATASET_1_ROW_2")));
+    dataStore.setTermProcessor(
+        new AccumuloTermProcessor(dataStore.termStore(), new Authorizations("DATASET_1_ROW_2")));
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(0));
-      }
-    }
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(0));
   }
 
   @Test
@@ -296,10 +289,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
+
+    dataStore.flush();
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
@@ -307,39 +303,27 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     @Var
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(2, query.cardinality(dataStore, scanners, "dataset_1"));
-    }
+    Assert.assertEquals(2, query.cardinality(dataStore, "dataset_1"));
 
     query = QueryBuilder.build("*ohn OR *ane");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(2, query.cardinality(dataStore, scanners, "dataset_1"));
-    }
+    Assert.assertEquals(2, query.cardinality(dataStore, "dataset_1"));
 
     query = QueryBuilder.build("joh* AND jan*");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(1, query.cardinality(dataStore, scanners, "dataset_1"));
-    }
+    Assert.assertEquals(1, query.cardinality(dataStore, "dataset_1"));
 
     query = QueryBuilder.build("*ohn AND *ane");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(1, query.cardinality(dataStore, scanners, "dataset_1"));
-    }
+    Assert.assertEquals(1, query.cardinality(dataStore, "dataset_1"));
 
     query = QueryBuilder.build("joh* AND NOT jan*");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(1, query.cardinality(dataStore, scanners, "dataset_1"));
-    }
+    Assert.assertEquals(1, query.cardinality(dataStore, "dataset_1"));
 
     query = QueryBuilder.build("*ohn AND NOT *ane");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(1, query.cardinality(dataStore, scanners, "dataset_1"));
-    }
+    Assert.assertEquals(1, query.cardinality(dataStore, "dataset_1"));
   }
 
   @Test
@@ -348,10 +332,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
+
+    dataStore.flush();
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
@@ -359,28 +346,20 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     @Var
     AbstractNode query = QueryBuilder.build("age:[* TO 20]");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(2, query.cardinality(dataStore, scanners, "dataset_1"));
-    }
+    Assert.assertEquals(2, query.cardinality(dataStore, "dataset_1"));
 
     query = QueryBuilder.build("age:[15 TO 20]");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(2, query.cardinality(dataStore, scanners, "dataset_1"));
-    }
+    Assert.assertEquals(2, query.cardinality(dataStore, "dataset_1"));
 
     query = QueryBuilder.build("age:[15 TO *]");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(2, query.cardinality(dataStore, scanners, "dataset_1"));
-    }
+    Assert.assertEquals(2, query.cardinality(dataStore, "dataset_1"));
 
     // Min. term should be included and max. term excluded
     query = QueryBuilder.build("age:[17 TO 18]");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      Assert.assertEquals(1, query.cardinality(dataStore, scanners, "dataset_1"));
-    }
+    Assert.assertEquals(1, query.cardinality(dataStore, "dataset_1"));
   }
 
   @Test
@@ -389,10 +368,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
+
+    dataStore.flush();
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
@@ -400,59 +382,42 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     @Var
     AbstractNode query = QueryBuilder.build("age:[* TO 20]");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
+    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        Assert.assertEquals(2, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(1));
-      }
-    }
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(1));
 
     query = QueryBuilder.build("age:[15 TO 20]");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    docsIds.clear();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
-
-        Assert.assertEquals(2, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(1));
-      }
-    }
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(1));
 
     query = QueryBuilder.build("age:[15 TO *]");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    docsIds.clear();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
-
-        Assert.assertEquals(2, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(1));
-      }
-    }
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(1));
 
     // Min. term should be included and max. term excluded
     query = QueryBuilder.build("age:[17 TO 18]");
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
-      try (Writers writers = dataStore.writers()) {
+    docsIds.clear();
+    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
 
-        List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-        query.execute(dataStore, scanners, writers, "dataset_1").forEachRemaining(docsIds::add);
-
-        Assert.assertEquals(1, docsIds.size());
-        Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
-      }
-    }
+    Assert.assertEquals(1, docsIds.size());
+    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
   }
 
   @Test
@@ -461,56 +426,58 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json(2)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), null));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json(1)));
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json(2)));
+
+    dataStore.flush();
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), AUTH_ADM));
 
-      List<String> docsIds = new ArrayList<>();
-      dataStore.matchValue(scanners, "dataset_1", "Actors[*]¤name", "Tom Cruise")
-          .forEachRemaining(docsIds::add);
+    List<String> docsIds = new ArrayList<>();
+    dataStore.matchValue("dataset_1", "Actors[*]¤name", "Tom Cruise")
+        .forEachRemaining(docsIds::add);
 
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
 
-      docsIds.clear();
-      dataStore.matchValue(scanners, "dataset_1", "Actors[*]¤weight", 67.5)
-          .forEachRemaining(docsIds::add);
+    docsIds.clear();
+    dataStore.matchValue("dataset_1", "Actors[*]¤weight", 67.5).forEachRemaining(docsIds::add);
 
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
 
-      docsIds.clear();
-      dataStore.matchValue(scanners, "dataset_1", "Actors[*]¤age", 73)
-          .forEachRemaining(docsIds::add);
+    docsIds.clear();
+    dataStore.matchValue("dataset_1", "Actors[*]¤age", 73).forEachRemaining(docsIds::add);
 
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
 
-      docsIds.clear();
-      dataStore.matchValue(scanners, "dataset_1", "Actors[*]¤hasGreyHair", false)
-          .forEachRemaining(docsIds::add);
+    docsIds.clear();
+    dataStore.matchValue("dataset_1", "Actors[*]¤hasGreyHair", false)
+        .forEachRemaining(docsIds::add);
 
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
 
-      docsIds.clear();
-      dataStore.matchValue(scanners, "dataset_1", "Actors[*]¤hasChildren", true)
-          .forEachRemaining(docsIds::add);
+    docsIds.clear();
+    dataStore.matchValue("dataset_1", "Actors[*]¤hasChildren", true).forEachRemaining(docsIds::add);
 
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
-    }
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
   }
 
   @Test
@@ -519,59 +486,61 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    try (Writers writers = dataStore.writers()) {
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json(2)));
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), null));
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json(1)));
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json(2)));
+
+    dataStore.flush();
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    try (Scanners scanners = dataStore.scanners(AUTH_ADM)) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), AUTH_ADM));
 
-      List<String> docsIds = new ArrayList<>();
-      dataStore
-          .matchHash(scanners, "dataset_1", "Actors[*]¤name", "8f8a04ea49585975fcf1e452b988e085")
-          .forEachRemaining(docsIds::add);
+    List<String> docsIds = new ArrayList<>();
+    dataStore.matchHash("dataset_1", "Actors[*]¤name", "8f8a04ea49585975fcf1e452b988e085")
+        .forEachRemaining(docsIds::add);
 
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
 
-      docsIds.clear();
-      dataStore
-          .matchHash(scanners, "dataset_1", "Actors[*]¤weight", "4103e8509cbdf6b3372222061bbe1da6")
-          .forEachRemaining(docsIds::add);
+    docsIds.clear();
+    dataStore.matchHash("dataset_1", "Actors[*]¤weight", "4103e8509cbdf6b3372222061bbe1da6")
+        .forEachRemaining(docsIds::add);
 
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
 
-      docsIds.clear();
-      dataStore
-          .matchHash(scanners, "dataset_1", "Actors[*]¤age", "3974c437d717863985a0b5618f289b46")
-          .forEachRemaining(docsIds::add);
+    docsIds.clear();
+    dataStore.matchHash("dataset_1", "Actors[*]¤age", "3974c437d717863985a0b5618f289b46")
+        .forEachRemaining(docsIds::add);
 
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
 
-      docsIds.clear();
-      dataStore.matchHash(scanners, "dataset_1", "Actors[*]¤hasGreyHair",
-          "e495b7e5056dbfc4e854950696d4c3cc").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    dataStore.matchHash("dataset_1", "Actors[*]¤hasGreyHair", "e495b7e5056dbfc4e854950696d4c3cc")
+        .forEachRemaining(docsIds::add);
 
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
 
-      docsIds.clear();
-      dataStore.matchHash(scanners, "dataset_1", "Actors[*]¤hasChildren",
-          "5db32d6ecc1f5ef816ebe6268a3343c2").forEachRemaining(docsIds::add);
+    docsIds.clear();
+    dataStore.matchHash("dataset_1", "Actors[*]¤hasChildren", "5db32d6ecc1f5ef816ebe6268a3343c2")
+        .forEachRemaining(docsIds::add);
 
-      Assert.assertEquals(2, docsIds.size());
-      Assert.assertTrue(docsIds.contains("row_1"));
-      Assert.assertTrue(docsIds.contains("row_2"));
-    }
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
   }
 
   @Test
@@ -580,12 +549,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     String username = nextUsername();
     DataStore dataStore = newDataStore(AUTH_ADM, username);
 
-    try (Writers writers = dataStore.writers()) {
-      dataStore.beginIngest();
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_2", Data.json3(1)));
-      dataStore.endIngest(writers, "dataset_1");
-    }
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), AUTH_ADM));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), AUTH_ADM));
+
+    dataStore.beginIngest();
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
+    dataStore.endIngest("dataset_1");
+
+    dataStore.flush();
 
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
@@ -686,13 +658,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore = newDataStore(auths);
 
     // Index
-    try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), null));
 
-      dataStore.beginIngest();
+    dataStore.beginIngest();
 
-      Assert.assertTrue(dataStore.persist(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.endIngest(writers, "dataset_1"));
-    }
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.endIngest("dataset_1"));
+
+    dataStore.flush();
 
     try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
 
@@ -774,13 +749,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.termStore().removeDataset("dataset_1"));
 
     // Reindex -> do not update blobs but rebuild the whole terms index
-    try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), null));
 
-      dataStore.beginIngest();
+    dataStore.beginIngest();
 
-      Assert.assertTrue(dataStore.reindex(writers, "dataset_1", "row_1", Data.json2(1)));
-      Assert.assertTrue(dataStore.endIngest(writers, "dataset_1"));
-    }
+    Assert.assertTrue(dataStore.reindex("dataset_1", "row_1", Data.json2(1)));
+    Assert.assertTrue(dataStore.endIngest("dataset_1"));
+
+    dataStore.flush();
 
     try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
 
@@ -866,13 +844,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore = newDataStore(auths);
 
     // Index
-    try (Writers writers = dataStore.writers()) {
+    dataStore.setBlobProcessor(new AccumuloBlobProcessor(dataStore.blobStore(), null));
+    dataStore.setTermProcessor(new AccumuloTermProcessor(dataStore.termStore(), null));
+    dataStore.setHashProcessor(new AccumuloHashProcessor(dataStore.blobStore(), null));
 
-      dataStore.beginIngest();
+    dataStore.beginIngest();
 
-      Assert.assertTrue(dataStore.persist(writers, "dataset", "row_1", Data.json4()));
-      Assert.assertTrue(dataStore.endIngest(writers, "dataset"));
-    }
+    Assert.assertTrue(dataStore.persist("dataset", "row_1", Data.json4()));
+    Assert.assertTrue(dataStore.endIngest("dataset"));
+
+    dataStore.flush();
 
     // Check BlobStore
     try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
