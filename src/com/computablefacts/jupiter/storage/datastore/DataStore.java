@@ -10,12 +10,14 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -611,10 +613,19 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)
-        ? ITERATOR_EMPTY
-        : termStore_.fieldVisibilityLabels(((AccumuloTermProcessor) termProcessor_).scanner(),
-            dataset, field == null ? null : Sets.newHashSet(field));
+    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
+      return ITERATOR_EMPTY;
+    }
+
+    // TODO : load docs on-demand to prevent segfault
+    Set<FieldLabels> fl = new HashSet<>();
+
+    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
+      termStore_
+          .fieldVisibilityLabels(scanner, dataset, field == null ? null : Sets.newHashSet(field))
+          .forEachRemaining(fl::add);
+    }
+    return fl.iterator();
   }
 
   /**
@@ -629,10 +640,18 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)
-        ? ITERATOR_EMPTY
-        : termStore_.fieldLastUpdate(((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
-            field == null ? null : Sets.newHashSet(field));
+    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
+      return ITERATOR_EMPTY;
+    }
+
+    // TODO : load docs on-demand to prevent segfault
+    Set<FieldLastUpdate> flu = new HashSet<>();
+
+    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
+      termStore_.fieldLastUpdate(scanner, dataset, field == null ? null : Sets.newHashSet(field))
+          .forEachRemaining(flu::add);
+    }
+    return flu.iterator();
   }
 
   /**
@@ -648,11 +667,18 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)
-        ? ITERATOR_EMPTY
-        : termStore_.fieldCardinalityEstimationForTerms(
-            ((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
-            field == null ? null : Sets.newHashSet(field));
+    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
+      return ITERATOR_EMPTY;
+    }
+
+    // TODO : load docs on-demand to prevent segfault
+    Set<FieldDistinctTerms> fdt = new HashSet<>();
+
+    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
+      termStore_.fieldCardinalityEstimationForTerms(scanner, dataset,
+          field == null ? null : Sets.newHashSet(field)).forEachRemaining(fdt::add);
+    }
+    return fdt.iterator();
   }
 
   /**
@@ -668,11 +694,18 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)
-        ? ITERATOR_EMPTY
-        : termStore_.fieldCardinalityEstimationForBuckets(
-            ((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
-            field == null ? null : Sets.newHashSet(field));
+    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
+      return ITERATOR_EMPTY;
+    }
+
+    // TODO : load docs on-demand to prevent segfault
+    Set<FieldDistinctBuckets> fdb = new HashSet<>();
+
+    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
+      termStore_.fieldCardinalityEstimationForBuckets(scanner, dataset,
+          field == null ? null : Sets.newHashSet(field)).forEachRemaining(fdb::add);
+    }
+    return fdb.iterator();
   }
 
   /**
@@ -686,10 +719,18 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)
-        ? ITERATOR_EMPTY
-        : termStore_.fieldTopTerms(((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
-            field == null ? null : Sets.newHashSet(field));
+    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
+      return ITERATOR_EMPTY;
+    }
+
+    // TODO : load docs on-demand to prevent segfault
+    Set<FieldTopTerms> ftt = new HashSet<>();
+
+    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
+      termStore_.fieldTopTerms(scanner, dataset, field == null ? null : Sets.newHashSet(field))
+          .forEachRemaining(ftt::add);
+    }
+    return ftt.iterator();
   }
 
   /**
@@ -708,10 +749,17 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return blobProcessor_ == null || !(blobProcessor_ instanceof AccumuloBlobProcessor)
-        ? ITERATOR_EMPTY
-        : blobStore_.getJsons(((AccumuloBlobProcessor) blobProcessor_).scanner(), dataset, null,
-            fields);
+    if (blobProcessor_ == null || !(blobProcessor_ instanceof AccumuloBlobProcessor)) {
+      return ITERATOR_EMPTY;
+    }
+
+    // TODO : load docs on-demand to prevent segfault
+    Set<Blob<Value>> blobs = new HashSet<>();
+
+    try (ScannerBase scanner = ((AccumuloBlobProcessor) blobProcessor_).scanner()) {
+      blobStore_.getJsons(scanner, dataset, null, fields).forEachRemaining(blobs::add);
+    }
+    return blobs.iterator();
   }
 
   /**
@@ -731,10 +779,18 @@ final public class DataStore implements AutoCloseable {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docsIds, "docsIds should not be null");
 
-    return blobProcessor_ == null || !(blobProcessor_ instanceof AccumuloBlobProcessor)
-        ? ITERATOR_EMPTY
-        : blobStore_.getJsons(((AccumuloBlobProcessor) blobProcessor_).scanner(), dataset, docsIds,
-            fields);
+
+    if (blobProcessor_ == null || !(blobProcessor_ instanceof AccumuloBlobProcessor)) {
+      return ITERATOR_EMPTY;
+    }
+
+    // TODO : load docs on-demand to prevent segfault
+    Set<Blob<Value>> blobs = new HashSet<>();
+
+    try (ScannerBase scanner = ((AccumuloBlobProcessor) blobProcessor_).scanner()) {
+      blobStore_.getJsons(scanner, dataset, docsIds, fields).forEachRemaining(blobs::add);
+    }
+    return blobs.iterator();
   }
 
   /**
@@ -759,12 +815,15 @@ final public class DataStore implements AutoCloseable {
     @Var
     long count = 0;
 
-    Iterator<TermDistinctBuckets> iter = termStore_.termCardinalityEstimationForBuckets(
-        ((AccumuloTermProcessor) termProcessor_).scanner(), dataset, fields, term);
+    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
 
-    while (iter.hasNext()) {
-      TermDistinctBuckets termCount = iter.next();
-      count += termCount.count();
+      Iterator<TermDistinctBuckets> iter =
+          termStore_.termCardinalityEstimationForBuckets(scanner, dataset, fields, term);
+
+      while (iter.hasNext()) {
+        TermDistinctBuckets termCount = iter.next();
+        count += termCount.count();
+      }
     }
     return count;
   }
@@ -795,12 +854,15 @@ final public class DataStore implements AutoCloseable {
     @Var
     long count = 0;
 
-    Iterator<TermDistinctBuckets> iter = termStore_.termCardinalityEstimationForBuckets(
-        ((AccumuloTermProcessor) termProcessor_).scanner(), dataset, fields, minTerm, maxTerm);
+    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
 
-    while (iter.hasNext()) {
-      TermDistinctBuckets termCount = iter.next();
-      count += termCount.count();
+      Iterator<TermDistinctBuckets> iter = termStore_.termCardinalityEstimationForBuckets(scanner,
+          dataset, fields, minTerm, maxTerm);
+
+      while (iter.hasNext()) {
+        TermDistinctBuckets termCount = iter.next();
+        count += termCount.count();
+      }
     }
     return count;
   }

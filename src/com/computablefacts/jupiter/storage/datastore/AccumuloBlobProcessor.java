@@ -26,7 +26,6 @@ final public class AccumuloBlobProcessor extends AbstractBlobProcessor {
   private final Authorizations authorizations_;
   private final int nbQueryThreads_;
   private BatchWriter writer_;
-  private ScannerBase reader_;
 
   AccumuloBlobProcessor(BlobStore blobStore, Authorizations authorizations, int nbQueryThreads) {
     blobStore_ = Preconditions.checkNotNull(blobStore, "blobStore should not be null");
@@ -43,10 +42,6 @@ final public class AccumuloBlobProcessor extends AbstractBlobProcessor {
         logger_.error(LogFormatter.create(true).message(e).formatError());
       }
       writer_ = null;
-    }
-    if (reader_ != null) {
-      reader_.close();
-      reader_ = null;
     }
   }
 
@@ -78,21 +73,17 @@ final public class AccumuloBlobProcessor extends AbstractBlobProcessor {
     return true;
   }
 
-  public BatchWriter writer() {
+  private BatchWriter writer() {
     if (writer_ == null) {
       writer_ = blobStore_.writer();
     }
     return writer_;
   }
 
-  public ScannerBase scanner() {
-    if (reader_ == null) {
-      if (nbQueryThreads_ == 1) {
-        reader_ = blobStore_.scanner(authorizations_);
-      } else {
-        reader_ = blobStore_.batchScanner(authorizations_, nbQueryThreads_);
-      }
+  ScannerBase scanner() {
+    if (nbQueryThreads_ == 1) {
+      return blobStore_.scanner(authorizations_);
     }
-    return reader_;
+    return blobStore_.batchScanner(authorizations_, nbQueryThreads_);
   }
 }

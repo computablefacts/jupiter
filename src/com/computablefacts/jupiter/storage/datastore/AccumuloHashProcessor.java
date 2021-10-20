@@ -37,7 +37,6 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
   private final Authorizations authorizations_;
   private final int nbQueryThreads_;
   private BatchWriter writer_;
-  private ScannerBase reader_;
 
   AccumuloHashProcessor(BlobStore blobStore, Authorizations authorizations, int nbQueryThreads) {
     blobStore_ =
@@ -55,10 +54,6 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
         logger_.error(LogFormatter.create(true).message(e).formatError());
       }
       writer_ = null;
-    }
-    if (reader_ != null) {
-      reader_.close();
-      reader_ = null;
     }
   }
 
@@ -91,36 +86,43 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
           .add("hash", hash).formatDebug());
     }
 
-    ScannerBase scanner = scanner();
-    scanner.clearColumns();
-    scanner.clearScanIterators();
+    Set<String> docsIds = new HashSet<>();
 
-    if (field != null) {
-      BlobStore.allArrayShards().forEach(cf -> scanner.fetchColumn(new Text(cf), new Text(field)));
-    } else {
-      BlobStore.allArrayShards().forEach(cf -> scanner.fetchColumnFamily(new Text(cf)));
+    try (ScannerBase scanner = scanner()) {
+
+      scanner.clearColumns();
+      scanner.clearScanIterators();
+
+      if (field != null) {
+        BlobStore.allArrayShards()
+            .forEach(cf -> scanner.fetchColumn(new Text(cf), new Text(field)));
+      } else {
+        BlobStore.allArrayShards().forEach(cf -> scanner.fetchColumnFamily(new Text(cf)));
+      }
+
+      Set<Range> ranges = new HashSet<>();
+
+      if (hash != null && field != null) {
+        BlobStore.allArrayShards()
+            .forEach(cf -> ranges.add(Range.exact(dataset + SEPARATOR_NUL + hash, cf, field)));
+      } else if (hash != null) {
+        BlobStore.allArrayShards()
+            .forEach(cf -> ranges.add(Range.exact(dataset + SEPARATOR_NUL + hash, cf)));
+      } else {
+        ranges.add(Range.prefix(dataset + SEPARATOR_NUL));
+      }
+
+      if (!AbstractStorage.setRanges(scanner, ranges)) {
+        return ITERATOR_EMPTY;
+      }
+
+      new FlattenIterator<>(scanner.iterator(), entry -> {
+        Value val = entry.getValue();
+        return Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings()
+            .splitToList(val.toString());
+      }).forEachRemaining(docsIds::add);
     }
-
-    Set<Range> ranges = new HashSet<>();
-
-    if (hash != null && field != null) {
-      BlobStore.allArrayShards()
-          .forEach(cf -> ranges.add(Range.exact(dataset + SEPARATOR_NUL + hash, cf, field)));
-    } else if (hash != null) {
-      BlobStore.allArrayShards()
-          .forEach(cf -> ranges.add(Range.exact(dataset + SEPARATOR_NUL + hash, cf)));
-    } else {
-      ranges.add(Range.prefix(dataset + SEPARATOR_NUL));
-    }
-
-    if (!AbstractStorage.setRanges(scanner, ranges)) {
-      return ITERATOR_EMPTY;
-    }
-    return new FlattenIterator<>(scanner.iterator(), entry -> {
-      Value val = entry.getValue();
-      return Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings()
-          .splitToList(val.toString());
-    });
+    return docsIds.iterator();
   }
 
   @Override
@@ -143,21 +145,17 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
     return false;
   }
 
-  public BatchWriter writer() {
+  private BatchWriter writer() {
     if (writer_ == null) {
       writer_ = blobStore_.writer();
     }
     return writer_;
   }
 
-  public ScannerBase scanner() {
-    if (reader_ == null) {
-      if (nbQueryThreads_ == 1) {
-        reader_ = blobStore_.scanner(authorizations_);
-      } else {
-        reader_ = blobStore_.batchScanner(authorizations_, nbQueryThreads_);
-      }
+  private ScannerBase scanner() {
+    if (nbQueryThreads_ == 1) {
+      return blobStore_.scanner(authorizations_);
     }
-    return reader_;
+    return blobStore_.batchScanner(authorizations_, nbQueryThreads_);
   }
 }

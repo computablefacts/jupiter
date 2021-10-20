@@ -67,6 +67,12 @@ final public class Data {
     return json;
   }
 
+  public static Map<String, Object> json5() {
+    Map<String, Object> json = new HashMap<>();
+    json.put("path", "/opt/test/01_MyFile.csv");
+    return json;
+  }
+
   public static File file(int size) throws Exception {
     java.io.File file = java.io.File.createTempFile("tmp-", ".txt");
     try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {

@@ -9,8 +9,10 @@ import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_IN
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Scanner;
@@ -27,6 +29,7 @@ import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.queries.AbstractNode;
 import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
+import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -929,6 +932,90 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       });
 
       Assert.assertTrue(hasNbConnexions);
+    }
+  }
+
+  @Test
+  public void testQueryWithWildcards() throws Exception {
+
+    Authorizations auths = new Authorizations("ADM");
+    DataStore dataStore = newDataStore(auths);
+
+    // Index
+    dataStore.beginIngest();
+
+    Assert.assertTrue(dataStore.persist("dataset", "row_1", Data.json5()));
+    Assert.assertTrue(dataStore.endIngest("dataset"));
+
+    dataStore.flush();
+
+    // Check BlobStore
+    try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
+
+      List<Map.Entry<Key, Value>> blobs = new ArrayList<>();
+      scanner.iterator().forEachRemaining(blobs::add);
+
+      Assert.assertEquals(2, blobs.size());
+    }
+
+    // Check TermStore
+    try (Scanner scanner = dataStore.termStore().scanner(auths)) {
+
+      List<Map.Entry<Key, Value>> terms = new ArrayList<>();
+      scanner.iterator().forEachRemaining(terms::add);
+
+      Assert.assertEquals(25, terms.size());
+
+      Set<Term> docsIds = new HashSet<>();
+      dataStore.termStore().bucketsIds(scanner, "dataset", "myfile").forEachRemaining(docsIds::add);
+
+      Assert.assertEquals(1, docsIds.size());
+
+      docsIds.clear();
+      dataStore.termStore().bucketsIds(scanner, "dataset", "csv").forEachRemaining(docsIds::add);
+
+      Assert.assertEquals(1, docsIds.size());
+
+      docsIds.clear();
+      dataStore.termStore().bucketsIds(scanner, "dataset", Sets.newHashSet("path"), "myfile", null)
+          .forEachRemaining(docsIds::add);
+
+      Assert.assertEquals(1, docsIds.size());
+
+      docsIds.clear();
+      dataStore.termStore().bucketsIds(scanner, "dataset", Sets.newHashSet("path"), "csv", null)
+          .forEachRemaining(docsIds::add);
+
+      Assert.assertEquals(1, docsIds.size());
+    }
+
+    // Query
+    try (AbstractTermProcessor termProcessor =
+        dataStore.newAccumuloTermProcessor(auths, NB_QUERY_THREADS)) {
+
+      dataStore.setTermProcessor(termProcessor);
+
+      @Var
+      AbstractNode node = QueryBuilder.build("myfile.csv");
+
+      Set<String> docsIds = new HashSet<>();
+      node.execute(dataStore, "dataset").forEachRemaining(id -> docsIds.add(id.getValue()));
+
+      Assert.assertEquals(1, docsIds.size());
+
+      node = QueryBuilder.build("path:myfile.csv");
+
+      docsIds.clear();
+      node.execute(dataStore, "dataset").forEachRemaining(id -> docsIds.add(id.getValue()));
+
+      Assert.assertEquals(1, docsIds.size());
+
+      node = QueryBuilder.build("path:*myfile.csv");
+
+      docsIds.clear();
+      node.execute(dataStore, "dataset").forEachRemaining(id -> docsIds.add(id.getValue()));
+
+      Assert.assertEquals(1, docsIds.size());
     }
   }
 

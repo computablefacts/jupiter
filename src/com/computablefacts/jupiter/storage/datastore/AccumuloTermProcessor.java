@@ -35,7 +35,6 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
   private final Authorizations authorizations_;
   private final int nbQueryThreads_;
   private BatchWriter writer_;
-  private ScannerBase reader_;
 
   AccumuloTermProcessor(TermStore termStore, Authorizations authorizations, int nbQueryThreads) {
     termStore_ = Preconditions.checkNotNull(termStore, "termStore should not be null");
@@ -52,10 +51,6 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
         logger_.error(LogFormatter.create(true).message(e).formatError());
       }
       writer_ = null;
-    }
-    if (reader_ != null) {
-      reader_.close();
-      reader_ = null;
     }
   }
 
@@ -107,8 +102,11 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
     // Extract buckets ids, i.e. documents ids, from the TermStore
     // TODO : load docs on-demand to prevent segfault
     Set<String> bucketsIds = new HashSet<>();
-    Iterators.transform(termStore_.bucketsIds(scanner(), dataset, fields, term, docsIds),
-        t -> t.bucketId() + SEPARATOR_NUL + t.dataset()).forEachRemaining(bucketsIds::add);
+
+    try (ScannerBase scanner = scanner()) {
+      Iterators.transform(termStore_.bucketsIds(scanner, dataset, fields, term, docsIds),
+          t -> t.bucketId() + SEPARATOR_NUL + t.dataset()).forEachRemaining(bucketsIds::add);
+    }
 
     // Returns an iterator over the documents ids
     return bucketsIds.stream().sorted().distinct().iterator();
@@ -127,30 +125,29 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
     // Extract buckets ids, i.e. documents ids, from the TermStore
     // TODO : load docs on-demand to prevent segfault
     Set<String> bucketsIds = new HashSet<>();
-    Iterators
-        .transform(termStore_.bucketsIds(scanner(), dataset, fields, minTerm, maxTerm, docsIds),
-            t -> t.bucketId() + SEPARATOR_NUL + t.dataset())
-        .forEachRemaining(bucketsIds::add);
+
+    try (ScannerBase scanner = scanner()) {
+      Iterators
+          .transform(termStore_.bucketsIds(scanner, dataset, fields, minTerm, maxTerm, docsIds),
+              t -> t.bucketId() + SEPARATOR_NUL + t.dataset())
+          .forEachRemaining(bucketsIds::add);
+    }
 
     // Returns an iterator over the documents ids
     return bucketsIds.stream().sorted().distinct().iterator();
   }
 
-  public BatchWriter writer() {
+  BatchWriter writer() {
     if (writer_ == null) {
       writer_ = termStore_.writer();
     }
     return writer_;
   }
 
-  public ScannerBase scanner() {
-    if (reader_ == null) {
-      if (nbQueryThreads_ == 1) {
-        reader_ = termStore_.scanner(authorizations_);
-      } else {
-        reader_ = termStore_.batchScanner(authorizations_, nbQueryThreads_);
-      }
+  ScannerBase scanner() {
+    if (nbQueryThreads_ == 1) {
+      return termStore_.scanner(authorizations_);
     }
-    return reader_;
+    return termStore_.batchScanner(authorizations_, nbQueryThreads_);
   }
 }
