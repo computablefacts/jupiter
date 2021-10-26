@@ -134,6 +134,8 @@ final public class MiniAccumuloClusterUtils {
     // Create MAC directory
     File macDir = Files.createTempDirectory("mac-").toFile();
 
+    System.out.println("MAC directory is " + macDir);
+
     // Set cluster configuration
     MiniAccumuloConfig config = new MiniAccumuloConfig(macDir, MAC_PASSWORD);
     config.setDefaultMemory(512, MEGABYTE);
