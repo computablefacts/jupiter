@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.combiners.BlobStoreCombiner;
+import com.computablefacts.jupiter.filters.BlobStoreMaskedJsonFieldFilter;
 import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterator;
 import com.computablefacts.jupiter.iterators.BlobStoreMaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
@@ -33,6 +34,7 @@ import com.computablefacts.jupiter.storage.Constants;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.Codecs;
+import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
@@ -73,6 +75,7 @@ final public class BlobStore extends AbstractStorage {
   private static final int BLOBSTORE_COMBINER_PRIORITY = 10;
   private static final int FILTER_OUT_JSON_FIELDS_ITERATOR_PRIORITY = 30;
   private static final int MASKING_ITERATOR_PRIORITY = 31;
+  private static final int MASKED_JSON_FIELD_FILTER_ITERATOR_PRIORITY = 32;
   private static final int MAX_NUMBER_OF_SHARDS = 100;
   private static final Set<String> ARRAY_SHARDS;
 
@@ -279,7 +282,7 @@ final public class BlobStore extends AbstractStorage {
    */
   public Iterator<Blob<Value>> getStrings(ScannerBase scanner, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(scanner, dataset, TYPE_STRING, keys, fields);
+    return get(scanner, dataset, TYPE_STRING, keys, fields, null);
   }
 
   /**
@@ -291,7 +294,21 @@ final public class BlobStore extends AbstractStorage {
    */
   public Iterator<Blob<Value>> getJsons(ScannerBase scanner, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(scanner, dataset, TYPE_JSON, keys, fields);
+    return get(scanner, dataset, TYPE_JSON, keys, fields, null);
+  }
+
+  /**
+   * Get all blobs. Note that using a BatchScanner improves performances a lot.
+   *
+   * @param scanner scanner.
+   * @param dataset dataset/namespace.
+   * @param hashes JSON fields filters (optional).
+   * @return an iterator of (key, value) pairs.
+   */
+  @Beta
+  public Iterator<Blob<Value>> getJsons(ScannerBase scanner, String dataset, Set<String> keys,
+      Set<String> fields, Set<Map.Entry<String, String>> hashes) {
+    return get(scanner, dataset, TYPE_JSON, keys, fields, hashes);
   }
 
   /**
@@ -303,7 +320,7 @@ final public class BlobStore extends AbstractStorage {
    */
   public Iterator<Blob<Value>> getFiles(ScannerBase scanner, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(scanner, dataset, TYPE_FILE, keys, fields);
+    return get(scanner, dataset, TYPE_FILE, keys, fields, null);
   }
 
   /**
@@ -315,7 +332,7 @@ final public class BlobStore extends AbstractStorage {
    */
   public Iterator<Blob<Value>> getArrays(ScannerBase scanner, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(scanner, dataset, TYPE_ARRAY, keys, fields);
+    return get(scanner, dataset, TYPE_ARRAY, keys, fields, null);
   }
 
   /**
@@ -330,10 +347,11 @@ final public class BlobStore extends AbstractStorage {
    * @param blobType the type of blob to retrieve.
    * @param keys keys (optional).
    * @param fields fields to keep if Accumulo Values are JSON objects (optional).
+   * @param hashes JSON fields filters (optional).
    * @return an iterator of (key, value) pairs.
    */
   private Iterator<Blob<Value>> get(ScannerBase scanner, String dataset, String blobType,
-      Set<String> keys, Set<String> fields) {
+      Set<String> keys, Set<String> fields, Set<Map.Entry<String, String>> hashes) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(blobType, "blobType should not be null");
@@ -342,7 +360,7 @@ final public class BlobStore extends AbstractStorage {
     if (logger_.isDebugEnabled()) {
       logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
           .add("blob_type", blobType).add("has_fields", fields != null)
-          .add("has_keys", keys != null).formatDebug());
+          .add("has_keys", keys != null).add("has_hashes", hashes != null).formatDebug());
     }
 
     scanner.clearColumns();
@@ -368,6 +386,16 @@ final public class BlobStore extends AbstractStorage {
     // TODO : set salt
 
     scanner.addScanIterator(setting);
+
+    if (hashes != null && !hashes.isEmpty()) {
+
+      IteratorSetting settings = new IteratorSetting(MASKED_JSON_FIELD_FILTER_ITERATOR_PRIORITY,
+          BlobStoreMaskedJsonFieldFilter.class);
+      hashes.forEach(
+          e -> BlobStoreMaskedJsonFieldFilter.addFilter(settings, e.getKey(), e.getValue()));
+
+      scanner.addScanIterator(settings);
+    }
 
     List<Range> ranges;
 
