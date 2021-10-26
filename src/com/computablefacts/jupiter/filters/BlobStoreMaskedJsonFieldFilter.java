@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
@@ -20,8 +21,10 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.nona.Generated;
+import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
@@ -98,19 +101,31 @@ public class BlobStoreMaskedJsonFieldFilter extends Filter {
       String field = filter.getKey();
       String hash = filter.getValue();
 
-      if (!json.containsKey(field)) {
-        return false;
+      Set<String> val;
+
+      if (json.containsKey(field)) {
+        val = Sets.newHashSet(json.getOrDefault(field, "").toString());
+      } else {
+
+        val = json.entrySet().stream().filter(e -> WildcardMatcher.match(e.getKey(), field))
+            .map(e -> e.getValue() == null ? "" : e.getValue().toString())
+            .collect(Collectors.toSet());
+
+        if (val.isEmpty()) {
+          return false;
+        }
       }
 
-      String val = json.getOrDefault(field, "").toString();
+      if (val.stream().noneMatch(v -> {
+        if (v.startsWith("MASKED_")) {
+          return v.equals(hash);
+        } else {
 
-      if (val.startsWith("MASKED_") && !val.equals(hash)) {
-        return false;
-      }
+          String hashedVal = "MASKED_" + MaskingIterator.hash(null, v);
 
-      String hashedVal = "MASKED_" + MaskingIterator.hash(null, val);
-
-      if (!hashedVal.equals(hash)) {
+          return hashedVal.equals(hash);
+        }
+      })) {
         return false;
       }
     }

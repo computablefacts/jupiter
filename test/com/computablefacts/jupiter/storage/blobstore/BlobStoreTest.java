@@ -3,6 +3,7 @@ package com.computablefacts.jupiter.storage.blobstore;
 import java.io.File;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -370,6 +371,42 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertEquals(Sets.newHashSet("ADM", "BLOBS_RAW_DATA"), blob.labels());
       Assert.assertEquals(Lists.newArrayList(), blob.properties());
       Assert.assertEquals(Codecs.asObject("{}"), Codecs.asObject(blob.value().toString()));
+    }
+  }
+
+  @Test
+  public void testFilterByJsonFields() throws Exception {
+
+    Map<String, Object> json = Data.json(1);
+
+    String dataset = "blobs";
+    String key = "3";
+    Set<String> labels = Sets.newHashSet();
+    Authorizations auths = new Authorizations("ADM", "BLOBS_RAW_DATA", "BLOBS_ACTORS_NAME");
+    BlobStore blobStore = newBlobStore(auths);
+
+    try (BatchWriter writer = blobStore.writer()) {
+      Assert.assertTrue(blobStore.putJson(writer, dataset, key, labels, json));
+    }
+
+    try (BatchScanner scanner =
+        blobStore.batchScanner(new Authorizations("ADM", "BLOBS_ACTORS_NAME"), 1)) {
+
+      List<Blob<Value>> blobs = new ArrayList<>();
+      blobStore.getJsons(scanner, dataset, null, null,
+          Sets.newHashSet(new AbstractMap.SimpleEntry<>("Actors[*]¤weight",
+              "MASKED_4103e8509cbdf6b3372222061bbe1da6")))
+          .forEachRemaining(blobs::add);
+
+      Assert.assertEquals(1, blobs.size());
+
+      blobs.clear();
+      blobStore
+          .getJsons(scanner, dataset, null, null,
+              Sets.newHashSet(new AbstractMap.SimpleEntry<>("Actors[*]¤name", "Tom Cruise")))
+          .forEachRemaining(blobs::add);
+
+      Assert.assertEquals(1, blobs.size());
     }
   }
 
