@@ -64,14 +64,22 @@ import com.google.errorprone.annotations.Var;
  * </p>
  *
  * <p>
- * Note that the {@link BlobStore} also holds a hash index of all JSON values.
+ * Note that the {@link TermStore} also holds a hash index of all JSON values.
  * </p>
  *
  * <pre>
- *  Row                          | Column Family | Column Qualifier                   | Visibility                             | Value
- * ==============================+===============+====================================+========================================+========
- *  <dataset>\0<key>             | <blob_type>   | <property_1>\0<property_2>\0...    | ADM|<dataset>_RAW_DATA|<dataset>_<key> | <blob>
- *  <dataset>\0<hash>            | ARR           | <field>                            | (empty)                                | <key1>\0<key2>\0...
+ *  Row                             | Column Family   | Column Qualifier                  | Visibility                                  | Value
+ * =================================+=================+===================================+=============================================+=================================
+ *  <dataset>\0<field>\0<term_type> | DB              | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
+ *  <dataset>\0<field>\0<term_type> | DT              | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms
+ *  <dataset>\0<field>\0<term_type> | LU              | (empty)                           | ADM|<dataset>_LU                            | utc_date
+ *  <dataset>\0<field>\0<term_type> | TT              | (empty)                           | ADM|<dataset>_TT                            | top_k_terms
+ *  <dataset>\0<field>\0<term_type> | VIZ             | (empty)                           | ADM|<dataset>_VIZ                           | viz1\0viz2\0...
+ *  <dataset>\0<mret>               | BCNT            | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
+ *  <dataset>\0<mret>               | BIDX            | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_of_term_in_bucket
+ *  <dataset>\0<term>               | FCNT            | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
+ *  <dataset>\0<term>               | FIDX            | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_of_term_in_bucket
+ *  <dataset>\0<hash>               | H               | <bucket_id>\0<field>              | (empty)                                     | (empty)
  * </pre>
  *
  * <p>
@@ -186,7 +194,7 @@ final public class DataStore implements AutoCloseable {
   @Beta
   public AccumuloHashProcessor newAccumuloHashProcessor(Authorizations authorizations,
       int nbQueryThreads) {
-    return new AccumuloHashProcessor(blobStore_, authorizations, nbQueryThreads);
+    return new AccumuloHashProcessor(termStore_, authorizations, nbQueryThreads);
   }
 
   /**

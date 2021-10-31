@@ -2,6 +2,7 @@ package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -9,38 +10,40 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.jupiter.filters.TermStoreBucketFieldFilter;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
-import com.computablefacts.jupiter.storage.FlattenIterator;
-import com.computablefacts.jupiter.storage.blobstore.BlobStore;
+import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
 final public class AccumuloHashProcessor extends AbstractHashProcessor {
 
+  private static final String CF = "H";
   private static final Logger logger_ = LoggerFactory.getLogger(AccumuloHashProcessor.class);
 
-  private final BlobStore blobStore_;
+  private final TermStore termStore_;
   private final Authorizations authorizations_;
   private final int nbQueryThreads_;
   private BatchWriter writer_;
 
-  AccumuloHashProcessor(BlobStore blobStore, Authorizations authorizations, int nbQueryThreads) {
-    blobStore_ =
-        Preconditions.checkNotNull(blobStore, "blobStore should neither be null nor empty");
+  AccumuloHashProcessor(TermStore termStore, Authorizations authorizations, int nbQueryThreads) {
+    termStore_ =
+        Preconditions.checkNotNull(termStore, "termStore should neither be null nor empty");
     authorizations_ = authorizations == null ? Authorizations.EMPTY : authorizations;
     nbQueryThreads_ = nbQueryThreads <= 0 ? 1 : nbQueryThreads;
   }
@@ -92,34 +95,32 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
 
       scanner.clearColumns();
       scanner.clearScanIterators();
+      scanner.fetchColumnFamily(new Text(CF));
 
-      if (field != null) {
-        BlobStore.allArrayShards()
-            .forEach(cf -> scanner.fetchColumn(new Text(cf), new Text(field)));
+      Range range;
+
+      if (hash != null) {
+        range = Range.exact(dataset + SEPARATOR_NUL + hash, CF);
       } else {
-        BlobStore.allArrayShards().forEach(cf -> scanner.fetchColumnFamily(new Text(cf)));
+        range = Range.prefix(dataset + SEPARATOR_NUL);
       }
 
-      Set<Range> ranges = new HashSet<>();
-
-      if (hash != null && field != null) {
-        BlobStore.allArrayShards()
-            .forEach(cf -> ranges.add(Range.exact(dataset + SEPARATOR_NUL + hash, cf, field)));
-      } else if (hash != null) {
-        BlobStore.allArrayShards()
-            .forEach(cf -> ranges.add(Range.exact(dataset + SEPARATOR_NUL + hash, cf)));
-      } else {
-        ranges.add(Range.prefix(dataset + SEPARATOR_NUL));
-      }
-
-      if (!AbstractStorage.setRanges(scanner, ranges)) {
+      if (!AbstractStorage.setRanges(scanner, Sets.newHashSet(range))) {
         return ITERATOR_EMPTY;
       }
 
-      new FlattenIterator<>(scanner.iterator(), entry -> {
-        Value val = entry.getValue();
-        return Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings()
-            .splitToList(val.toString());
+      if (field != null) {
+
+        IteratorSetting setting =
+            new IteratorSetting(31, "TermStoreBucketFieldFilter", TermStoreBucketFieldFilter.class);
+        TermStoreBucketFieldFilter.setFieldsToKeep(setting, Sets.newHashSet(field));
+
+        scanner.addScanIterator(setting);
+      }
+
+      Iterators.transform(scanner.iterator(), e -> {
+        String cq = e.getKey().getColumnQualifier().toString();
+        return cq.substring(0, cq.indexOf(SEPARATOR_NUL));
       }).forEachRemaining(docsIds::add);
     }
     return docsIds.iterator();
@@ -134,7 +135,7 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
 
     String hash = MaskingIterator.hash(null, value);
     Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + hash);
-    mutation.put(BlobStore.arrayShard(docId), field, docId);
+    mutation.put(CF, docId + SEPARATOR_NUL + field, VALUE_EMPTY);
 
     try {
       writer().addMutation(mutation);
@@ -147,15 +148,15 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
 
   private BatchWriter writer() {
     if (writer_ == null) {
-      writer_ = blobStore_.writer();
+      writer_ = termStore_.writer();
     }
     return writer_;
   }
 
   private ScannerBase scanner() {
     if (nbQueryThreads_ == 1) {
-      return blobStore_.scanner(authorizations_);
+      return termStore_.scanner(authorizations_);
     }
-    return blobStore_.batchScanner(authorizations_, nbQueryThreads_);
+    return termStore_.batchScanner(authorizations_, nbQueryThreads_);
   }
 }
