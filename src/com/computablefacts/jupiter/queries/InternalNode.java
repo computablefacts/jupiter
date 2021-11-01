@@ -1,18 +1,12 @@
 package com.computablefacts.jupiter.queries;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
-import com.computablefacts.jupiter.storage.Constants;
-import com.computablefacts.jupiter.storage.DedupIterator;
-import com.computablefacts.jupiter.storage.DifferenceIterator;
-import com.computablefacts.jupiter.storage.SynchronousIterator;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.types.SpanSequence;
@@ -128,7 +122,7 @@ final public class InternalNode extends AbstractNode {
   }
 
   @Override
-  public Iterator<String> execute(DataStore dataStore, String dataset, BloomFilters<String> docsIds,
+  public View<String> execute(DataStore dataStore, String dataset, BloomFilters<String> docsIds,
       Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
@@ -141,18 +135,18 @@ final public class InternalNode extends AbstractNode {
 
     if (child1_ == null) {
       if (child2_ == null) {
-        return Constants.ITERATOR_EMPTY;
+        return View.of();
       }
       if (child2_.exclude()) { // (NULL AND/OR NOT B) is not a valid construct
         if (logger_.isErrorEnabled()) {
           logger_.error(LogFormatter.create(true).add("dataset", dataset).add("query", toString())
               .message("ill-formed query : (NULL AND/OR NOT B)").formatError());
         }
-        return Constants.ITERATOR_EMPTY;
+        return View.of();
       }
       return eConjunctionTypes.Or.equals(conjunction_)
           ? child2_.execute(dataStore, dataset, docsIds, tokenizer)
-          : Constants.ITERATOR_EMPTY;
+          : View.of();
     }
     if (child2_ == null) {
       if (child1_.exclude()) { // (NOT A AND/OR NULL) is not a valid construct
@@ -160,11 +154,11 @@ final public class InternalNode extends AbstractNode {
           logger_.error(LogFormatter.create(true).add("dataset", dataset).add("query", toString())
               .message("ill-formed query : (NOT A AND/OR NULL)").formatError());
         }
-        return Constants.ITERATOR_EMPTY;
+        return View.of();
       }
       return eConjunctionTypes.Or.equals(conjunction_)
           ? child1_.execute(dataStore, dataset, docsIds, tokenizer)
-          : Constants.ITERATOR_EMPTY;
+          : View.of();
     }
 
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B, NOT A OR B, A OR NOT B, NOT
@@ -174,7 +168,7 @@ final public class InternalNode extends AbstractNode {
         logger_.error(LogFormatter.create(true).add("dataset", dataset).add("query", toString())
             .message("ill-formed query : (NOT A AND/OR NOT B)").formatError());
       }
-      return Constants.ITERATOR_EMPTY; // (NOT A AND NOT B) or (NOT A OR NOT B)
+      return View.of(); // (NOT A AND NOT B) or (NOT A OR NOT B)
     }
 
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B, NOT A OR B, A OR NOT B}
@@ -191,15 +185,15 @@ final public class InternalNode extends AbstractNode {
       return child1_.execute(dataStore, dataset, docsIds, tokenizer);
     }
 
-    Iterator<String> ids1 = child1_.execute(dataStore, dataset, docsIds, tokenizer);
-    Iterator<String> ids2 = child2_.execute(dataStore, dataset, docsIds, tokenizer);
+    View<String> ids1 = child1_.execute(dataStore, dataset, docsIds, tokenizer);
+    View<String> ids2 = child2_.execute(dataStore, dataset, docsIds, tokenizer);
 
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B}
     if (eConjunctionTypes.And.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {
       if (child1_.exclude()) {
-        return compact(new DifferenceIterator<>(ids2, ids1)); // NOT A AND B
+        return ids2.diffSorted(ids1); // NOT A AND B
       }
-      return compact(new DifferenceIterator<>(ids1, ids2)); // A AND NOT B
+      return ids1.diffSorted(ids2); // A AND NOT B
     }
 
     // Here, the query is in {A OR B, A AND B}
@@ -207,13 +201,13 @@ final public class InternalNode extends AbstractNode {
 
       // Advance both iterators synchronously. The assumption is that both iterators are sorted.
       // Hence, DataStore.Scanners should have been initialized with nbQueryThreads=1
-      return compact(new DedupIterator<>(
-          Iterators.mergeSorted(Lists.newArrayList(ids1, ids2), String::compareTo)));
+      return View.of(Iterators.mergeSorted(Lists.newArrayList(ids1, ids2), String::compareTo))
+          .dedupSorted();
     }
 
     // Advance both iterators synchronously. The assumption is that both iterators are sorted.
     // Hence, DataStore.Scanners should have been initialized with nbQueryThreads=1
-    return compact(new SynchronousIterator<>(ids1, ids2));
+    return ids1.intersectSorted(ids2);
   }
 
   public eConjunctionTypes conjunction() {
@@ -238,12 +232,6 @@ final public class InternalNode extends AbstractNode {
 
   public void child2(AbstractNode child) {
     child2_ = child;
-  }
-
-  private Iterator<String> compact(Iterator<String> iterator) {
-    List<String> docsIds = new ArrayList<>();
-    iterator.forEachRemaining(docsIds::add);
-    return docsIds.iterator();
   }
 
   public enum eConjunctionTypes {

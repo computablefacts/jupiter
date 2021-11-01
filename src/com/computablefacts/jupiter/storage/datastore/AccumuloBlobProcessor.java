@@ -52,11 +52,6 @@ final public class AccumuloBlobProcessor extends AbstractBlobProcessor {
     Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(blob, "blob should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", blobStore_.tableName())
-          .add("dataset", dataset).add("doc_id", docId).add("blob", blob).formatDebug());
-    }
-
     String vizAdm = STRING_ADM; // for backward compatibility
     String vizDataset = AbstractStorage.toVisibilityLabel(dataset + "_");
     String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(docId);

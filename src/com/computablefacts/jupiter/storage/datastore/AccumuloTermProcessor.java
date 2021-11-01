@@ -4,8 +4,6 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_S
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -16,13 +14,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
@@ -64,12 +62,6 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkArgument(nbOccurrencesInDoc > 0, "nbOccurrencesInDoc must be > 0");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", termStore_.tableName())
-          .add("dataset", dataset).add("doc_id", docId).add("field", field).add("term", term)
-          .add("nb_occurrences_in_doc", nbOccurrencesInDoc).formatDebug());
-    }
-
     List<String> path =
         Splitter.on(SEPARATOR_CURRENCY_SIGN).trimResults().omitEmptyStrings().splitToList(field);
 
@@ -94,26 +86,17 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
   }
 
   @Override
-  public Iterator<String> read(String dataset, String term, Set<String> fields,
+  public View<String> read(String dataset, String term, Set<String> fields,
       BloomFilters<String> docsIds) {
 
     Preconditions.checkNotNull(term, "term should not be null");
 
-    // Extract buckets ids, i.e. documents ids, from the TermStore
-    // TODO : load docs on-demand to prevent segfault
-    Set<String> bucketsIds = new HashSet<>();
-
-    try (ScannerBase scanner = scanner()) {
-      Iterators.transform(termStore_.bucketsIds(scanner, dataset, fields, term, docsIds),
-          t -> t.bucketId() + SEPARATOR_NUL + t.dataset()).forEachRemaining(bucketsIds::add);
-    }
-
-    // Returns an iterator over the documents ids
-    return bucketsIds.stream().sorted().distinct().iterator();
+    return termStore_.bucketsIds(scanner(), dataset, fields, term, docsIds)
+        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
   @Override
-  public Iterator<String> read(String dataset, Set<String> fields, Object minTerm, Object maxTerm,
+  public View<String> read(String dataset, Set<String> fields, Object minTerm, Object maxTerm,
       BloomFilters<String> docsIds) {
 
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
@@ -122,19 +105,8 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    // Extract buckets ids, i.e. documents ids, from the TermStore
-    // TODO : load docs on-demand to prevent segfault
-    Set<String> bucketsIds = new HashSet<>();
-
-    try (ScannerBase scanner = scanner()) {
-      Iterators
-          .transform(termStore_.bucketsIds(scanner, dataset, fields, minTerm, maxTerm, docsIds),
-              t -> t.bucketId() + SEPARATOR_NUL + t.dataset())
-          .forEachRemaining(bucketsIds::add);
-    }
-
-    // Returns an iterator over the documents ids
-    return bucketsIds.stream().sorted().distinct().iterator();
+    return termStore_.bucketsIds(scanner(), dataset, fields, minTerm, maxTerm, docsIds)
+        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
   BatchWriter writer() {

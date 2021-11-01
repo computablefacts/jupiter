@@ -1,7 +1,6 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import java.util.Iterator;
-
+import com.computablefacts.asterix.View;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
@@ -26,7 +25,7 @@ public abstract class AbstractHashProcessor implements AutoCloseable {
    * @param hash the field hashed value.
    * @return an unordered set of docs ids.
    */
-  public abstract Iterator<String> read(String dataset, String field, String hash);
+  public abstract View<String> read(String dataset, String field, String hash);
 
   /**
    * Cache fields and values.

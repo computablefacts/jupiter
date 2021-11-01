@@ -27,8 +27,8 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.Configurations;
-import com.computablefacts.jupiter.Streams;
 import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
@@ -418,42 +418,43 @@ public class Shell {
 
       ds.beginIngest();
 
-      Streams.forEach(Files.compressedLineStream(f, StandardCharsets.UTF_8), (line, breaker) -> {
+      View.of(Files.compressedLineStream(f, StandardCharsets.UTF_8))
+          .forEachRemaining((line, breaker) -> {
 
-        String row = line.getValue();
+            String row = line.getValue();
 
-        if (Strings.isNullOrEmpty(row)) {
-          return;
-        }
-        try {
-          Map<String, Object> json = Codecs.asObject(row);
-          Document document = new Document(json);
+            if (Strings.isNullOrEmpty(row)) {
+              return;
+            }
+            try {
+              Map<String, Object> json = Codecs.asObject(row);
+              Document document = new Document(json);
 
-          // if (!document.fileExists()) { // do not reindex missing files
-          // if (logger_.isInfoEnabled()) {
-          // logger_.info(LogFormatter.create(true).message(
-          // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " +
-          // document.path())
-          // .formatInfo());
-          // }
-          // } else {
+              // if (!document.fileExists()) { // do not reindex missing files
+              // if (logger_.isInfoEnabled()) {
+              // logger_.info(LogFormatter.create(true).message(
+              // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " +
+              // document.path())
+              // .formatInfo());
+              // }
+              // } else {
 
-          if (!ds.persist(dataset, document.docId(), row)) {
-            logger_.error(LogFormatter.create(true)
-                .message("Persistence of " + document.docId() + " failed").formatError());
-            breaker.stop();
-          }
+              if (!ds.persist(dataset, document.docId(), row)) {
+                logger_.error(LogFormatter.create(true)
+                    .message("Persistence of " + document.docId() + " failed").formatError());
+                breaker.stop();
+              }
 
-          if ((count.incrementAndGet() % 100 == 0 || breaker.shouldBreak())
-              && logger_.isInfoEnabled()) {
-            logger_.info(LogFormatter.create(true)
-                .message("Number of JSON processed : " + count.get()).formatInfo());
-          }
-          // }
-        } catch (Exception e) {
-          logger_.error(LogFormatter.create(true).message(e).formatError());
-        }
-      });
+              if ((count.incrementAndGet() % 100 == 0 || breaker.shouldBreak())
+                  && logger_.isInfoEnabled()) {
+                logger_.info(LogFormatter.create(true)
+                    .message("Number of JSON processed : " + count.get()).formatInfo());
+              }
+              // }
+            } catch (Exception e) {
+              logger_.error(LogFormatter.create(true).message(e).formatError());
+            }
+          });
 
       ds.endIngest(dataset);
     }

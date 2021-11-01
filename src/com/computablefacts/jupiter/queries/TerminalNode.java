@@ -4,7 +4,6 @@ import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Inflec
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Literal;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Range;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Thesaurus;
-import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.math.BigDecimal;
@@ -19,8 +18,8 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
-import com.computablefacts.jupiter.storage.DedupIterator;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.WildcardMatcher;
@@ -183,7 +182,7 @@ final public class TerminalNode extends AbstractNode {
   }
 
   @Override
-  public Iterator<String> execute(DataStore dataStore, String dataset, BloomFilters<String> docsIds,
+  public View<String> execute(DataStore dataStore, String dataset, BloomFilters<String> docsIds,
       Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
@@ -224,7 +223,7 @@ final public class TerminalNode extends AbstractNode {
               maxTerm == null ? null : new BigDecimal(maxTerm), docsIds);
         }
       }
-      return ITERATOR_EMPTY; // Invalid range
+      return View.of(); // Invalid range
     }
 
     List<String> terms = terms(tokenizer);
@@ -234,7 +233,7 @@ final public class TerminalNode extends AbstractNode {
         logger_.warn(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
             .add("value", value_).message("all terms have been discarded").formatWarn());
       }
-      return ITERATOR_EMPTY;
+      return View.of();
     }
     if (Inflectional.equals(form_)) {
 
@@ -245,7 +244,7 @@ final public class TerminalNode extends AbstractNode {
             WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"),
             fields(), docsIds));
       }
-      return new DedupIterator<>(Iterators.mergeSorted(ids, String::compareTo));
+      return View.of(Iterators.mergeSorted(ids, String::compareTo)).dedupSorted();
     }
     if (Literal.equals(form_)) {
 
@@ -261,7 +260,7 @@ final public class TerminalNode extends AbstractNode {
         Iterator<String> iter = dataStore.docsIds(dataset, terms.get(i), fields(), bfs);
 
         if (!iter.hasNext()) {
-          return ITERATOR_EMPTY;
+          return View.of();
         }
 
         bfs = new BloomFilters<>();
@@ -275,7 +274,7 @@ final public class TerminalNode extends AbstractNode {
     if (Thesaurus.equals(form_)) {
       // TODO : backport code
     }
-    return ITERATOR_EMPTY;
+    return View.of();
   }
 
   private Set<String> fields() {

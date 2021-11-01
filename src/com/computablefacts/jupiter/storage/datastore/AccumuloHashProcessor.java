@@ -1,32 +1,35 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.Map;
 
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.View;
+import com.computablefacts.jupiter.OrderedView;
+import com.computablefacts.jupiter.UnorderedView;
 import com.computablefacts.jupiter.filters.TermStoreBucketFieldFilter;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
@@ -68,11 +71,6 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("doc_id", docId)
-          .add("field", field).add("value", value).formatDebug());
-    }
-
     if (value instanceof Date) {
       return write(dataset, field, ((Date) value).toInstant().toString(), docId);
     }
@@ -80,50 +78,47 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
   }
 
   @Override
-  public Iterator<String> read(String dataset, String field, String hash) {
+  public View<String> read(String dataset, String field, String hash) {
 
     Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("field", field)
-          .add("hash", hash).formatDebug());
+    ScannerBase scanner = scanner();
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+    scanner.fetchColumnFamily(new Text(CF));
+
+    Range range;
+
+    if (hash != null) {
+      range = Range.exact(dataset + SEPARATOR_NUL + hash, CF);
+    } else {
+      range = Range.prefix(dataset + SEPARATOR_NUL);
     }
 
-    Set<String> docsIds = new HashSet<>();
-
-    try (ScannerBase scanner = scanner()) {
-
-      scanner.clearColumns();
-      scanner.clearScanIterators();
-      scanner.fetchColumnFamily(new Text(CF));
-
-      Range range;
-
-      if (hash != null) {
-        range = Range.exact(dataset + SEPARATOR_NUL + hash, CF);
-      } else {
-        range = Range.prefix(dataset + SEPARATOR_NUL);
-      }
-
-      if (!AbstractStorage.setRanges(scanner, Sets.newHashSet(range))) {
-        return ITERATOR_EMPTY;
-      }
-
-      if (field != null) {
-
-        IteratorSetting setting =
-            new IteratorSetting(31, "TermStoreBucketFieldFilter", TermStoreBucketFieldFilter.class);
-        TermStoreBucketFieldFilter.setFieldsToKeep(setting, Sets.newHashSet(field));
-
-        scanner.addScanIterator(setting);
-      }
-
-      Iterators.transform(scanner.iterator(), e -> {
-        String cq = e.getKey().getColumnQualifier().toString();
-        return cq.substring(0, cq.indexOf(SEPARATOR_NUL));
-      }).forEachRemaining(docsIds::add);
+    if (!AbstractStorage.setRanges(scanner, Sets.newHashSet(range))) {
+      return View.of();
     }
-    return docsIds.iterator();
+
+    if (field != null) {
+
+      IteratorSetting setting =
+          new IteratorSetting(31, "TermStoreBucketFieldFilter", TermStoreBucketFieldFilter.class);
+      TermStoreBucketFieldFilter.setFieldsToKeep(setting, Sets.newHashSet(field));
+
+      scanner.addScanIterator(setting);
+    }
+
+    View<Map.Entry<Key, Value>> view;
+
+    if (scanner instanceof BatchScanner) {
+      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
+    } else {
+      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
+    }
+    return view.map(e -> {
+      String cq = e.getKey().getColumnQualifier().toString();
+      return cq.substring(0, cq.indexOf(SEPARATOR_NUL));
+    });
   }
 
   @Override

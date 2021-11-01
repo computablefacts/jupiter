@@ -1,13 +1,11 @@
 package com.computablefacts.jupiter.storage.termstore;
 
-import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,21 +13,28 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.jupiter.OrderedView;
 import com.computablefacts.jupiter.Tables;
+import com.computablefacts.jupiter.UnorderedView;
 import com.computablefacts.jupiter.combiners.TermStoreCombiner;
 import com.computablefacts.jupiter.filters.TermStoreBucketFieldFilter;
 import com.computablefacts.jupiter.filters.TermStoreFieldFilter;
@@ -40,7 +45,6 @@ import com.computablefacts.nona.helpers.BigDecimalCodec;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -110,7 +114,7 @@ final public class TermStore extends AbstractStorage {
     super(configurations, name);
   }
 
-  private static Iterator<TermDistinctBuckets> scanCounts(ScannerBase scanner, Set<String> fields,
+  private static View<TermDistinctBuckets> scanCounts(ScannerBase scanner, Set<String> fields,
       Range range, boolean hitsBackwardIndex) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -128,17 +132,23 @@ final public class TermStore extends AbstractStorage {
       scanner.addScanIterator(setting);
     }
     if (!setRange(scanner, range)) {
-      return ITERATOR_EMPTY;
+      return View.of();
     }
-    return Iterators.transform(
-        Iterators.transform(scanner.iterator(),
-            entry -> TermDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue())),
-        tc -> new TermDistinctBuckets(tc.dataset(), tc.field(), tc.type(),
+
+    View<Map.Entry<Key, Value>> view;
+
+    if (scanner instanceof BatchScanner) {
+      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
+    } else {
+      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
+    }
+    return view.map(entry -> TermDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue()))
+        .map(tc -> new TermDistinctBuckets(tc.dataset(), tc.field(), tc.type(),
             tc.isNumber() ? BigDecimalCodec.decode(tc.term()) : tc.term(), tc.labels(),
             tc.count()));
   }
 
-  private static Iterator<Term> scanIndex(ScannerBase scanner, Set<String> fields, Range range,
+  private static View<Term> scanIndex(ScannerBase scanner, Set<String> fields, Range range,
       boolean hitsBackwardIndex, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -167,12 +177,18 @@ final public class TermStore extends AbstractStorage {
       scanner.addScanIterator(setting);
     }
     if (!setRange(scanner, range)) {
-      return ITERATOR_EMPTY;
+      return View.of();
     }
-    return Iterators.transform(
-        Iterators.transform(scanner.iterator(),
-            entry -> Term.fromKeyValue(entry.getKey(), entry.getValue())),
-        t -> new Term(t.dataset(), t.bucketId(), t.field(), t.type(),
+
+    View<Map.Entry<Key, Value>> view;
+
+    if (scanner instanceof BatchScanner) {
+      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
+    } else {
+      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
+    }
+    return view.map(entry -> Term.fromKeyValue(entry.getKey(), entry.getValue()))
+        .map(t -> new Term(t.dataset(), t.bucketId(), t.field(), t.type(),
             t.isNumber() ? BigDecimalCodec.decode(t.term()) : t.term(), t.labels(), t.count()));
   }
 
@@ -272,8 +288,8 @@ final public class TermStore extends AbstractStorage {
   /**
    * This method should be called once, at the beginning of the ingest process.
    *
-   * If the {@link #beginIngest()} and {@link #endIngest(BatchWriter, String)} methods are called
-   * too often, the estimators may be heavily skewed towards a subset of the data.
+   * If the {@link #beginIngest()} and {@link #endIngest(String)} methods are called too often, the
+   * estimators may be heavily skewed towards a subset of the data.
    */
   public void beginIngest() {
     fieldsCardinalityEstimatorsForTerms_ = new HashMap<>();
@@ -289,61 +305,66 @@ final public class TermStore extends AbstractStorage {
   /**
    * This method should be called once, at the end of the ingest process.
    *
-   * If the {@link #beginIngest()} and {@link #endIngest(BatchWriter, String)} methods are called
-   * too often, the estimators may be heavily skewed towards a subset of the data.
+   * If the {@link #beginIngest()} and {@link #endIngest(String)} methods are called too often, the
+   * estimators may be heavily skewed towards a subset of the data.
    *
-   * @param writer batch writer.
    * @param dataset the dataset.
    * @return true if the write operations succeeded, false otherwise.
    */
   @CanIgnoreReturnValue
-  public boolean endIngest(BatchWriter writer, String dataset) {
+  public boolean endIngest(String dataset) {
 
-    Preconditions.checkNotNull(writer, "writer should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    @Var
-    boolean isOk = true;
+    try (BatchWriter writer = writer()) {
+      @Var
+      boolean isOk = true;
 
-    if (fieldsCardinalityEstimatorsForTerms_ != null) {
-      isOk = fieldsCardinalityEstimatorsForTerms_.entrySet().stream()
-          .allMatch(sketch -> add(writer, FieldDistinctTerms.newMutation(dataset, sketch.getKey(),
-              sketch.getValue().toByteArray())))
-          && isOk;
-      fieldsCardinalityEstimatorsForTerms_ = null;
+      if (fieldsCardinalityEstimatorsForTerms_ != null) {
+        isOk =
+            fieldsCardinalityEstimatorsForTerms_
+                .entrySet().stream().allMatch(sketch -> add(writer, FieldDistinctTerms
+                    .newMutation(dataset, sketch.getKey(), sketch.getValue().toByteArray())))
+                && isOk;
+        fieldsCardinalityEstimatorsForTerms_ = null;
+      }
+      if (fieldsDistinctBuckets_ != null) {
+        isOk = fieldsDistinctBuckets_.entrySet().stream()
+            .allMatch(db -> add(writer,
+                FieldDistinctBuckets.newMutation(dataset, db.getKey(), db.getValue().estimate())))
+            && isOk;
+        fieldsDistinctBuckets_ = null;
+        prevDataset_ = "";
+        prevField_ = "";
+        prevBucketId_ = "";
+      }
+      if (fieldsTopTerms_ != null) {
+        isOk =
+            fieldsTopTerms_
+                .entrySet().stream().allMatch(sketch -> add(writer, FieldTopTerms
+                    .newMutation(dataset, sketch.getKey(), sketch.getValue().toByteArray())))
+                && isOk;
+        fieldsTopTerms_ = null;
+      }
+      if (fieldsLabels_ != null) {
+        isOk =
+            fieldsLabels_.values().stream()
+                .allMatch(fl -> add(writer,
+                    FieldLabels.newMutation(fl.dataset(), fl.field(), fl.type(), fl.labels())))
+                && isOk;
+        fieldsLabels_ = null;
+      }
+      if (fieldsLastUpdate_ != null) {
+        isOk = fieldsLastUpdate_.values().stream().allMatch(
+            flu -> add(writer, FieldLastUpdate.newMutation(flu.dataset(), flu.field(), flu.type())))
+            && isOk;
+        fieldsLastUpdate_ = null;
+      }
+      return isOk;
+    } catch (MutationsRejectedException e) {
+      logger_.error(LogFormatter.create(true).message(e).formatError());
     }
-    if (fieldsDistinctBuckets_ != null) {
-      isOk = fieldsDistinctBuckets_.entrySet().stream()
-          .allMatch(db -> add(writer,
-              FieldDistinctBuckets.newMutation(dataset, db.getKey(), db.getValue().estimate())))
-          && isOk;
-      fieldsDistinctBuckets_ = null;
-      prevDataset_ = "";
-      prevField_ = "";
-      prevBucketId_ = "";
-    }
-    if (fieldsTopTerms_ != null) {
-      isOk = fieldsTopTerms_.entrySet().stream()
-          .allMatch(sketch -> add(writer,
-              FieldTopTerms.newMutation(dataset, sketch.getKey(), sketch.getValue().toByteArray())))
-          && isOk;
-      fieldsTopTerms_ = null;
-    }
-    if (fieldsLabels_ != null) {
-      isOk =
-          fieldsLabels_.values().stream()
-              .allMatch(fl -> add(writer,
-                  FieldLabels.newMutation(fl.dataset(), fl.field(), fl.type(), fl.labels())))
-              && isOk;
-      fieldsLabels_ = null;
-    }
-    if (fieldsLastUpdate_ != null) {
-      isOk = fieldsLastUpdate_.values().stream().allMatch(
-          flu -> add(writer, FieldLastUpdate.newMutation(flu.dataset(), flu.field(), flu.type())))
-          && isOk;
-      fieldsLastUpdate_ = null;
-    }
-    return isOk;
+    return false;
   }
 
   /**
@@ -538,7 +559,7 @@ final public class TermStore extends AbstractStorage {
    * @param fields fields (optional).
    * @return visibility labels.
    */
-  public Iterator<FieldLabels> fieldVisibilityLabels(ScannerBase scanner, String dataset,
+  public View<FieldLabels> fieldVisibilityLabels(ScannerBase scanner, String dataset,
       Set<String> fields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -563,10 +584,17 @@ final public class TermStore extends AbstractStorage {
       ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
     }
     if (!setRanges(scanner, ranges)) {
-      return ITERATOR_EMPTY;
+      return View.of();
     }
-    return Iterators.transform(scanner.iterator(),
-        entry -> FieldLabels.fromKeyValue(entry.getKey(), entry.getValue()));
+
+    View<Map.Entry<Key, Value>> view;
+
+    if (scanner instanceof BatchScanner) {
+      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
+    } else {
+      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
+    }
+    return view.map(entry -> FieldLabels.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
@@ -577,7 +605,7 @@ final public class TermStore extends AbstractStorage {
    * @param fields fields (optional).
    * @return last update as an UTC timestamp.
    */
-  public Iterator<FieldLastUpdate> fieldLastUpdate(ScannerBase scanner, String dataset,
+  public View<FieldLastUpdate> fieldLastUpdate(ScannerBase scanner, String dataset,
       Set<String> fields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -602,10 +630,17 @@ final public class TermStore extends AbstractStorage {
       ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
     }
     if (!setRanges(scanner, ranges)) {
-      return ITERATOR_EMPTY;
+      return View.of();
     }
-    return Iterators.transform(scanner.iterator(),
-        entry -> FieldLastUpdate.fromKeyValue(entry.getKey(), entry.getValue()));
+
+    View<Map.Entry<Key, Value>> view;
+
+    if (scanner instanceof BatchScanner) {
+      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
+    } else {
+      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
+    }
+    return view.map(entry -> FieldLastUpdate.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
@@ -616,7 +651,7 @@ final public class TermStore extends AbstractStorage {
    * @param fields fields (optional).
    * @return the number of distinct terms.
    */
-  public Iterator<FieldDistinctTerms> fieldCardinalityEstimationForTerms(ScannerBase scanner,
+  public View<FieldDistinctTerms> fieldCardinalityEstimationForTerms(ScannerBase scanner,
       String dataset, Set<String> fields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -641,10 +676,17 @@ final public class TermStore extends AbstractStorage {
       ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
     }
     if (!setRanges(scanner, ranges)) {
-      return ITERATOR_EMPTY;
+      return View.of();
     }
-    return Iterators.transform(scanner.iterator(),
-        entry -> FieldDistinctTerms.fromKeyValue(entry.getKey(), entry.getValue()));
+
+    View<Map.Entry<Key, Value>> view;
+
+    if (scanner instanceof BatchScanner) {
+      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
+    } else {
+      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
+    }
+    return view.map(entry -> FieldDistinctTerms.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
@@ -655,7 +697,7 @@ final public class TermStore extends AbstractStorage {
    * @param fields fields (optional).
    * @return the number of distinct buckets.
    */
-  public Iterator<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(ScannerBase scanner,
+  public View<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(ScannerBase scanner,
       String dataset, Set<String> fields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -680,10 +722,17 @@ final public class TermStore extends AbstractStorage {
       ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
     }
     if (!setRanges(scanner, ranges)) {
-      return ITERATOR_EMPTY;
+      return View.of();
     }
-    return Iterators.transform(scanner.iterator(),
-        entry -> FieldDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue()));
+
+    View<Map.Entry<Key, Value>> view;
+
+    if (scanner instanceof BatchScanner) {
+      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
+    } else {
+      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
+    }
+    return view.map(entry -> FieldDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
@@ -694,7 +743,7 @@ final public class TermStore extends AbstractStorage {
    * @param fields fields (optional).
    * @return the number of distinct buckets.
    */
-  public Iterator<FieldTopTerms> fieldTopTerms(ScannerBase scanner, String dataset,
+  public View<FieldTopTerms> fieldTopTerms(ScannerBase scanner, String dataset,
       Set<String> fields) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -719,10 +768,17 @@ final public class TermStore extends AbstractStorage {
       ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
     }
     if (!setRanges(scanner, ranges)) {
-      return ITERATOR_EMPTY;
+      return View.of();
     }
-    return Iterators.transform(scanner.iterator(),
-        entry -> FieldTopTerms.fromKeyValue(entry.getKey(), entry.getValue()));
+
+    View<Map.Entry<Key, Value>> view;
+
+    if (scanner instanceof BatchScanner) {
+      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
+    } else {
+      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
+    }
+    return view.map(entry -> FieldTopTerms.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
@@ -736,7 +792,7 @@ final public class TermStore extends AbstractStorage {
    *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
+  public View<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
       String dataset, String term) {
     return termCardinalityEstimationForBuckets(scanner, dataset, null, term);
   }
@@ -753,7 +809,7 @@ final public class TermStore extends AbstractStorage {
    *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
+  public View<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
       String dataset, Set<String> fields, String term) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -803,7 +859,7 @@ final public class TermStore extends AbstractStorage {
    *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, String term) {
+  public View<Term> bucketsIds(ScannerBase scanner, String dataset, String term) {
     return bucketsIds(scanner, dataset, null, term, null);
   }
 
@@ -820,8 +876,8 @@ final public class TermStore extends AbstractStorage {
    *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
-      String term, BloomFilters<String> bucketsIds) {
+  public View<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields, String term,
+      BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -874,7 +930,7 @@ final public class TermStore extends AbstractStorage {
    *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
+  public View<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
       String dataset, Set<String> fields, Object minTerm, Object maxTerm) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
@@ -932,7 +988,7 @@ final public class TermStore extends AbstractStorage {
    *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of a
    *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public Iterator<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
+  public View<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
       Object minTerm, Object maxTerm, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");

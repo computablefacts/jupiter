@@ -62,14 +62,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
     dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
-    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    @Var
+    List<Map.Entry<String, String>> docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_2").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
@@ -79,13 +78,11 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
     dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertTrue(docsIds.isEmpty()); // because the cache has been trashed
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_2").toList();
 
     Assert.assertTrue(docsIds.isEmpty()); // because the cache has been trashed
   }
@@ -103,14 +100,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
     dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
-    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    @Var
+    List<Map.Entry<String, String>> docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_2").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
@@ -120,13 +116,11 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
     dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(0, docsIds.size());
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_2").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
@@ -151,14 +145,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
     dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
-    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    @Var
+    List<Map.Entry<String, String>> docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_2").toList();
 
     Assert.assertTrue(docsIds.isEmpty());
   }
@@ -182,14 +175,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
     dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
-    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    @Var
+    List<Map.Entry<String, String>> docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_2").toList();
 
     Assert.assertTrue(docsIds.isEmpty());
   }
@@ -213,14 +205,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
     dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
-    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    @Var
+    List<Map.Entry<String, String>> docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_2").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_2").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
@@ -248,8 +239,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setTermProcessor(dataStore
         .newAccumuloTermProcessor(new Authorizations("DATASET_1_ROW_1"), NB_QUERY_THREADS));
 
-    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    @Var
+    List<Map.Entry<String, String>> docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
@@ -259,8 +250,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setTermProcessor(dataStore
         .newAccumuloTermProcessor(new Authorizations("DATASET_1_ROW_2"), NB_QUERY_THREADS));
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(0));
@@ -365,8 +355,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setBlobProcessor(dataStore.newAccumuloBlobProcessor(AUTH_ADM, NB_QUERY_THREADS));
     dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
-    List<Map.Entry<String, String>> docsIds = new ArrayList<>();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    @Var
+    List<Map.Entry<String, String>> docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
@@ -374,8 +364,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     query = QueryBuilder.build("age:[15 TO 20]");
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
@@ -383,8 +372,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     query = QueryBuilder.build("age:[15 TO *]");
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
@@ -393,8 +381,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     // Min. term should be included and max. term excluded
     query = QueryBuilder.build("age:[17 TO 18]");
 
-    docsIds.clear();
-    query.execute(dataStore, "dataset_1").forEachRemaining(docsIds::add);
+    docsIds = query.execute(dataStore, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
@@ -418,38 +405,33 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
     dataStore.setHashProcessor(dataStore.newAccumuloHashProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
-    List<String> docsIds = new ArrayList<>();
-    dataStore.matchValue("dataset_1", "Actors[*]¤name", "Tom Cruise")
-        .forEachRemaining(docsIds::add);
+    @Var
+    List<String> docsIds =
+        dataStore.matchValue("dataset_1", "Actors[*]¤name", "Tom Cruise").toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds.clear();
-    dataStore.matchValue("dataset_1", "Actors[*]¤weight", 67.5).forEachRemaining(docsIds::add);
+    docsIds = dataStore.matchValue("dataset_1", "Actors[*]¤weight", 67.5).toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds.clear();
-    dataStore.matchValue("dataset_1", "Actors[*]¤age", 73).forEachRemaining(docsIds::add);
+    docsIds = dataStore.matchValue("dataset_1", "Actors[*]¤age", 73).toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds.clear();
-    dataStore.matchValue("dataset_1", "Actors[*]¤hasGreyHair", false)
-        .forEachRemaining(docsIds::add);
+    docsIds = dataStore.matchValue("dataset_1", "Actors[*]¤hasGreyHair", false).toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds.clear();
-    dataStore.matchValue("dataset_1", "Actors[*]¤hasChildren", true).forEachRemaining(docsIds::add);
+    docsIds = dataStore.matchValue("dataset_1", "Actors[*]¤hasChildren", true).toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
@@ -474,41 +456,39 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.setTermProcessor(dataStore.newAccumuloTermProcessor(AUTH_ADM, NB_QUERY_THREADS));
     dataStore.setHashProcessor(dataStore.newAccumuloHashProcessor(AUTH_ADM, NB_QUERY_THREADS));
 
-    List<String> docsIds = new ArrayList<>();
-    dataStore.matchHash("dataset_1", "Actors[*]¤name", "8f8a04ea49585975fcf1e452b988e085")
-        .forEachRemaining(docsIds::add);
+    @Var
+    List<String> docsIds = dataStore
+        .matchHash("dataset_1", "Actors[*]¤name", "8f8a04ea49585975fcf1e452b988e085").toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds.clear();
-    dataStore.matchHash("dataset_1", "Actors[*]¤weight", "4103e8509cbdf6b3372222061bbe1da6")
-        .forEachRemaining(docsIds::add);
+    docsIds = dataStore
+        .matchHash("dataset_1", "Actors[*]¤weight", "4103e8509cbdf6b3372222061bbe1da6").toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds.clear();
-    dataStore.matchHash("dataset_1", "Actors[*]¤age", "3974c437d717863985a0b5618f289b46")
-        .forEachRemaining(docsIds::add);
+    docsIds = dataStore.matchHash("dataset_1", "Actors[*]¤age", "3974c437d717863985a0b5618f289b46")
+        .toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds.clear();
-    dataStore.matchHash("dataset_1", "Actors[*]¤hasGreyHair", "e495b7e5056dbfc4e854950696d4c3cc")
-        .forEachRemaining(docsIds::add);
+    docsIds = dataStore
+        .matchHash("dataset_1", "Actors[*]¤hasGreyHair", "e495b7e5056dbfc4e854950696d4c3cc")
+        .toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds.clear();
-    dataStore.matchHash("dataset_1", "Actors[*]¤hasChildren", "5db32d6ecc1f5ef816ebe6268a3343c2")
-        .forEachRemaining(docsIds::add);
+    docsIds = dataStore
+        .matchHash("dataset_1", "Actors[*]¤hasChildren", "5db32d6ecc1f5ef816ebe6268a3343c2")
+        .toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));

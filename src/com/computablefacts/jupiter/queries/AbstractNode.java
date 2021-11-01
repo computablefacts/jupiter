@@ -3,15 +3,14 @@ package com.computablefacts.jupiter.queries;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.util.AbstractMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.nona.types.SpanSequence;
 import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 /**
@@ -43,16 +42,16 @@ public abstract class AbstractNode {
     return cardinality(dataStore, dataset, null);
   }
 
-  final public Iterator<Map.Entry<String, String>> execute(DataStore dataStore, String dataset) {
-    return Iterators.transform(execute(dataStore, dataset, null, null), t -> {
+  final public View<Map.Entry<String, String>> execute(DataStore dataStore, String dataset) {
+    return execute(dataStore, dataset, null, null).map(t -> {
       int index = t.indexOf(SEPARATOR_NUL);
       return new AbstractMap.SimpleEntry<>(t.substring(0, index), t.substring(index + 1));
     });
   }
 
-  final public Iterator<Map.Entry<String, String>> execute(DataStore dataStore, String dataset,
+  final public View<Map.Entry<String, String>> execute(DataStore dataStore, String dataset,
       BloomFilters<String> docsIds) {
-    return Iterators.transform(execute(dataStore, dataset, docsIds, null), t -> {
+    return execute(dataStore, dataset, docsIds, null).map(t -> {
       int index = t.indexOf(SEPARATOR_NUL);
       return new AbstractMap.SimpleEntry<>(t.substring(0, index), t.substring(index + 1));
     });
@@ -64,6 +63,6 @@ public abstract class AbstractNode {
   public abstract long cardinality(DataStore dataStore, String dataset,
       Function<String, SpanSequence> tokenizer);
 
-  public abstract Iterator<String> execute(DataStore dataStore, String dataset,
+  public abstract View<String> execute(DataStore dataStore, String dataset,
       BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer);
 }

@@ -1,6 +1,5 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 
@@ -10,20 +9,19 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Users;
@@ -36,7 +34,6 @@ import com.computablefacts.jupiter.storage.termstore.FieldDistinctTerms;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
 import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
 import com.computablefacts.jupiter.storage.termstore.FieldTopTerms;
-import com.computablefacts.jupiter.storage.termstore.TermDistinctBuckets;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.Generated;
@@ -556,8 +553,7 @@ final public class DataStore implements AutoCloseable {
    */
   @CanIgnoreReturnValue
   public boolean endIngest(String dataset) {
-    return termProcessor_ == null || (termProcessor_ instanceof AccumuloTermProcessor
-        && termStore_.endIngest(((AccumuloTermProcessor) termProcessor_).writer(), dataset));
+    return termStore_.endIngest(dataset);
   }
 
   /**
@@ -617,23 +613,13 @@ final public class DataStore implements AutoCloseable {
    * @param field field.
    * @return visibility labels. No particular order should be expected from the returned iterator.
    */
-  public Iterator<FieldLabels> fieldVisibilityLabels(String dataset, String field) {
+  public View<FieldLabels> fieldVisibilityLabels(String dataset, String field) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
-      return ITERATOR_EMPTY;
-    }
-
-    // TODO : load docs on-demand to prevent segfault
-    Set<FieldLabels> fl = new HashSet<>();
-
-    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
-      termStore_
-          .fieldVisibilityLabels(scanner, dataset, field == null ? null : Sets.newHashSet(field))
-          .forEachRemaining(fl::add);
-    }
-    return fl.iterator();
+    return termProcessor_ == null ? View.of()
+        : termStore_.fieldVisibilityLabels(((AccumuloTermProcessor) termProcessor_).scanner(),
+            dataset, field == null ? null : Sets.newHashSet(field));
   }
 
   /**
@@ -644,22 +630,13 @@ final public class DataStore implements AutoCloseable {
    * @return last update as an UTC timestamp. No particular order should be expected from the
    *         returned iterator.
    */
-  public Iterator<FieldLastUpdate> fieldLastUpdate(String dataset, String field) {
+  public View<FieldLastUpdate> fieldLastUpdate(String dataset, String field) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
-      return ITERATOR_EMPTY;
-    }
-
-    // TODO : load docs on-demand to prevent segfault
-    Set<FieldLastUpdate> flu = new HashSet<>();
-
-    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
-      termStore_.fieldLastUpdate(scanner, dataset, field == null ? null : Sets.newHashSet(field))
-          .forEachRemaining(flu::add);
-    }
-    return flu.iterator();
+    return termProcessor_ == null ? View.of()
+        : termStore_.fieldLastUpdate(((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
+            field == null ? null : Sets.newHashSet(field));
   }
 
   /**
@@ -670,23 +647,14 @@ final public class DataStore implements AutoCloseable {
    * @return cardinality estimation. No particular order should be expected from the returned
    *         iterator.
    */
-  public Iterator<FieldDistinctTerms> fieldCardinalityEstimationForTerms(String dataset,
-      String field) {
+  public View<FieldDistinctTerms> fieldCardinalityEstimationForTerms(String dataset, String field) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
-      return ITERATOR_EMPTY;
-    }
-
-    // TODO : load docs on-demand to prevent segfault
-    Set<FieldDistinctTerms> fdt = new HashSet<>();
-
-    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
-      termStore_.fieldCardinalityEstimationForTerms(scanner, dataset,
-          field == null ? null : Sets.newHashSet(field)).forEachRemaining(fdt::add);
-    }
-    return fdt.iterator();
+    return termProcessor_ == null ? View.of()
+        : termStore_.fieldCardinalityEstimationForTerms(
+            ((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
+            field == null ? null : Sets.newHashSet(field));
   }
 
   /**
@@ -697,23 +665,15 @@ final public class DataStore implements AutoCloseable {
    * @return cardinality estimation. No particular order should be expected from the returned
    *         iterator.
    */
-  public Iterator<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(String dataset,
+  public View<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(String dataset,
       String field) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
-      return ITERATOR_EMPTY;
-    }
-
-    // TODO : load docs on-demand to prevent segfault
-    Set<FieldDistinctBuckets> fdb = new HashSet<>();
-
-    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
-      termStore_.fieldCardinalityEstimationForBuckets(scanner, dataset,
-          field == null ? null : Sets.newHashSet(field)).forEachRemaining(fdb::add);
-    }
-    return fdb.iterator();
+    return termProcessor_ == null ? View.of()
+        : termStore_.fieldCardinalityEstimationForBuckets(
+            ((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
+            field == null ? null : Sets.newHashSet(field));
   }
 
   /**
@@ -723,22 +683,13 @@ final public class DataStore implements AutoCloseable {
    * @param field field.
    * @return top terms. No particular order should be expected from the returned iterator.
    */
-  public Iterator<FieldTopTerms> fieldTopTerms(String dataset, String field) {
+  public View<FieldTopTerms> fieldTopTerms(String dataset, String field) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
-      return ITERATOR_EMPTY;
-    }
-
-    // TODO : load docs on-demand to prevent segfault
-    Set<FieldTopTerms> ftt = new HashSet<>();
-
-    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
-      termStore_.fieldTopTerms(scanner, dataset, field == null ? null : Sets.newHashSet(field))
-          .forEachRemaining(ftt::add);
-    }
-    return ftt.iterator();
+    return termProcessor_ == null ? View.of()
+        : termStore_.fieldTopTerms(((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
+            field == null ? null : Sets.newHashSet(field));
   }
 
   /**
@@ -753,21 +704,13 @@ final public class DataStore implements AutoCloseable {
    * @return list of documents. No particular order should be expected from the returned iterator if
    *         {@code nbQueryThreads} is set to a value above 1.
    */
-  public Iterator<Blob<Value>> jsonScan(String dataset, Set<String> fields) {
+  public View<Blob<Value>> jsonScan(String dataset, Set<String> fields) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (blobProcessor_ == null || !(blobProcessor_ instanceof AccumuloBlobProcessor)) {
-      return ITERATOR_EMPTY;
-    }
-
-    // TODO : load docs on-demand to prevent segfault
-    Set<Blob<Value>> blobs = new HashSet<>();
-
-    try (ScannerBase scanner = ((AccumuloBlobProcessor) blobProcessor_).scanner()) {
-      blobStore_.getJsons(scanner, dataset, null, fields).forEachRemaining(blobs::add);
-    }
-    return blobs.iterator();
+    return blobProcessor_ == null ? View.of()
+        : blobStore_.getJsons(((AccumuloBlobProcessor) blobProcessor_).scanner(), dataset, null,
+            fields);
   }
 
   /**
@@ -787,18 +730,9 @@ final public class DataStore implements AutoCloseable {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docsIds, "docsIds should not be null");
 
-
-    if (blobProcessor_ == null || !(blobProcessor_ instanceof AccumuloBlobProcessor)) {
-      return ITERATOR_EMPTY;
-    }
-
-    // TODO : load docs on-demand to prevent segfault
-    Set<Blob<Value>> blobs = new HashSet<>();
-
-    try (ScannerBase scanner = ((AccumuloBlobProcessor) blobProcessor_).scanner()) {
-      blobStore_.getJsons(scanner, dataset, docsIds, fields).forEachRemaining(blobs::add);
-    }
-    return blobs.iterator();
+    return blobProcessor_ == null ? View.of()
+        : blobStore_.getJsons(((AccumuloBlobProcessor) blobProcessor_).scanner(), dataset, docsIds,
+            fields);
   }
 
   /**
@@ -816,24 +750,11 @@ final public class DataStore implements AutoCloseable {
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
         "term cannot start AND end with a wildcard");
 
-    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
-      return 0;
-    }
-
-    @Var
-    long count = 0;
-
-    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
-
-      Iterator<TermDistinctBuckets> iter =
-          termStore_.termCardinalityEstimationForBuckets(scanner, dataset, fields, term);
-
-      while (iter.hasNext()) {
-        TermDistinctBuckets termCount = iter.next();
-        count += termCount.count();
-      }
-    }
-    return count;
+    return termProcessor_ == null ? 0
+        : termStore_
+            .termCardinalityEstimationForBuckets(((AccumuloTermProcessor) termProcessor_).scanner(),
+                dataset, fields, term)
+            .reduce(0L, (carry, t) -> carry + t.count());
   }
 
   /**
@@ -855,24 +776,11 @@ final public class DataStore implements AutoCloseable {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    if (termProcessor_ == null || !(termProcessor_ instanceof AccumuloTermProcessor)) {
-      return 0;
-    }
-
-    @Var
-    long count = 0;
-
-    try (ScannerBase scanner = ((AccumuloTermProcessor) termProcessor_).scanner()) {
-
-      Iterator<TermDistinctBuckets> iter = termStore_.termCardinalityEstimationForBuckets(scanner,
-          dataset, fields, minTerm, maxTerm);
-
-      while (iter.hasNext()) {
-        TermDistinctBuckets termCount = iter.next();
-        count += termCount.count();
-      }
-    }
-    return count;
+    return termProcessor_ == null ? 0
+        : termStore_
+            .termCardinalityEstimationForBuckets(((AccumuloTermProcessor) termProcessor_).scanner(),
+                dataset, fields, minTerm, maxTerm)
+            .reduce(0L, (carry, t) -> carry + t.count());
   }
 
   /**
@@ -884,10 +792,9 @@ final public class DataStore implements AutoCloseable {
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  public Iterator<String> docsIds(String dataset, String term, Set<String> fields,
+  public View<String> docsIds(String dataset, String term, Set<String> fields,
       BloomFilters<String> docsIds) {
-    return termProcessor_ == null ? ITERATOR_EMPTY
-        : termProcessor_.read(dataset, term, fields, docsIds);
+    return termProcessor_ == null ? View.of() : termProcessor_.read(dataset, term, fields, docsIds);
   }
 
   /**
@@ -900,9 +807,9 @@ final public class DataStore implements AutoCloseable {
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  public Iterator<String> docsIds(String dataset, Set<String> fields, Object minTerm,
-      Object maxTerm, BloomFilters<String> docsIds) {
-    return termProcessor_ == null ? ITERATOR_EMPTY
+  public View<String> docsIds(String dataset, Set<String> fields, Object minTerm, Object maxTerm,
+      BloomFilters<String> docsIds) {
+    return termProcessor_ == null ? View.of()
         : termProcessor_.read(dataset, fields, minTerm, maxTerm, docsIds);
   }
 
@@ -914,18 +821,13 @@ final public class DataStore implements AutoCloseable {
    * @param value the value to match.
    * @return an unordered stream of documents ids.
    */
-  public Iterator<String> matchValue(String dataset, String field, Object value) {
+  public View<String> matchValue(String dataset, String field, Object value) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-          .add("field", field).add("value", value).add("has_hash_processor", hashProcessor_ != null)
-          .formatDebug());
-    }
-    return hashProcessor_ == null ? ITERATOR_EMPTY
+    return hashProcessor_ == null ? View.of()
         : hashProcessor_.read(dataset, field, MaskingIterator.hash(null, value.toString()));
   }
 
@@ -937,18 +839,13 @@ final public class DataStore implements AutoCloseable {
    * @param hash the hash to match.
    * @return an unordered stream of documents ids.
    */
-  public Iterator<String> matchHash(String dataset, String field, String hash) {
+  public View<String> matchHash(String dataset, String field, String hash) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(hash, "hash should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-          .add("field", field).add("hash", hash).add("has_hash_processor", hashProcessor_ != null)
-          .formatDebug());
-    }
-    return hashProcessor_ == null ? ITERATOR_EMPTY : hashProcessor_.read(dataset, field, hash);
+    return hashProcessor_ == null ? View.of() : hashProcessor_.read(dataset, field, hash);
   }
 
   /**
@@ -963,48 +860,24 @@ final public class DataStore implements AutoCloseable {
 
     datasets.forEach(dataset -> {
 
-      Iterator<FieldDistinctTerms> cardEstForTermsIterator =
-          fieldCardinalityEstimationForTerms(dataset, null);
+      fieldCardinalityEstimationForTerms(dataset, null).forEachRemaining(dt -> infos
+          .addCardinalityEstimationForTerms(dataset, dt.field(), dt.type(), dt.estimate()));
 
-      while (cardEstForTermsIterator.hasNext()) {
-        FieldDistinctTerms distinctTerms = cardEstForTermsIterator.next();
-        infos.addCardinalityEstimationForTerms(dataset, distinctTerms.field(), distinctTerms.type(),
-            distinctTerms.estimate());
-      }
+      fieldCardinalityEstimationForBuckets(dataset, null).forEachRemaining(db -> infos
+          .addCardinalityEstimationForBuckets(dataset, db.field(), db.type(), db.estimate()));
 
-      Iterator<FieldDistinctBuckets> cardEstForBucketsIterator =
-          fieldCardinalityEstimationForBuckets(dataset, null);
+      fieldTopTerms(dataset, null).forEachRemaining(tt -> {
+        infos.addTopTermsNoFalsePositives(dataset, tt.field(), tt.type(),
+            tt.topTermsNoFalsePositives());
+        infos.addTopTermsNoFalseNegatives(dataset, tt.field(), tt.type(),
+            tt.topTermsNoFalseNegatives());
+      });
 
-      while (cardEstForBucketsIterator.hasNext()) {
-        FieldDistinctBuckets distinctBuckets = cardEstForBucketsIterator.next();
-        infos.addCardinalityEstimationForBuckets(dataset, distinctBuckets.field(),
-            distinctBuckets.type(), distinctBuckets.estimate());
-      }
+      fieldVisibilityLabels(dataset, null).forEachRemaining(
+          l -> infos.addVisibilityLabels(dataset, l.field(), l.type(), l.termLabels()));
 
-      Iterator<FieldTopTerms> topTermsIterator = fieldTopTerms(dataset, null);
-
-      while (topTermsIterator.hasNext()) {
-        FieldTopTerms topTerms = topTermsIterator.next();
-        infos.addTopTermsNoFalsePositives(dataset, topTerms.field(), topTerms.type(),
-            topTerms.topTermsNoFalsePositives());
-        infos.addTopTermsNoFalseNegatives(dataset, topTerms.field(), topTerms.type(),
-            topTerms.topTermsNoFalseNegatives());
-      }
-
-      Iterator<FieldLabels> labelsIterator = fieldVisibilityLabels(dataset, null);
-
-      while (labelsIterator.hasNext()) {
-        FieldLabels labels = labelsIterator.next();
-        infos.addVisibilityLabels(dataset, labels.field(), labels.type(), labels.termLabels());
-      }
-
-      Iterator<FieldLastUpdate> lastUpdateIterator = fieldLastUpdate(dataset, null);
-
-      while (lastUpdateIterator.hasNext()) {
-        FieldLastUpdate lastUpdate = lastUpdateIterator.next();
-        infos.addLastUpdate(dataset, lastUpdate.field(), lastUpdate.type(),
-            lastUpdate.lastUpdate());
-      }
+      fieldLastUpdate(dataset, null).forEachRemaining(
+          lu -> infos.addLastUpdate(dataset, lu.field(), lu.type(), lu.lastUpdate()));
     });
     return infos;
   }
@@ -1027,12 +900,6 @@ final public class DataStore implements AutoCloseable {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docId, "docId should not be null");
     Preconditions.checkNotNull(json, "json should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).add("dataset", dataset)
-          .add("docId", docId).add("json", json).add("has_keep_field", keepField != null)
-          .add("has_tokenizer", tokenizer != null).add("json_as_blob", jsonAsBlob).formatDebug());
-    }
 
     if (jsonAsBlob) {
       if (!persistBlob(dataset, docId, json)) {

@@ -1,8 +1,8 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import java.util.Iterator;
 import java.util.Set;
 
+import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
 import com.google.errorprone.annotations.CheckReturnValue;
 
@@ -31,7 +31,7 @@ public abstract class AbstractTermProcessor implements AutoCloseable {
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  public abstract Iterator<String> read(String dataset, String term, Set<String> fields,
+  public abstract View<String> read(String dataset, String term, Set<String> fields,
       BloomFilters<String> docsIds);
 
   /**
@@ -44,6 +44,6 @@ public abstract class AbstractTermProcessor implements AutoCloseable {
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  public abstract Iterator<String> read(String dataset, Set<String> fields, Object minTerm,
+  public abstract View<String> read(String dataset, Set<String> fields, Object minTerm,
       Object maxTerm, BloomFilters<String> docsIds);
 }

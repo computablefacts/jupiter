@@ -4,7 +4,6 @@ import java.io.File;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +26,7 @@ import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.RandomString;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.Var;
 
 public class BlobStoreTest extends MiniAccumuloClusterTest {
 
@@ -86,18 +86,16 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     try (BatchScanner scanner = blobStore.batchScanner(auths, 1)) {
 
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.getFiles(scanner, dataset, null, null).forEachRemaining(blobs::add);
+      @Var
+      List<Blob<Value>> blobs = blobStore.getFiles(scanner, dataset, null, null).toList();
 
       Assert.assertTrue(blobs.isEmpty());
 
-      blobs.clear();
-      blobStore.getStrings(scanner, dataset, null, null).forEachRemaining(blobs::add);
+      blobs = blobStore.getStrings(scanner, dataset, null, null).toList();
 
       Assert.assertTrue(blobs.isEmpty());
 
-      blobs.clear();
-      blobStore.getJsons(scanner, dataset, null, null).forEachRemaining(blobs::add);
+      blobs = blobStore.getJsons(scanner, dataset, null, null).toList();
 
       Assert.assertTrue(blobs.isEmpty());
     }
@@ -119,9 +117,8 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     try (Scanner scanner = blobStore.scanner(auths)) {
 
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.getFiles(scanner, dataset, Sets.newHashSet(bucketId), null)
-          .forEachRemaining(blobs::add);
+      List<Blob<Value>> blobs =
+          blobStore.getFiles(scanner, dataset, Sets.newHashSet(bucketId), null).toList();
 
       Assert.assertEquals(1, blobs.size());
 
@@ -145,9 +142,8 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     try (Scanner scanner = blobStore.scanner(auths)) {
 
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.getStrings(scanner, dataset, Sets.newHashSet(bucketId), null)
-          .forEachRemaining(blobs::add);
+      List<Blob<Value>> blobs =
+          blobStore.getStrings(scanner, dataset, Sets.newHashSet(bucketId), null).toList();
 
       Assert.assertEquals(1, blobs.size());
 
@@ -171,9 +167,8 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     try (Scanner scanner = blobStore.scanner(auths)) {
 
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.getJsons(scanner, dataset, Sets.newHashSet(bucketId), null)
-          .forEachRemaining(blobs::add);
+      List<Blob<Value>> blobs =
+          blobStore.getJsons(scanner, dataset, Sets.newHashSet(bucketId), null).toList();
 
       Assert.assertEquals(1, blobs.size());
 
@@ -201,25 +196,21 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     try (BatchScanner scanner = blobStore.batchScanner(auths, 1)) {
 
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.getJsons(scanner, dataset, Sets.newHashSet("1", "3"), null)
-          .forEachRemaining(blobs::add);
+      @Var
+      List<Blob<Value>> blobs =
+          blobStore.getJsons(scanner, dataset, Sets.newHashSet("1", "3"), null).toList();
 
       Assert.assertEquals(1, blobs.size());
 
       checkJson(blobs.get(0));
 
-      blobs.clear();
-      blobStore.getFiles(scanner, dataset, Sets.newHashSet("1", "3"), null)
-          .forEachRemaining(blobs::add);
+      blobs = blobStore.getFiles(scanner, dataset, Sets.newHashSet("1", "3"), null).toList();
 
       Assert.assertEquals(1, blobs.size());
 
       checkFile(blobs.get(0), file);
 
-      blobs.clear();
-      blobStore.getStrings(scanner, dataset, Sets.newHashSet("1", "3"), null)
-          .forEachRemaining(blobs::add);
+      blobs = blobStore.getStrings(scanner, dataset, Sets.newHashSet("1", "3"), null).toList();
 
       Assert.assertEquals(0, blobs.size());
     }
@@ -245,22 +236,20 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     try (BatchScanner scanner = blobStore.batchScanner(auths, 1)) {
 
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.getJsons(scanner, dataset, null, null).forEachRemaining(blobs::add);
+      @Var
+      List<Blob<Value>> blobs = blobStore.getJsons(scanner, dataset, null, null).toList();
 
       Assert.assertEquals(1, blobs.size());
 
       checkJson(blobs.get(0));
 
-      blobs.clear();
-      blobStore.getStrings(scanner, dataset, null, null).forEachRemaining(blobs::add);
+      blobs = blobStore.getStrings(scanner, dataset, null, null).toList();
 
       Assert.assertEquals(1, blobs.size());
 
       checkString(blobs.get(0));
 
-      blobs.clear();
-      blobStore.getFiles(scanner, dataset, null, null).forEachRemaining(blobs::add);
+      blobs = blobStore.getFiles(scanner, dataset, null, null).toList();
 
       Assert.assertEquals(1, blobs.size());
 
@@ -286,9 +275,9 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     try (BatchScanner scanner =
         blobStore.batchScanner(new Authorizations("ADM", "BLOBS_RAW_DATA"), 1)) {
 
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.getJsons(scanner, dataset, null, Sets.newHashSet("Actors[*]¤name", "Actors[*]¤age"))
-          .forEachRemaining(blobs::add);
+      List<Blob<Value>> blobs = blobStore
+          .getJsons(scanner, dataset, null, Sets.newHashSet("Actors[*]¤name", "Actors[*]¤age"))
+          .toList();
 
       Assert.assertEquals(1, blobs.size());
 
@@ -323,8 +312,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     try (BatchScanner scanner =
         blobStore.batchScanner(new Authorizations("ADM", "BLOBS_ACTORS_NAME"), 1)) {
 
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.getJsons(scanner, dataset, null, null).forEachRemaining(blobs::add);
+      List<Blob<Value>> blobs = blobStore.getJsons(scanner, dataset, null, null).toList();
 
       Assert.assertEquals(1, blobs.size());
 
@@ -358,8 +346,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     try (BatchScanner scanner = blobStore.batchScanner(new Authorizations("ADM"), 1)) {
 
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.getStrings(scanner, dataset, null, null).forEachRemaining(blobs::add);
+      List<Blob<Value>> blobs = blobStore.getStrings(scanner, dataset, null, null).toList();
 
       Assert.assertEquals(1, blobs.size());
 
@@ -392,19 +379,18 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     try (BatchScanner scanner =
         blobStore.batchScanner(new Authorizations("ADM", "BLOBS_ACTORS_NAME"), 1)) {
 
-      List<Blob<Value>> blobs = new ArrayList<>();
-      blobStore.getJsons(scanner, dataset, null, null,
+      @Var
+      List<Blob<Value>> blobs = blobStore.getJsons(scanner, dataset, null, null,
           Sets.newHashSet(new AbstractMap.SimpleEntry<>("Actors[*]¤weight",
               "MASKED_4103e8509cbdf6b3372222061bbe1da6")))
-          .forEachRemaining(blobs::add);
+          .toList();
 
       Assert.assertEquals(1, blobs.size());
 
-      blobs.clear();
-      blobStore
+      blobs = blobStore
           .getJsons(scanner, dataset, null, null,
               Sets.newHashSet(new AbstractMap.SimpleEntry<>("Actors[*]¤name", "Tom Cruise")))
-          .forEachRemaining(blobs::add);
+          .toList();
 
       Assert.assertEquals(1, blobs.size());
     }
