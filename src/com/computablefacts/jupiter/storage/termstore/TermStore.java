@@ -100,11 +100,11 @@ final public class TermStore extends AbstractStorage {
 
   private static final Logger logger_ = LoggerFactory.getLogger(TermStore.class);
 
-  private Map<String, ThetaSketch> fieldsCardinalityEstimatorsForTerms_;
-  private Map<String, FieldDistinctBuckets> fieldsDistinctBuckets_;
-  private Map<String, TopKSketch> fieldsTopTerms_;
-  private Map<String, FieldLastUpdate> fieldsLastUpdate_;
-  private Map<String, FieldLabels> fieldsLabels_;
+  private Map<String, ThetaSketch> cardinalityEstimatorsForTerms_;
+  private Map<String, FieldDistinctBuckets> distinctBuckets_;
+  private Map<String, TopKSketch> topTerms_;
+  private Map<String, FieldLastUpdate> lastUpdate_;
+  private Map<String, FieldLabels> labels_;
 
   private String prevDataset_ = "";
   private String prevField_ = "";
@@ -292,11 +292,11 @@ final public class TermStore extends AbstractStorage {
    * estimators may be heavily skewed towards a subset of the data.
    */
   public void beginIngest() {
-    fieldsCardinalityEstimatorsForTerms_ = new HashMap<>();
-    fieldsDistinctBuckets_ = new HashMap<>();
-    fieldsTopTerms_ = new HashMap<>();
-    fieldsLastUpdate_ = new HashMap<>();
-    fieldsLabels_ = new HashMap<>();
+    cardinalityEstimatorsForTerms_ = new HashMap<>();
+    distinctBuckets_ = new HashMap<>();
+    topTerms_ = new HashMap<>();
+    lastUpdate_ = new HashMap<>();
+    labels_ = new HashMap<>();
     prevDataset_ = "";
     prevField_ = "";
     prevBucketId_ = "";
@@ -320,45 +320,45 @@ final public class TermStore extends AbstractStorage {
       @Var
       boolean isOk = true;
 
-      if (fieldsCardinalityEstimatorsForTerms_ != null) {
+      if (cardinalityEstimatorsForTerms_ != null) {
         isOk =
-            fieldsCardinalityEstimatorsForTerms_
+            cardinalityEstimatorsForTerms_
                 .entrySet().stream().allMatch(sketch -> add(writer, FieldDistinctTerms
                     .newMutation(dataset, sketch.getKey(), sketch.getValue().toByteArray())))
                 && isOk;
-        fieldsCardinalityEstimatorsForTerms_ = null;
+        cardinalityEstimatorsForTerms_ = null;
       }
-      if (fieldsDistinctBuckets_ != null) {
-        isOk = fieldsDistinctBuckets_.entrySet().stream()
+      if (distinctBuckets_ != null) {
+        isOk = distinctBuckets_.entrySet().stream()
             .allMatch(db -> add(writer,
                 FieldDistinctBuckets.newMutation(dataset, db.getKey(), db.getValue().estimate())))
             && isOk;
-        fieldsDistinctBuckets_ = null;
+        distinctBuckets_ = null;
         prevDataset_ = "";
         prevField_ = "";
         prevBucketId_ = "";
       }
-      if (fieldsTopTerms_ != null) {
+      if (topTerms_ != null) {
         isOk =
-            fieldsTopTerms_
+            topTerms_
                 .entrySet().stream().allMatch(sketch -> add(writer, FieldTopTerms
                     .newMutation(dataset, sketch.getKey(), sketch.getValue().toByteArray())))
                 && isOk;
-        fieldsTopTerms_ = null;
+        topTerms_ = null;
       }
-      if (fieldsLabels_ != null) {
+      if (labels_ != null) {
         isOk =
-            fieldsLabels_.values().stream()
+            labels_.values().stream()
                 .allMatch(fl -> add(writer,
                     FieldLabels.newMutation(fl.dataset(), fl.field(), fl.type(), fl.labels())))
                 && isOk;
-        fieldsLabels_ = null;
+        labels_ = null;
       }
-      if (fieldsLastUpdate_ != null) {
-        isOk = fieldsLastUpdate_.values().stream().allMatch(
+      if (lastUpdate_ != null) {
+        isOk = lastUpdate_.values().stream().allMatch(
             flu -> add(writer, FieldLastUpdate.newMutation(flu.dataset(), flu.field(), flu.type())))
             && isOk;
-        fieldsLastUpdate_ = null;
+        lastUpdate_ = null;
       }
       return isOk;
     } catch (MutationsRejectedException e) {
@@ -451,32 +451,32 @@ final public class TermStore extends AbstractStorage {
     }
 
     // Compute the number of distinct terms
-    if (fieldsCardinalityEstimatorsForTerms_ != null) {
+    if (cardinalityEstimatorsForTerms_ != null) {
 
       String key = field + SEPARATOR_NUL + newType;
 
-      if (!fieldsCardinalityEstimatorsForTerms_.containsKey(key)) {
-        fieldsCardinalityEstimatorsForTerms_.put(key, new ThetaSketch());
+      if (!cardinalityEstimatorsForTerms_.containsKey(key)) {
+        cardinalityEstimatorsForTerms_.put(key, new ThetaSketch());
       }
-      fieldsCardinalityEstimatorsForTerms_.get(key).offer(newTerm);
+      cardinalityEstimatorsForTerms_.get(key).offer(newTerm);
     }
 
     // Compute the number of distinct buckets
-    if (fieldsDistinctBuckets_ != null && (!prevDataset_.equals(dataset)
-        || !prevField_.equals(field) || !prevBucketId_.equals(bucketId))) {
+    if (distinctBuckets_ != null && (!prevDataset_.equals(dataset) || !prevField_.equals(field)
+        || !prevBucketId_.equals(bucketId))) {
 
       String key = field + SEPARATOR_NUL + Term.TYPE_NA;
 
-      if (!fieldsDistinctBuckets_.containsKey(key)) {
-        fieldsDistinctBuckets_.put(key,
+      if (!distinctBuckets_.containsKey(key)) {
+        distinctBuckets_.put(key,
             new FieldDistinctBuckets(dataset, field, newType, fieldSpecificLabels, 0));
       }
 
-      FieldDistinctBuckets prev = fieldsDistinctBuckets_.get(key);
+      FieldDistinctBuckets prev = distinctBuckets_.get(key);
       FieldDistinctBuckets next = new FieldDistinctBuckets(dataset, field, newType,
           fieldSpecificLabels, prev.estimate() + 1);
 
-      fieldsDistinctBuckets_.put(key, next);
+      distinctBuckets_.put(key, next);
 
       prevDataset_ = dataset;
       prevField_ = field;
@@ -484,38 +484,37 @@ final public class TermStore extends AbstractStorage {
     }
 
     // Compute the top k terms
-    if (fieldsTopTerms_ != null) {
+    if (topTerms_ != null) {
 
       String key = field + SEPARATOR_NUL + newType;
 
-      if (!fieldsTopTerms_.containsKey(key)) {
-        fieldsTopTerms_.put(key, new TopKSketch());
+      if (!topTerms_.containsKey(key)) {
+        topTerms_.put(key, new TopKSketch());
       }
-      fieldsTopTerms_.get(key).offer(term instanceof Number ? term.toString() : newTerm,
-          nbOccurrences);
+      topTerms_.get(key).offer(term instanceof Number ? term.toString() : newTerm, nbOccurrences);
     }
 
     // Compute last update
-    if (fieldsLastUpdate_ != null) {
+    if (lastUpdate_ != null) {
 
       String key = field + SEPARATOR_NUL + newType;
       FieldLastUpdate fieldLastUpdate =
           new FieldLastUpdate(dataset, field, newType, fieldSpecificLabels);
 
-      fieldsLastUpdate_.put(key, fieldLastUpdate); // Replace the previous entry (if any)
+      lastUpdate_.put(key, fieldLastUpdate); // Replace the previous entry (if any)
     }
 
     // Compute visibility labels
-    if (fieldsLabels_ != null) {
+    if (labels_ != null) {
 
       String key = field + SEPARATOR_NUL + newType;
       FieldLabels fieldLabels = new FieldLabels(dataset, field, newType, fieldSpecificLabels);
 
-      if (!fieldsLabels_.containsKey(key)) {
-        fieldsLabels_.put(key, fieldLabels);
+      if (!labels_.containsKey(key)) {
+        labels_.put(key, fieldLabels);
       }
 
-      FieldLabels prev = fieldsLabels_.get(key);
+      FieldLabels prev = labels_.get(key);
 
       if (!fieldLabels.equals(prev)) {
 
@@ -528,7 +527,7 @@ final public class TermStore extends AbstractStorage {
         Set<String> labels = Sets.union(fieldSpecificLabels, prev.labels());
         FieldLabels newFieldLabels = new FieldLabels(dataset, field, newType, labels);
 
-        fieldsLabels_.put(key, newFieldLabels); // Replace the previous entry (if any)
+        labels_.put(key, newFieldLabels); // Replace the previous entry (if any)
       }
     }
 
