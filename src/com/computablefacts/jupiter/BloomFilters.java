@@ -5,6 +5,7 @@ import java.util.Stack;
 
 import org.apache.commons.io.Charsets;
 
+import com.computablefacts.asterix.BloomFilter;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CheckReturnValue;

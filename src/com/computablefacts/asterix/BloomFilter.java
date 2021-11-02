@@ -1,7 +1,8 @@
-package com.computablefacts.jupiter;
+package com.computablefacts.asterix;
 
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.BitSet;
@@ -27,7 +28,7 @@ import com.google.errorprone.annotations.Var;
 final public class BloomFilter<E> implements Serializable {
 
   // encoding used for storing hash values
-  private static final Charset CHARSET = Charset.forName("UTF-8");
+  private static final Charset CHARSET = StandardCharsets.UTF_8;
 
   // MD5 gives good enough accuracy in most circumstances
   // Change to SHA1 if it's needed
@@ -234,10 +235,7 @@ final public class BloomFilter<E> implements Serializable {
     if (bitSetSize_ != other.bitSetSize_) {
       return false;
     }
-    if (bitSet_ != other.bitSet_ && (bitSet_ == null || !bitSet_.equals(other.bitSet_))) {
-      return false;
-    }
-    return true;
+    return bitSet_ == other.bitSet_ || (bitSet_ != null && bitSet_.equals(other.bitSet_));
   }
 
   /**
@@ -279,7 +277,7 @@ final public class BloomFilter<E> implements Serializable {
    */
   public double falsePositiveProbability(double numberOfElements) {
     // (1 - e^(-k * n / m)) ^ k
-    return Math.pow((1 - Math.exp(-k_ * (double) numberOfElements / (double) bitSetSize_)), k_);
+    return Math.pow((1 - Math.exp(-k_ * numberOfElements / (double) bitSetSize_)), k_);
   }
 
   /**

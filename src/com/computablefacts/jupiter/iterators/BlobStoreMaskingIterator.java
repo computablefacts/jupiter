@@ -19,9 +19,9 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 
+import com.computablefacts.asterix.Generated;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
-import com.computablefacts.nona.Generated;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wnameless.json.base.JacksonJsonCore;

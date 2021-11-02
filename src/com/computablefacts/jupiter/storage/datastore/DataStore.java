@@ -21,6 +21,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.Generated;
 import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
@@ -36,7 +37,6 @@ import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
 import com.computablefacts.jupiter.storage.termstore.FieldTopTerms;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.StringIterator;
 import com.computablefacts.nona.helpers.WildcardMatcher;

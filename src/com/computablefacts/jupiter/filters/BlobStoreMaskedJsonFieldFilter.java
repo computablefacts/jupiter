@@ -18,9 +18,9 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
+import com.computablefacts.asterix.Generated;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
-import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.google.common.base.Strings;

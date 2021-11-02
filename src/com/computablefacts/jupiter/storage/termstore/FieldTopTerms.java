@@ -18,8 +18,8 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.hadoop.io.Text;
 
+import com.computablefacts.asterix.Generated;
 import com.computablefacts.jupiter.storage.AbstractStorage;
-import com.computablefacts.nona.Generated;
 import com.google.common.annotations.Beta;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;

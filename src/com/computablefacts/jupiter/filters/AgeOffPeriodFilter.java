@@ -11,7 +11,7 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-import com.computablefacts.nona.Generated;
+import com.computablefacts.asterix.Generated;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 

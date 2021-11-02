@@ -31,6 +31,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.Generated;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
@@ -38,7 +39,6 @@ import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.Generated;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;

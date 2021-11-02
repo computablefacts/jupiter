@@ -1,4 +1,4 @@
-package com.computablefacts.jupiter;
+package com.computablefacts.asterix;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -8,6 +8,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -57,7 +58,7 @@ public class BloomFilterTest {
     int result3 = BloomFilter.createHash(UUID.randomUUID().toString());
     assertNotSame(result3, result2);
 
-    int result4 = BloomFilter.createHash(val.getBytes("UTF-8"));
+    int result4 = BloomFilter.createHash(val.getBytes(StandardCharsets.UTF_8));
     assertEquals(result4, result1);
   }
 
@@ -70,7 +71,7 @@ public class BloomFilterTest {
   public void testCreateHash_byteArr() throws UnsupportedEncodingException {
     System.out.println("createHash");
     String val = UUID.randomUUID().toString();
-    byte[] data = val.getBytes("UTF-8");
+    byte[] data = val.getBytes(StandardCharsets.UTF_8);
     int result1 = BloomFilter.createHash(data);
     int result2 = BloomFilter.createHash(val);
     assertEquals(result1, result2);
@@ -85,7 +86,7 @@ public class BloomFilterTest {
   public void testCreateHashes_byteArr() throws UnsupportedEncodingException {
     System.out.println("createHashes");
     String val = UUID.randomUUID().toString();
-    byte[] data = val.getBytes("UTF-8");
+    byte[] data = val.getBytes(StandardCharsets.UTF_8);
     int[] result1 = BloomFilter.createHashes(data, 10);
     int[] result2 = BloomFilter.createHashes(data, 10);
     assertEquals(result1.length, 10);

@@ -25,6 +25,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.Generated;
 import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.OrderedView;
@@ -36,7 +37,6 @@ import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterato
 import com.computablefacts.jupiter.iterators.BlobStoreMaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.Generated;
 import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;

@@ -27,10 +27,10 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.Generated;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.Generated;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
