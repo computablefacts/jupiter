@@ -9,7 +9,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.security.Authorizations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,12 +85,36 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
   }
 
   @Override
+  public View<String> readSorted(String dataset, String term, Set<String> fields,
+      BloomFilters<String> docsIds) {
+
+    Preconditions.checkNotNull(term, "term should not be null");
+
+    return termStore_.bucketsIdsSorted(authorizations_, dataset, fields, term, docsIds)
+        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
+  }
+
+  @Override
   public View<String> read(String dataset, String term, Set<String> fields,
       BloomFilters<String> docsIds) {
 
     Preconditions.checkNotNull(term, "term should not be null");
 
-    return termStore_.bucketsIds(scanner(), dataset, fields, term, docsIds)
+    return termStore_.bucketsIds(authorizations_, dataset, fields, term, docsIds)
+        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
+  }
+
+  @Override
+  public View<String> readSorted(String dataset, Set<String> fields, Object minTerm, Object maxTerm,
+      BloomFilters<String> docsIds) {
+
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+    Preconditions.checkArgument(
+        minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
+        "minTerm and maxTerm must be of the same type");
+
+    return termStore_.bucketsIdsSorted(authorizations_, dataset, fields, minTerm, maxTerm, docsIds)
         .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
@@ -105,7 +128,7 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    return termStore_.bucketsIds(scanner(), dataset, fields, minTerm, maxTerm, docsIds)
+    return termStore_.bucketsIds(authorizations_, dataset, fields, minTerm, maxTerm, docsIds)
         .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
@@ -114,12 +137,5 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
       writer_ = termStore_.writer();
     }
     return writer_;
-  }
-
-  ScannerBase scanner() {
-    if (nbQueryThreads_ == 1) {
-      return termStore_.scanner(authorizations_);
-    }
-    return termStore_.batchScanner(authorizations_, nbQueryThreads_);
   }
 }

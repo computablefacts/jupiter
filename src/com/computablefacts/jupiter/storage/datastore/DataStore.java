@@ -606,89 +606,96 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the visibility labels available for a given field.
+   * Get the visibility labels available for a given field (unsorted).
    *
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param field field.
    * @return visibility labels. No particular order should be expected from the returned iterator.
    */
-  public View<FieldLabels> fieldVisibilityLabels(String dataset, String field) {
+  public View<FieldLabels> fieldVisibilityLabels(Authorizations authorizations, String dataset,
+      String field) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termProcessor_ == null ? View.of()
-        : termStore_.fieldVisibilityLabels(((AccumuloTermProcessor) termProcessor_).scanner(),
-            dataset, field == null ? null : Sets.newHashSet(field));
+    return termStore_.fieldVisibilityLabels(authorizations, dataset,
+        field == null ? null : Sets.newHashSet(field));
   }
 
   /**
-   * Get the date of last of a given field.
+   * Get the date of last of a given field (unsorted).
    *
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param field field.
    * @return last update as an UTC timestamp. No particular order should be expected from the
    *         returned iterator.
    */
-  public View<FieldLastUpdate> fieldLastUpdate(String dataset, String field) {
-
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return termProcessor_ == null ? View.of()
-        : termStore_.fieldLastUpdate(((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
-            field == null ? null : Sets.newHashSet(field));
-  }
-
-  /**
-   * Get the number of distinct terms for a given field.
-   *
-   * @param dataset dataset.
-   * @param field field.
-   * @return cardinality estimation. No particular order should be expected from the returned
-   *         iterator.
-   */
-  public View<FieldDistinctTerms> fieldCardinalityEstimationForTerms(String dataset, String field) {
-
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return termProcessor_ == null ? View.of()
-        : termStore_.fieldCardinalityEstimationForTerms(
-            ((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
-            field == null ? null : Sets.newHashSet(field));
-  }
-
-  /**
-   * Get the number of distinct buckets for a given field.
-   *
-   * @param dataset dataset.
-   * @param field field.
-   * @return cardinality estimation. No particular order should be expected from the returned
-   *         iterator.
-   */
-  public View<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(String dataset,
+  public View<FieldLastUpdate> fieldLastUpdate(Authorizations authorizations, String dataset,
       String field) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termProcessor_ == null ? View.of()
-        : termStore_.fieldCardinalityEstimationForBuckets(
-            ((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
-            field == null ? null : Sets.newHashSet(field));
+    return termStore_.fieldLastUpdate(authorizations, dataset,
+        field == null ? null : Sets.newHashSet(field));
   }
 
   /**
-   * Get the number of distinct buckets for a given field.
+   * Get the number of distinct terms for a given field (unsorted).
    *
+   * @param authorizations authorizations.
+   * @param dataset dataset.
+   * @param field field.
+   * @return cardinality estimation. No particular order should be expected from the returned
+   *         iterator.
+   */
+  public View<FieldDistinctTerms> fieldCardinalityEstimationForTerms(Authorizations authorizations,
+      String dataset, String field) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return termStore_.fieldCardinalityEstimationForTerms(authorizations, dataset,
+        field == null ? null : Sets.newHashSet(field));
+  }
+
+  /**
+   * Get the number of distinct buckets for a given field (unsorted).
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset.
+   * @param field field.
+   * @return cardinality estimation. No particular order should be expected from the returned
+   *         iterator.
+   */
+  public View<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(
+      Authorizations authorizations, String dataset, String field) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return termStore_.fieldCardinalityEstimationForBuckets(authorizations, dataset,
+        field == null ? null : Sets.newHashSet(field));
+  }
+
+  /**
+   * Get the number of distinct buckets for a given field (unsorted).
+   *
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param field field.
    * @return top terms. No particular order should be expected from the returned iterator.
    */
-  public View<FieldTopTerms> fieldTopTerms(String dataset, String field) {
+  public View<FieldTopTerms> fieldTopTerms(Authorizations authorizations, String dataset,
+      String field) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return termProcessor_ == null ? View.of()
-        : termStore_.fieldTopTerms(((AccumuloTermProcessor) termProcessor_).scanner(), dataset,
-            field == null ? null : Sets.newHashSet(field));
+    return termStore_.fieldTopTerms(authorizations, dataset,
+        field == null ? null : Sets.newHashSet(field));
   }
 
   /**
@@ -782,53 +789,68 @@ final public class DataStore implements AutoCloseable {
   /**
    * Estimate the number of buckets with at least one of occurrence of a given term.
    *
+   * @param authorizations authorizations.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
    * @return the estimated number of occurrences of the given term.
    */
-  public long termCardinalityEstimationForBuckets(String dataset, Set<String> fields, String term) {
+  public long termCardinalityEstimationForBuckets(Authorizations authorizations, String dataset,
+      Set<String> fields, String term) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkArgument(
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
         "term cannot start AND end with a wildcard");
 
-    return termProcessor_ == null ? 0
-        : termStore_
-            .termCardinalityEstimationForBuckets(((AccumuloTermProcessor) termProcessor_).scanner(),
-                dataset, fields, term)
-            .reduce(0L, (carry, t) -> carry + t.count());
+    return termStore_.termCardinalityEstimationForBuckets(authorizations, dataset, fields, term)
+        .reduce(0L, (carry, t) -> carry + t.count());
   }
 
   /**
    * Estimate the number of buckets with at least one of occurrence of all terms in [minTerm,
    * maxTerm].
    *
+   * @param authorizations authorizations.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param minTerm first searched term (included). Wildcard characters are not allowed.
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @return the estimated number of terms in [minTerm, maxTerm].
    */
-  public long termCardinalityEstimationForBuckets(String dataset, Set<String> fields,
-      Object minTerm, Object maxTerm) {
+  public long termCardinalityEstimationForBuckets(Authorizations authorizations, String dataset,
+      Set<String> fields, Object minTerm, Object maxTerm) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
         "minTerm and maxTerm cannot be null at the same time");
     Preconditions.checkArgument(
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    return termProcessor_ == null ? 0
-        : termStore_
-            .termCardinalityEstimationForBuckets(((AccumuloTermProcessor) termProcessor_).scanner(),
-                dataset, fields, minTerm, maxTerm)
-            .reduce(0L, (carry, t) -> carry + t.count());
+    return termStore_
+        .termCardinalityEstimationForBuckets(authorizations, dataset, fields, minTerm, maxTerm)
+        .reduce(0L, (carry, t) -> carry + t.count());
   }
 
   /**
-   * Get the ids of all documents where at least one token matches "term".
+   * Get the ids of all documents where at least one token matches "term" (sorted).
+   *
+   * @param dataset dataset (optional).
+   * @param fields which fields must be considered (optional).
+   * @param term searched term. Might contain wildcard characters.
+   * @param docsIds which docs must be considered (optional).
+   * @return an ordered stream of documents ids.
+   */
+  public View<String> docsIdsSorted(String dataset, String term, Set<String> fields,
+      BloomFilters<String> docsIds) {
+    return termProcessor_ == null ? View.of()
+        : termProcessor_.readSorted(dataset, term, fields, docsIds);
+  }
+
+  /**
+   * Get the ids of all documents where at least one token matches "term" (unsorted).
    *
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
@@ -842,7 +864,25 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm].
+   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
+   * (sorted).
+   *
+   * @param dataset dataset (optional).
+   * @param fields which fields must be considered (optional).
+   * @param minTerm first searched term (included). Wildcard characters are not allowed.
+   * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
+   * @param docsIds which docs must be considered (optional).
+   * @return an ordered stream of documents ids.
+   */
+  public View<String> docsIdsSorted(String dataset, Set<String> fields, Object minTerm,
+      Object maxTerm, BloomFilters<String> docsIds) {
+    return termProcessor_ == null ? View.of()
+        : termProcessor_.readSorted(dataset, fields, minTerm, maxTerm, docsIds);
+  }
+
+  /**
+   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
+   * (unsorted).
    *
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
@@ -895,32 +935,37 @@ final public class DataStore implements AutoCloseable {
   /**
    * Return misc. infos about a given list of datasets.
    *
+   * @param authorizations authorizations.
    * @param datasets a list of datasets.
    * @return {@link DataStoreInfos}.
    */
-  public DataStoreInfos infos(Set<String> datasets) {
+  public DataStoreInfos infos(Authorizations authorizations, Set<String> datasets) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(datasets, "datasets should not be null");
 
     DataStoreInfos infos = new DataStoreInfos(name());
 
     datasets.forEach(dataset -> {
 
-      fieldCardinalityEstimationForTerms(dataset, null).forEachRemaining(dt -> infos
+      fieldCardinalityEstimationForTerms(authorizations, dataset, null).forEachRemaining(dt -> infos
           .addCardinalityEstimationForTerms(dataset, dt.field(), dt.type(), dt.estimate()));
 
-      fieldCardinalityEstimationForBuckets(dataset, null).forEachRemaining(db -> infos
-          .addCardinalityEstimationForBuckets(dataset, db.field(), db.type(), db.estimate()));
+      fieldCardinalityEstimationForBuckets(authorizations, dataset, null)
+          .forEachRemaining(db -> infos.addCardinalityEstimationForBuckets(dataset, db.field(),
+              db.type(), db.estimate()));
 
-      fieldTopTerms(dataset, null).forEachRemaining(tt -> {
+      fieldTopTerms(authorizations, dataset, null).forEachRemaining(tt -> {
         infos.addTopTermsNoFalsePositives(dataset, tt.field(), tt.type(),
             tt.topTermsNoFalsePositives());
         infos.addTopTermsNoFalseNegatives(dataset, tt.field(), tt.type(),
             tt.topTermsNoFalseNegatives());
       });
 
-      fieldVisibilityLabels(dataset, null).forEachRemaining(
+      fieldVisibilityLabels(authorizations, dataset, null).forEachRemaining(
           l -> infos.addVisibilityLabels(dataset, l.field(), l.type(), l.termLabels()));
 
-      fieldLastUpdate(dataset, null).forEachRemaining(
+      fieldLastUpdate(authorizations, dataset, null).forEachRemaining(
           lu -> infos.addLastUpdate(dataset, lu.field(), lu.type(), lu.lastUpdate()));
     });
     return infos;

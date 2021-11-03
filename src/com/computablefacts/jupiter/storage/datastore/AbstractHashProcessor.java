@@ -18,7 +18,17 @@ public abstract class AbstractHashProcessor implements AutoCloseable {
   public abstract boolean write(String dataset, String docId, String field, Object value);
 
   /**
-   * Get documents ids.
+   * Get documents ids (sorted).
+   *
+   * @param dataset dataset.
+   * @param field the field.
+   * @param hash the field hashed value.
+   * @return an unordered set of docs ids.
+   */
+  public abstract View<String> readSorted(String dataset, String field, String hash);
+
+  /**
+   * Get documents ids (unsorted).
    *
    * @param dataset dataset.
    * @param field the field.

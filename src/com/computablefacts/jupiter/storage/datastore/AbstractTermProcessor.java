@@ -23,7 +23,19 @@ public abstract class AbstractTermProcessor implements AutoCloseable {
       int nbOccurrencesInDoc);
 
   /**
-   * Get the ids of all documents where at least one token matches "term".
+   * Get the ids of all documents where at least one token matches "term" (sorted).
+   *
+   * @param dataset dataset (optional).
+   * @param fields which fields must be considered (optional).
+   * @param term searched term. Might contain wildcard characters.
+   * @param docsIds which docs must be considered (optional).
+   * @return an ordered stream of documents ids.
+   */
+  public abstract View<String> readSorted(String dataset, String term, Set<String> fields,
+      BloomFilters<String> docsIds);
+
+  /**
+   * Get the ids of all documents where at least one token matches "term" (unsorted).
    *
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
@@ -35,7 +47,22 @@ public abstract class AbstractTermProcessor implements AutoCloseable {
       BloomFilters<String> docsIds);
 
   /**
-   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm].
+   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
+   * (sorted).
+   *
+   * @param dataset dataset (optional).
+   * @param fields which fields must be considered (optional).
+   * @param minTerm first searched term (included). Wildcard characters are not allowed.
+   * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
+   * @param docsIds which docs must be considered (optional).
+   * @return an ordered stream of documents ids.
+   */
+  public abstract View<String> readSorted(String dataset, Set<String> fields, Object minTerm,
+      Object maxTerm, BloomFilters<String> docsIds);
+
+  /**
+   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
+   * (unsorted).
    *
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).

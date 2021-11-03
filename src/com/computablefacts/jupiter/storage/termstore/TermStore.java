@@ -25,6 +25,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -551,24 +552,20 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * Get the visibility labels associated to each field.
+   * Get the visibility labels associated to each field (unsorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields fields (optional).
    * @return visibility labels.
    */
-  public View<FieldLabels> fieldVisibilityLabels(ScannerBase scanner, String dataset,
+  public View<FieldLabels> fieldVisibilityLabels(Authorizations authorizations, String dataset,
       Set<String> fields) {
 
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).formatDebug());
-    }
-
+    BatchScanner scanner = batchScanner(authorizations);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(VISIBILITY));
@@ -585,36 +582,25 @@ final public class TermStore extends AbstractStorage {
     if (!setRanges(scanner, ranges)) {
       return View.of();
     }
-
-    View<Map.Entry<Key, Value>> view;
-
-    if (scanner instanceof BatchScanner) {
-      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
-    } else {
-      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
-    }
-    return view.map(entry -> FieldLabels.fromKeyValue(entry.getKey(), entry.getValue()));
+    return new UnorderedView<>(scanner, s -> s.iterator())
+        .map(entry -> FieldLabels.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
-   * Get the date of last update associated to each field.
+   * Get the date of last update associated to each field (unsorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields fields (optional).
    * @return last update as an UTC timestamp.
    */
-  public View<FieldLastUpdate> fieldLastUpdate(ScannerBase scanner, String dataset,
+  public View<FieldLastUpdate> fieldLastUpdate(Authorizations authorizations, String dataset,
       Set<String> fields) {
 
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).formatDebug());
-    }
-
+    BatchScanner scanner = batchScanner(authorizations);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(LAST_UPDATE));
@@ -631,36 +617,25 @@ final public class TermStore extends AbstractStorage {
     if (!setRanges(scanner, ranges)) {
       return View.of();
     }
-
-    View<Map.Entry<Key, Value>> view;
-
-    if (scanner instanceof BatchScanner) {
-      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
-    } else {
-      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
-    }
-    return view.map(entry -> FieldLastUpdate.fromKeyValue(entry.getKey(), entry.getValue()));
+    return new UnorderedView<>(scanner, s -> s.iterator())
+        .map(entry -> FieldLastUpdate.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
-   * Get the number of distinct terms in each field.
+   * Get the number of distinct terms in each field (unsorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields fields (optional).
    * @return the number of distinct terms.
    */
-  public View<FieldDistinctTerms> fieldCardinalityEstimationForTerms(ScannerBase scanner,
+  public View<FieldDistinctTerms> fieldCardinalityEstimationForTerms(Authorizations authorizations,
       String dataset, Set<String> fields) {
 
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).formatDebug());
-    }
-
+    BatchScanner scanner = batchScanner(authorizations);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(DISTINCT_TERMS));
@@ -677,36 +652,25 @@ final public class TermStore extends AbstractStorage {
     if (!setRanges(scanner, ranges)) {
       return View.of();
     }
-
-    View<Map.Entry<Key, Value>> view;
-
-    if (scanner instanceof BatchScanner) {
-      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
-    } else {
-      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
-    }
-    return view.map(entry -> FieldDistinctTerms.fromKeyValue(entry.getKey(), entry.getValue()));
+    return new UnorderedView<>(scanner, s -> s.iterator())
+        .map(entry -> FieldDistinctTerms.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
-   * Get the number of distinct buckets in each field.
+   * Get the number of distinct buckets in each field (unsorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields fields (optional).
    * @return the number of distinct buckets.
    */
-  public View<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(ScannerBase scanner,
-      String dataset, Set<String> fields) {
+  public View<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(
+      Authorizations authorizations, String dataset, Set<String> fields) {
 
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).formatDebug());
-    }
-
+    BatchScanner scanner = batchScanner(authorizations);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(DISTINCT_BUCKETS));
@@ -723,36 +687,25 @@ final public class TermStore extends AbstractStorage {
     if (!setRanges(scanner, ranges)) {
       return View.of();
     }
-
-    View<Map.Entry<Key, Value>> view;
-
-    if (scanner instanceof BatchScanner) {
-      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
-    } else {
-      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
-    }
-    return view.map(entry -> FieldDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue()));
+    return new UnorderedView<>(scanner, s -> s.iterator())
+        .map(entry -> FieldDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
-   * Get the most frequent terms in each field.
+   * Get the most frequent terms in each field (unsorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields fields (optional).
    * @return the number of distinct buckets.
    */
-  public View<FieldTopTerms> fieldTopTerms(ScannerBase scanner, String dataset,
+  public View<FieldTopTerms> fieldTopTerms(Authorizations authorizations, String dataset,
       Set<String> fields) {
 
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).formatDebug());
-    }
-
+    BatchScanner scanner = batchScanner(authorizations);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(TOP_TERMS));
@@ -769,60 +722,43 @@ final public class TermStore extends AbstractStorage {
     if (!setRanges(scanner, ranges)) {
       return View.of();
     }
-
-    View<Map.Entry<Key, Value>> view;
-
-    if (scanner instanceof BatchScanner) {
-      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
-    } else {
-      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
-    }
-    return view.map(entry -> FieldTopTerms.fromKeyValue(entry.getKey(), entry.getValue()));
+    return new UnorderedView<>(scanner, s -> s.iterator())
+        .map(entry -> FieldTopTerms.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**
    * For each field in a given dataset, get the number of buckets with at least one occurrence of a
-   * given term.
+   * given term (unsorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset (optional).
    * @param term searched term. Might contain wildcard characters.
-   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
-   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public View<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
-      String dataset, String term) {
-    return termCardinalityEstimationForBuckets(scanner, dataset, null, term);
+  public View<TermDistinctBuckets> termCardinalityEstimationForBuckets(
+      Authorizations authorizations, String dataset, String term) {
+    return termCardinalityEstimationForBuckets(authorizations, dataset, null, term);
   }
 
   /**
    * For each field of each bucket in a given dataset, get the number of buckets with at least one
-   * occurrence of a given term.
+   * occurrence of a given term (unsorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
-   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
-   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public View<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
-      String dataset, Set<String> fields, String term) {
+  public View<TermDistinctBuckets> termCardinalityEstimationForBuckets(
+      Authorizations authorizations, String dataset, Set<String> fields, String term) {
 
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
     Preconditions.checkArgument(
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
         "term cannot start AND end with a wildcard");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).add("term", term).formatDebug());
-    }
-
+    BatchScanner scanner = batchScanner(authorizations);
     scanner.clearColumns();
     scanner.clearScanIterators();
 
@@ -849,90 +785,78 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * For each field in a given dataset, get the ones matching a given term.
+   * For each field in a given dataset, get the ones matching a given term (sorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations
    * @param dataset dataset.
    * @param term searched term. Might contain wildcard characters.
-   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
-   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of a
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public View<Term> bucketsIds(ScannerBase scanner, String dataset, String term) {
-    return bucketsIds(scanner, dataset, null, term, null);
+  public View<Term> bucketsIdsSorted(Authorizations authorizations, String dataset, String term) {
+    return bucketsIdsSorted(authorizations, dataset, null, term, null);
+  }
+
+  /**
+   * For each field in a given dataset, get the ones matching a given term (unsorted).
+   *
+   * @param authorizations authorizations
+   * @param dataset dataset.
+   * @param term searched term. Might contain wildcard characters.
+   */
+  public View<Term> bucketsIds(Authorizations authorizations, String dataset, String term) {
+    return bucketsIds(authorizations, dataset, null, term, null);
   }
 
   /**
    * For each field of a given list of buckets in a given dataset, get the ones matching a given
-   * term.
+   * term (sorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
    * @param bucketsIds which buckets must be considered (optional).
-   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
-   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of a
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public View<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields, String term,
-      BloomFilters<String> bucketsIds) {
+  public View<Term> bucketsIdsSorted(Authorizations authorizations, String dataset,
+      Set<String> fields, String term, BloomFilters<String> bucketsIds) {
 
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-    Preconditions.checkArgument(
-        !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
-        "term cannot start AND end with a wildcard");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).add("term", term).add("has_buckets_ids", bucketsIds != null)
-          .formatDebug());
-    }
+    return bucketsIds(scanner(authorizations), dataset, fields, term, bucketsIds);
+  }
 
-    scanner.clearColumns();
-    scanner.clearScanIterators();
+  /**
+   * For each field of a given list of buckets in a given dataset, get the ones matching a given
+   * term (unsorted).
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset.
+   * @param fields which fields must be considered (optional).
+   * @param term searched term. Might contain wildcard characters.
+   * @param bucketsIds which buckets must be considered (optional).
+   */
+  public View<Term> bucketsIds(Authorizations authorizations, String dataset, Set<String> fields,
+      String term, BloomFilters<String> bucketsIds) {
 
-    boolean isTermBackward = WildcardMatcher.startsWithWildcard(term);
-    String newTerm = isTermBackward ? reverse(term) : term;
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
 
-    Range range;
-
-    if (!WildcardMatcher.hasWildcards(newTerm)) {
-      range = Range.exact(dataset + SEPARATOR_NUL + newTerm,
-          isTermBackward ? BACKWARD_INDEX : FORWARD_INDEX);
-    } else {
-
-      range = Range.prefix(dataset + SEPARATOR_NUL + WildcardMatcher.prefix(newTerm));
-
-      IteratorSetting setting =
-          new IteratorSetting(WILDCARD_FILTER_PRIORITY, "WildcardFilter1", WildcardFilter.class);
-      WildcardFilter.applyOnRow(setting);
-      WildcardFilter.addWildcard(setting, dataset + SEPARATOR_NUL + newTerm);
-
-      scanner.addScanIterator(setting);
-    }
-    return scanIndex(scanner, fields, range, isTermBackward, bucketsIds);
+    return bucketsIds(batchScanner(authorizations), dataset, fields, term, bucketsIds);
   }
 
   /**
    * For each field of each bucket in a given dataset, get the number of occurrences of all terms in
-   * [minTerm, maxTerm]. Note that this method only hits the forward index.
+   * [minTerm, maxTerm]. Note that this method only hits the forward index (unsorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields which fields must be considered (optional).
    * @param minTerm first searched term (included). Wildcard characters are not allowed.
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
-   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
-   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public View<TermDistinctBuckets> termCardinalityEstimationForBuckets(ScannerBase scanner,
-      String dataset, Set<String> fields, Object minTerm, Object maxTerm) {
+  public View<TermDistinctBuckets> termCardinalityEstimationForBuckets(
+      Authorizations authorizations, String dataset, Set<String> fields, Object minTerm,
+      Object maxTerm) {
 
-    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkArgument(minTerm != null || maxTerm != null,
         "minTerm and maxTerm cannot be null at the same time");
@@ -940,11 +864,7 @@ final public class TermStore extends AbstractStorage {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).add("min_term", minTerm).add("max_term", maxTerm).formatDebug());
-    }
-
+    BatchScanner scanner = batchScanner(authorizations);
     scanner.clearColumns();
     scanner.clearScanIterators();
 
@@ -975,19 +895,78 @@ final public class TermStore extends AbstractStorage {
 
   /**
    * For each field of a given list of buckets in a given dataset, get buckets having a term in
-   * [minTerm, maxTerm]. Note that this method only hits the forward index.
+   * [minTerm, maxTerm]. Note that this method only hits the forward index (sorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields which fields must be considered (optional).
    * @param minTerm first searched term (included). Wildcard characters are not allowed.
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @param bucketsIds which buckets must be considered (optional).
-   * @return an iterator whose entries are sorted by term if and only if {@link ScannerBase} is an
-   *         instance of a {@link org.apache.accumulo.core.client.Scanner} instead of a
-   *         {@link org.apache.accumulo.core.client.BatchScanner}.
    */
-  public View<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
+  public View<Term> bucketsIdsSorted(Authorizations authorizations, String dataset,
+      Set<String> fields, Object minTerm, Object maxTerm, BloomFilters<String> bucketsIds) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+
+    return bucketsIds(scanner(authorizations), dataset, fields, minTerm, maxTerm, bucketsIds);
+  }
+
+  /**
+   * For each field of a given list of buckets in a given dataset, get buckets having a term in
+   * [minTerm, maxTerm]. Note that this method only hits the forward index (unsorted).
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset.
+   * @param fields which fields must be considered (optional).
+   * @param minTerm first searched term (included). Wildcard characters are not allowed.
+   * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
+   * @param bucketsIds which buckets must be considered (optional).
+   */
+  public View<Term> bucketsIds(Authorizations authorizations, String dataset, Set<String> fields,
+      Object minTerm, Object maxTerm, BloomFilters<String> bucketsIds) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+
+    return bucketsIds(batchScanner(authorizations), dataset, fields, minTerm, maxTerm, bucketsIds);
+  }
+
+  private View<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
+      String term, BloomFilters<String> bucketsIds) {
+
+    Preconditions.checkNotNull(scanner, "scanner should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+    Preconditions.checkArgument(
+        !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
+        "term cannot start AND end with a wildcard");
+
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+
+    boolean isTermBackward = WildcardMatcher.startsWithWildcard(term);
+    String newTerm = isTermBackward ? reverse(term) : term;
+
+    Range range;
+
+    if (!WildcardMatcher.hasWildcards(newTerm)) {
+      range = Range.exact(dataset + SEPARATOR_NUL + newTerm,
+          isTermBackward ? BACKWARD_INDEX : FORWARD_INDEX);
+    } else {
+
+      range = Range.prefix(dataset + SEPARATOR_NUL + WildcardMatcher.prefix(newTerm));
+
+      IteratorSetting setting =
+          new IteratorSetting(WILDCARD_FILTER_PRIORITY, "WildcardFilter1", WildcardFilter.class);
+      WildcardFilter.applyOnRow(setting);
+      WildcardFilter.addWildcard(setting, dataset + SEPARATOR_NUL + newTerm);
+
+      scanner.addScanIterator(setting);
+    }
+    return scanIndex(scanner, fields, range, isTermBackward, bucketsIds);
+  }
+
+  private View<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
       Object minTerm, Object maxTerm, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");

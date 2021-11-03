@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.security.Authorizations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,9 +114,10 @@ final public class TerminalNode extends AbstractNode {
   }
 
   @Override
-  public long cardinality(DataStore dataStore, String dataset,
+  public long cardinality(DataStore dataStore, Authorizations authorizations, String dataset,
       Function<String, SpanSequence> tokenizer) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     if (logger_.isDebugEnabled()) {
@@ -148,7 +150,7 @@ final public class TerminalNode extends AbstractNode {
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.termCardinalityEstimationForBuckets(dataset, fields,
+          return dataStore.termCardinalityEstimationForBuckets(authorizations, dataset, fields,
               minTerm == null ? null : new BigDecimal(minTerm),
               maxTerm == null ? null : new BigDecimal(maxTerm));
         }
@@ -166,14 +168,13 @@ final public class TerminalNode extends AbstractNode {
       return 0;
     }
     if (Inflectional.equals(form_)) {
-      return terms.stream()
-          .mapToLong(term -> dataStore.termCardinalityEstimationForBuckets(dataset, fields(), term))
-          .sum();
+      return terms.stream().mapToLong(term -> dataStore
+          .termCardinalityEstimationForBuckets(authorizations, dataset, fields(), term)).sum();
     }
     if (Literal.equals(form_)) {
-      return terms.stream()
-          .mapToLong(term -> dataStore.termCardinalityEstimationForBuckets(dataset, fields(), term))
-          .max().orElse(0);
+      return terms.stream().mapToLong(term -> dataStore
+          .termCardinalityEstimationForBuckets(authorizations, dataset, fields(), term)).max()
+          .orElse(0);
     }
     if (Thesaurus.equals(form_)) {
       // TODO : backport code
@@ -182,9 +183,10 @@ final public class TerminalNode extends AbstractNode {
   }
 
   @Override
-  public View<String> execute(DataStore dataStore, String dataset, BloomFilters<String> docsIds,
-      Function<String, SpanSequence> tokenizer) {
+  public View<String> execute(DataStore dataStore, Authorizations authorizations, String dataset,
+      BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     if (logger_.isDebugEnabled()) {
@@ -218,7 +220,7 @@ final public class TerminalNode extends AbstractNode {
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.docsIds(dataset, fields,
+          return dataStore.docsIdsSorted(dataset, fields,
               minTerm == null ? null : new BigDecimal(minTerm),
               maxTerm == null ? null : new BigDecimal(maxTerm), docsIds);
         }
@@ -240,7 +242,7 @@ final public class TerminalNode extends AbstractNode {
       List<Iterator<String>> ids = new ArrayList<>();
 
       for (String term : terms) {
-        ids.add(dataStore.docsIds(dataset,
+        ids.add(dataStore.docsIdsSorted(dataset,
             WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"),
             fields(), docsIds));
       }
@@ -269,7 +271,7 @@ final public class TerminalNode extends AbstractNode {
           bfs.put(iter.next());
         }
       }
-      return dataStore.docsIds(dataset, terms.get(terms.size() - 1), fields(), bfs);
+      return dataStore.docsIdsSorted(dataset, terms.get(terms.size() - 1), fields(), bfs);
     }
     if (Thesaurus.equals(form_)) {
       // TODO : backport code

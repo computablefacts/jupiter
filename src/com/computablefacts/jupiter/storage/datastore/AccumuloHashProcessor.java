@@ -78,11 +78,53 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
   }
 
   @Override
+  public View<String> readSorted(String dataset, String field, String hash) {
+
+    Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
+
+    return readEx(termStore_.scanner(authorizations_), dataset, field, hash);
+  }
+
+  @Override
   public View<String> read(String dataset, String field, String hash) {
 
     Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
 
-    ScannerBase scanner = scanner();
+    return readEx(termStore_.batchScanner(authorizations_), dataset, field, hash);
+  }
+
+  @Override
+  protected boolean write(String dataset, String field, String value, String docId) {
+
+    Preconditions.checkNotNull(field, "field should neither be null nor empty");
+    Preconditions.checkNotNull(value, "value should neither be null nor empty");
+    Preconditions.checkNotNull(docId, "docId should neither be null nor empty");
+
+    String hash = MaskingIterator.hash(null, value);
+    Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + hash);
+    mutation.put(CF, docId + SEPARATOR_NUL + field, VALUE_EMPTY);
+
+    try {
+      writer().addMutation(mutation);
+      return true;
+    } catch (MutationsRejectedException e) {
+      logger_.error(LogFormatter.create(true).message(e).formatError());
+    }
+    return false;
+  }
+
+  private BatchWriter writer() {
+    if (writer_ == null) {
+      writer_ = termStore_.writer();
+    }
+    return writer_;
+  }
+
+  private View<String> readEx(ScannerBase scanner, String dataset, String field, String hash) {
+
+    Preconditions.checkNotNull(scanner, "scanner should neither be null nor empty");
+    Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
+
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(CF));
@@ -119,39 +161,5 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
       String cq = e.getKey().getColumnQualifier().toString();
       return cq.substring(0, cq.indexOf(SEPARATOR_NUL));
     });
-  }
-
-  @Override
-  protected boolean write(String dataset, String field, String value, String docId) {
-
-    Preconditions.checkNotNull(field, "field should neither be null nor empty");
-    Preconditions.checkNotNull(value, "value should neither be null nor empty");
-    Preconditions.checkNotNull(docId, "docId should neither be null nor empty");
-
-    String hash = MaskingIterator.hash(null, value);
-    Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + hash);
-    mutation.put(CF, docId + SEPARATOR_NUL + field, VALUE_EMPTY);
-
-    try {
-      writer().addMutation(mutation);
-      return true;
-    } catch (MutationsRejectedException e) {
-      logger_.error(LogFormatter.create(true).message(e).formatError());
-    }
-    return false;
-  }
-
-  private BatchWriter writer() {
-    if (writer_ == null) {
-      writer_ = termStore_.writer();
-    }
-    return writer_;
-  }
-
-  private ScannerBase scanner() {
-    if (nbQueryThreads_ == 1) {
-      return termStore_.scanner(authorizations_);
-    }
-    return termStore_.batchScanner(authorizations_, nbQueryThreads_);
   }
 }

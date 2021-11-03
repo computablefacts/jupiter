@@ -6,6 +6,8 @@ import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.security.Authorizations;
+
 import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
@@ -38,20 +40,22 @@ public abstract class AbstractNode {
     this.exclude_ = exclude;
   }
 
-  final public long cardinality(DataStore dataStore, String dataset) {
-    return cardinality(dataStore, dataset, null);
+  final public long cardinality(DataStore dataStore, Authorizations authorizations,
+      String dataset) {
+    return cardinality(dataStore, authorizations, dataset, null);
   }
 
-  final public View<Map.Entry<String, String>> execute(DataStore dataStore, String dataset) {
-    return execute(dataStore, dataset, null, null).map(t -> {
+  final public View<Map.Entry<String, String>> execute(DataStore dataStore,
+      Authorizations authorizations, String dataset) {
+    return execute(dataStore, authorizations, dataset, null, null).map(t -> {
       int index = t.indexOf(SEPARATOR_NUL);
       return new AbstractMap.SimpleEntry<>(t.substring(0, index), t.substring(index + 1));
     });
   }
 
-  final public View<Map.Entry<String, String>> execute(DataStore dataStore, String dataset,
-      BloomFilters<String> docsIds) {
-    return execute(dataStore, dataset, docsIds, null).map(t -> {
+  final public View<Map.Entry<String, String>> execute(DataStore dataStore,
+      Authorizations authorizations, String dataset, BloomFilters<String> docsIds) {
+    return execute(dataStore, authorizations, dataset, docsIds, null).map(t -> {
       int index = t.indexOf(SEPARATOR_NUL);
       return new AbstractMap.SimpleEntry<>(t.substring(0, index), t.substring(index + 1));
     });
@@ -60,9 +64,9 @@ public abstract class AbstractNode {
   @Deprecated
   public abstract Set<String> terms();
 
-  public abstract long cardinality(DataStore dataStore, String dataset,
-      Function<String, SpanSequence> tokenizer);
+  public abstract long cardinality(DataStore dataStore, Authorizations authorizations,
+      String dataset, Function<String, SpanSequence> tokenizer);
 
-  public abstract View<String> execute(DataStore dataStore, String dataset,
-      BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer);
+  public abstract View<String> execute(DataStore dataStore, Authorizations authorizations,
+      String dataset, BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer);
 }

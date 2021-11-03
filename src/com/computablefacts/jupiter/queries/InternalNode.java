@@ -2,6 +2,7 @@ package com.computablefacts.jupiter.queries;
 
 import java.util.Set;
 
+import org.apache.accumulo.core.security.Authorizations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,9 +61,10 @@ final public class InternalNode extends AbstractNode {
   }
 
   @Override
-  public long cardinality(DataStore dataStore, String dataset,
+  public long cardinality(DataStore dataStore, Authorizations authorizations, String dataset,
       Function<String, SpanSequence> tokenizer) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     if (logger_.isDebugEnabled()) {
@@ -78,13 +80,13 @@ final public class InternalNode extends AbstractNode {
     if (child1_ == null) {
       cardChild1 = 0;
     } else {
-      cardChild1 = child1_.cardinality(dataStore, dataset, tokenizer);
+      cardChild1 = child1_.cardinality(dataStore, authorizations, dataset, tokenizer);
     }
 
     if (child2_ == null) {
       cardChild2 = 0;
     } else {
-      cardChild2 = child2_.cardinality(dataStore, dataset, tokenizer);
+      cardChild2 = child2_.cardinality(dataStore, authorizations, dataset, tokenizer);
     }
 
     if (child1_ != null && child2_ != null) {
@@ -122,9 +124,10 @@ final public class InternalNode extends AbstractNode {
   }
 
   @Override
-  public View<String> execute(DataStore dataStore, String dataset, BloomFilters<String> docsIds,
-      Function<String, SpanSequence> tokenizer) {
+  public View<String> execute(DataStore dataStore, Authorizations authorizations, String dataset,
+      BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     if (logger_.isDebugEnabled()) {
@@ -145,7 +148,7 @@ final public class InternalNode extends AbstractNode {
         return View.of();
       }
       return eConjunctionTypes.Or.equals(conjunction_)
-          ? child2_.execute(dataStore, dataset, docsIds, tokenizer)
+          ? child2_.execute(dataStore, authorizations, dataset, docsIds, tokenizer)
           : View.of();
     }
     if (child2_ == null) {
@@ -157,7 +160,7 @@ final public class InternalNode extends AbstractNode {
         return View.of();
       }
       return eConjunctionTypes.Or.equals(conjunction_)
-          ? child1_.execute(dataStore, dataset, docsIds, tokenizer)
+          ? child1_.execute(dataStore, authorizations, dataset, docsIds, tokenizer)
           : View.of();
     }
 
@@ -179,14 +182,14 @@ final public class InternalNode extends AbstractNode {
       }
       if (child1_.exclude()) {
         // NOT A OR B
-        return child2_.execute(dataStore, dataset, docsIds, tokenizer);
+        return child2_.execute(dataStore, authorizations, dataset, docsIds, tokenizer);
       }
       // A OR NOT B
-      return child1_.execute(dataStore, dataset, docsIds, tokenizer);
+      return child1_.execute(dataStore, authorizations, dataset, docsIds, tokenizer);
     }
 
-    View<String> ids1 = child1_.execute(dataStore, dataset, docsIds, tokenizer);
-    View<String> ids2 = child2_.execute(dataStore, dataset, docsIds, tokenizer);
+    View<String> ids1 = child1_.execute(dataStore, authorizations, dataset, docsIds, tokenizer);
+    View<String> ids2 = child2_.execute(dataStore, authorizations, dataset, docsIds, tokenizer);
 
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B}
     if (eConjunctionTypes.And.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {
