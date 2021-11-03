@@ -14,6 +14,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 public class ViewTest {
@@ -42,6 +43,31 @@ public class ViewTest {
     Assert
         .assertTrue(list.contains(new AbstractMap.SimpleEntry<>(3, Sets.newHashSet("abc", "abc"))));
     Assert.assertTrue(list.contains(new AbstractMap.SimpleEntry<>(4, Sets.newHashSet("abcd"))));
+  }
+
+  @Test
+  public void testToList() {
+
+    View<String> view = View.of(Lists.newArrayList("a", "b", "b", "c", "c", "c"));
+
+    Assert.assertEquals(Lists.newArrayList("a", "b", "b", "c", "c", "c"), view.toList());
+  }
+
+  @Test
+  public void testToSortedList() {
+
+    View<String> view = View.of(Lists.newArrayList("a", "b", "b", "c", "c", "c"));
+
+    Assert.assertEquals(Lists.newArrayList("c", "c", "c", "b", "b", "a"),
+        view.toSortedList(Ordering.natural().reverse()));
+  }
+
+  @Test
+  public void testToSet() {
+
+    View<String> view = View.of(Lists.newArrayList("a", "b", "b", "c", "c", "c"));
+
+    Assert.assertEquals(Sets.newHashSet("a", "b", "c"), view.toSet());
   }
 
   @Test
