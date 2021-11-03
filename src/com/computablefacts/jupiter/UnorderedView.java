@@ -38,6 +38,5 @@ final public class UnorderedView<T> extends View<T> {
       scanner_.close();
       isClosed_ = true;
     }
-    super.close();
   }
 }
