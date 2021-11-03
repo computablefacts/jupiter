@@ -46,7 +46,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
   private static final Object NULL_MARKER = new Object();
   private static final ExecutorService defaultExecutor_ = Executors.newCachedThreadPool();
 
-  private final Iterator<T> stream_;
+  protected final Iterator<T> stream_;
 
   protected View(Iterator<T> stream) {
     stream_ = Preconditions.checkNotNull(stream, "stream should not be null");
@@ -164,7 +164,15 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
   }
 
   @Override
-  public void close() {}
+  public void close() {
+    if (stream_ instanceof AutoCloseable) {
+      try {
+        ((AutoCloseable) stream_).close();
+      } catch (Exception e) {
+        // TODO
+      }
+    }
+  }
 
   @Override
   protected void finalize() {

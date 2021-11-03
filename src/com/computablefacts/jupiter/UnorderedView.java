@@ -24,12 +24,12 @@ final public class UnorderedView<T> extends View<T> {
     if (isClosed_) {
       return endOfData();
     }
-    if (!hasNext()) {
+    T t = stream_.hasNext() ? stream_.next() : null;
+    if (!stream_.hasNext()) {
       scanner_.close();
       isClosed_ = true;
-      return endOfData();
     }
-    return super.computeNext();
+    return t == null ? endOfData() : t;
   }
 
   @Override
