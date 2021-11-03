@@ -177,7 +177,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return a {@link List}.
    */
   public List<T> toList() {
-    return Lists.newArrayList(stream_);
+    return Lists.newArrayList(this);
   }
 
   /**
@@ -197,7 +197,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return a {@link Set}.
    */
   public Set<T> toSet() {
-    return Sets.newHashSet(stream_);
+    return Sets.newHashSet(this);
   }
 
   /**
@@ -214,9 +214,9 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Map<U, List<T>> groups = new HashMap<>();
 
-    while (stream_.hasNext()) {
+    while (hasNext()) {
 
-      T value = stream_.next();
+      T value = next();
       U key = fn.apply(value);
 
       if (!groups.containsKey(key)) {
@@ -241,9 +241,9 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Map<U, Set<T>> groups = new HashMap<>();
 
-    while (stream_.hasNext()) {
+    while (hasNext()) {
 
-      T value = stream_.next();
+      T value = next();
       U key = fn.apply(value);
 
       if (!groups.containsKey(key)) {
@@ -265,12 +265,13 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkNotNull(view, "view should not be null");
 
+    View<T> self = this;
     return new View<>(new AbstractIterator<Map.Entry<T, U>>() {
 
       @Override
       protected Map.Entry<T, U> computeNext() {
-        if (stream_.hasNext() && view.stream_.hasNext()) {
-          return new AbstractMap.SimpleImmutableEntry<>(stream_.next(), view.stream_.next());
+        if (self.hasNext() && view.hasNext()) {
+          return new AbstractMap.SimpleImmutableEntry<>(self.next(), view.next());
         }
         return endOfData();
       }
@@ -305,7 +306,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return a new {@link View}.
    */
   public View<T> append(T element) {
-    return new View<>(Iterators.concat(stream_, Lists.newArrayList(element).iterator()));
+    return new View<>(Iterators.concat(this, Lists.newArrayList(element).iterator()));
   }
 
   /**
@@ -315,7 +316,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return a new {@link View}.
    */
   public View<T> prepend(T element) {
-    return new View<>(Iterators.concat(Lists.newArrayList(element).iterator(), stream_));
+    return new View<>(Iterators.concat(Lists.newArrayList(element).iterator(), this));
   }
 
   /**
@@ -325,13 +326,15 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return a new {@link View}.
    */
   public View<Map.Entry<Integer, T>> index() {
+
+    View<T> self = this;
     return new View<>(new AbstractIterator<Map.Entry<Integer, T>>() {
 
       private int index_ = 0;
 
       @Override
       protected Map.Entry<Integer, T> computeNext() {
-        return stream_.hasNext() ? new AbstractMap.SimpleImmutableEntry<>(++index_, stream_.next())
+        return self.hasNext() ? new AbstractMap.SimpleImmutableEntry<>(++index_, self.next())
             : endOfData();
       }
     });
@@ -354,7 +357,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return true if one or more elements returned by this view satisfy the given predicate.
    */
   public boolean anyMatch(Predicate<? super T> predicate) {
-    return Iterators.any(stream_, predicate::test);
+    return Iterators.any(this, predicate::test);
   }
 
   /**
@@ -365,7 +368,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    *         is empty, true is returned.
    */
   public boolean allMatch(Predicate<? super T> predicate) {
-    return Iterators.all(stream_, predicate::test);
+    return Iterators.all(this, predicate::test);
   }
 
   /**
@@ -376,7 +379,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return an {@link Optional}.
    */
   public Optional<T> findFirst(Predicate<? super T> predicate) {
-    return Iterators.tryFind(stream_, predicate::test).toJavaUtil();
+    return Iterators.tryFind(this, predicate::test).toJavaUtil();
   }
 
   /**
@@ -402,8 +405,8 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Breaker breaker = new Breaker();
 
-    while (!breaker.shouldBreak() && stream_.hasNext()) {
-      consumer.accept(stream_.next(), breaker);
+    while (!breaker.shouldBreak() && hasNext()) {
+      consumer.accept(next(), breaker);
     }
   }
 
@@ -420,8 +423,8 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
     Preconditions.checkNotNull(carry, "carry should not be null");
     Preconditions.checkNotNull(operation, "operation should not be null");
 
-    while (stream_.hasNext()) {
-      carry = operation.apply(carry, stream_.next());
+    while (hasNext()) {
+      carry = operation.apply(carry, next());
     }
     return carry;
   }
@@ -436,15 +439,16 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkArgument(n >= 0, "n must be >= 0");
 
+    View<T> self = this;
     return new View<>(new AbstractIterator<T>() {
 
       private long taken_ = 0;
 
       @Override
       protected T computeNext() {
-        if (stream_.hasNext() && taken_ < n) {
+        if (self.hasNext() && taken_ < n) {
           taken_++;
-          return stream_.next();
+          return self.next();
         }
         return endOfData();
       }
@@ -461,12 +465,13 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkNotNull(predicate, "predicate should not be null");
 
+    View<T> self = this;
     return new View<>(new AbstractIterator<T>() {
 
       @Override
       protected T computeNext() {
-        if (stream_.hasNext()) {
-          T e = stream_.next();
+        if (self.hasNext()) {
+          T e = self.next();
           if (predicate.test(e)) {
             return e;
           }
@@ -486,12 +491,13 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkNotNull(predicate, "predicate should not be null");
 
+    View<T> self = this;
     return new View<>(new AbstractIterator<T>() {
 
       @Override
       protected T computeNext() {
-        if (stream_.hasNext()) {
-          T e = stream_.next();
+        if (self.hasNext()) {
+          T e = self.next();
           if (!predicate.test(e)) {
             return e;
           }
@@ -511,17 +517,18 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkArgument(n >= 0, "n must be >= 0");
 
+    View<T> self = this;
     return new View<>(new AbstractIterator<T>() {
 
       private long dropped_ = 0;
 
       @Override
       protected T computeNext() {
-        while (stream_.hasNext() && dropped_ < n) {
+        while (self.hasNext() && dropped_ < n) {
           dropped_++;
-          stream_.next();
+          self.next();
         }
-        return stream_.hasNext() ? stream_.next() : endOfData();
+        return self.hasNext() ? self.next() : endOfData();
       }
     });
   }
@@ -536,6 +543,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkNotNull(predicate, "predicate should not be null");
 
+    View<T> self = this;
     return new View<>(new AbstractIterator<T>() {
 
       private boolean dropped_ = false;
@@ -543,8 +551,8 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
       @Override
       protected T computeNext() {
         if (!dropped_) {
-          while (stream_.hasNext()) {
-            T e = stream_.next();
+          while (self.hasNext()) {
+            T e = self.next();
             if (!predicate.test(e)) {
               dropped_ = true;
               return e;
@@ -552,7 +560,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
           }
           dropped_ = true;
         }
-        return stream_.hasNext() ? stream_.next() : endOfData();
+        return self.hasNext() ? self.next() : endOfData();
       }
     });
   }
@@ -567,6 +575,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkNotNull(predicate, "predicate should not be null");
 
+    View<T> self = this;
     return new View<>(new AbstractIterator<T>() {
 
       private boolean dropped_ = false;
@@ -574,8 +583,8 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
       @Override
       protected T computeNext() {
         if (!dropped_) {
-          while (stream_.hasNext()) {
-            T e = stream_.next();
+          while (self.hasNext()) {
+            T e = self.next();
             if (predicate.test(e)) {
               dropped_ = true;
               return e;
@@ -583,7 +592,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
           }
           dropped_ = true;
         }
-        return stream_.hasNext() ? stream_.next() : endOfData();
+        return self.hasNext() ? self.next() : endOfData();
       }
     });
   }
@@ -597,7 +606,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return a new {@link View}.
    */
   public <U> View<U> map(Function<? super T, ? extends U> fn) {
-    return of(Iterators.transform(stream_, fn::apply));
+    return of(Iterators.transform(this, fn::apply));
   }
 
   /**
@@ -607,7 +616,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return a new {@link View}.
    */
   public View<T> filter(Predicate<? super T> predicate) {
-    return new View<>(Iterators.filter(stream_, predicate::test));
+    return new View<>(Iterators.filter(this, predicate::test));
   }
 
   /**
@@ -637,7 +646,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkNotNull(view, "view should not be null");
 
-    return new View<>(Iterators.concat(stream_, view.stream_));
+    return new View<>(Iterators.concat(this, view));
   }
 
   /**
@@ -647,7 +656,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return a new {@link View}.
    */
   public View<List<T>> partition(int size) {
-    return new View<>(Iterators.partition(stream_, size));
+    return new View<>(Iterators.partition(this, size));
   }
 
   /**
@@ -658,7 +667,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
    * @return a new {@link View}.
    */
   public View<T> dedupSorted() {
-    PeekingIterator<T> stream = Iterators.peekingIterator(stream_);
+    PeekingIterator<T> stream = Iterators.peekingIterator(this);
     return new View<>(new AbstractIterator<T>() {
 
       @Override
@@ -692,8 +701,8 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkNotNull(view, "view should not be null");
 
-    PeekingIterator<T> thisStream = Iterators.peekingIterator(stream_);
-    PeekingIterator<? extends Comparable<T>> thatStream = Iterators.peekingIterator(view.stream_);
+    PeekingIterator<T> thisStream = Iterators.peekingIterator(this);
+    PeekingIterator<? extends Comparable<T>> thatStream = Iterators.peekingIterator(view);
 
     return new View<>(new AbstractIterator<T>() {
 
@@ -734,8 +743,8 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkNotNull(view, "view should not be null");
 
-    PeekingIterator<T> thisStream = Iterators.peekingIterator(stream_);
-    PeekingIterator<? extends Comparable<T>> thatStream = Iterators.peekingIterator(view.stream_);
+    PeekingIterator<T> thisStream = Iterators.peekingIterator(this);
+    PeekingIterator<? extends Comparable<T>> thatStream = Iterators.peekingIterator(view);
 
     return new View<>(new AbstractIterator<T>() {
 
@@ -785,7 +794,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     Preconditions.checkNotNull(fn, "fn should not be null");
 
-    PeekingIterator<T> stream = Iterators.peekingIterator(stream_);
+    PeekingIterator<T> stream = Iterators.peekingIterator(this);
 
     return new View<>(new AbstractIterator<U>() {
 
@@ -844,6 +853,7 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
     // Temporary storage for an element we fetched but could not fit in the queue
     AtomicReference<T> overflow = new AtomicReference<>();
     BlockingQueue<T> queue = new ArrayBlockingQueue<>(capacity);
+    View<T> self = this;
     Runnable inserter = new Runnable() {
 
       @SuppressWarnings("unchecked")
@@ -852,9 +862,9 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
         @Var
         T next = (T) END_MARKER;
 
-        if (stream_.hasNext()) {
+        if (self.hasNext()) {
 
-          next = stream_.next();
+          next = self.next();
 
           // ArrayBlockingQueue does not allow nulls
           if (next == null) {
