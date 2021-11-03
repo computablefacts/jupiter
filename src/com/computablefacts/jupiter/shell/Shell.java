@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -498,9 +499,10 @@ public class Shell {
 
     AtomicInteger count = new AtomicInteger(0);
     AtomicInteger ignored = new AtomicInteger(0);
+    Authorizations authorizations = authorizations(auths);
     Stopwatch stopwatch = Stopwatch.createStarted();
 
-    try (DataStore ds = new DataStore(configurations, datastore, authorizations(auths))) {
+    try (DataStore ds = new DataStore(configurations, datastore, authorizations)) {
 
       if (!ds.termStore().removeDataset(dataset)) {
         logger_.error(LogFormatter.create(true)
@@ -510,7 +512,7 @@ public class Shell {
 
       ds.beginIngest();
 
-      Iterator<Blob<Value>> iterator = ds.jsonScan(dataset, null);
+      View<Blob<Value>> iterator = ds.jsonScan(authorizations, dataset, null);
 
       while (iterator.hasNext()) {
 
@@ -566,15 +568,16 @@ public class Shell {
 
     Preconditions.checkArgument(!f.exists(), "File exists : %s", f.getAbsolutePath());
 
+    Authorizations authorizations = authorizations(auths);
     Stopwatch stopwatch = Stopwatch.createStarted();
 
-    try (DataStore ds = new DataStore(configurations, datastore, authorizations(auths))) {
+    try (DataStore ds = new DataStore(configurations, datastore, authorizations)) {
       try (FileOutputStream fos = new FileOutputStream(f)) {
         try (BufferedWriter bw =
             new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {
 
           AtomicInteger count = new AtomicInteger(0);
-          Iterator<Blob<Value>> iterator = ds.jsonScan(dataset, null);
+          Iterator<Blob<Value>> iterator = ds.jsonScan(authorizations, dataset, null);
 
           while (iterator.hasNext()) {
 

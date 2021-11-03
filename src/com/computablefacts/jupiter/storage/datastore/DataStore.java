@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -693,46 +692,91 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get all JSON from the blob storage layer. Note that using a BatchScanner improves performances
-   * a lot.
+   * Get all JSON from the blob storage layer (sorted).
    *
    * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
    * must also have the <dataset>_<field> auth for each requested field.
    *
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields JSON fields to keep (optional).
    * @return list of documents. No particular order should be expected from the returned iterator if
    *         {@code nbQueryThreads} is set to a value above 1.
    */
-  public View<Blob<Value>> jsonScan(String dataset, Set<String> fields) {
+  public View<Blob<Value>> jsonScanSorted(Authorizations authorizations, String dataset,
+      Set<String> fields) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return blobProcessor_ == null ? View.of()
-        : blobStore_.getJsons(((AccumuloBlobProcessor) blobProcessor_).scanner(), dataset, null,
-            fields);
+    return blobStore_.getJsonsSorted(authorizations, dataset, null, fields);
   }
 
   /**
-   * Get JSON from the blob storage layer.
+   * Get all JSON from the blob storage layer (unsorted).
    *
    * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
    * must also have the <dataset>_<field> auth for each requested field.
    *
+   * @param authorizations authorizations.
+   * @param dataset dataset.
+   * @param fields JSON fields to keep (optional).
+   * @return list of documents. No particular order should be expected from the returned iterator if
+   *         {@code nbQueryThreads} is set to a value above 1.
+   */
+  public View<Blob<Value>> jsonScan(Authorizations authorizations, String dataset,
+      Set<String> fields) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return blobStore_.getJsons(authorizations, dataset, null, fields);
+  }
+
+  /**
+   * Get JSON from the blob storage layer (sorted).
+   *
+   * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
+   * must also have the <dataset>_<field> auth for each requested field.
+   *
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param fields JSON fields to keep (optional).
    * @param docsIds documents unique identifiers.
    * @return list of documents. No particular order should be expected from the returned iterator if
    *         {@code nbQueryThreads} is set to a value above 1.
    */
-  public Iterator<Blob<Value>> jsonScan(String dataset, Set<String> fields, Set<String> docsIds) {
+  public View<Blob<Value>> jsonScanSorted(Authorizations authorizations, String dataset,
+      Set<String> fields, Set<String> docsIds) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docsIds, "docsIds should not be null");
 
-    return blobProcessor_ == null ? View.of()
-        : blobStore_.getJsons(((AccumuloBlobProcessor) blobProcessor_).scanner(), dataset, docsIds,
-            fields);
+    return blobStore_.getJsonsSorted(authorizations, dataset, docsIds, fields);
+  }
+
+  /**
+   * Get JSON from the blob storage layer (unsorted).
+   *
+   * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
+   * must also have the <dataset>_<field> auth for each requested field.
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset.
+   * @param fields JSON fields to keep (optional).
+   * @param docsIds documents unique identifiers.
+   * @return list of documents. No particular order should be expected from the returned iterator if
+   *         {@code nbQueryThreads} is set to a value above 1.
+   */
+  public View<Blob<Value>> jsonScan(Authorizations authorizations, String dataset,
+      Set<String> fields, Set<String> docsIds) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(docsIds, "docsIds should not be null");
+
+    return blobStore_.getJsons(authorizations, dataset, docsIds, fields);
   }
 
   /**

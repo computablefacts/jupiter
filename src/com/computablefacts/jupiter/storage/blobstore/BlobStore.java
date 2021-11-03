@@ -21,6 +21,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,6 @@ import com.computablefacts.jupiter.iterators.BlobStoreMaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.Codecs;
-import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -277,65 +277,145 @@ final public class BlobStore extends AbstractStorage {
   }
 
   /**
-   * Get all blobs. Note that using a BatchScanner improves performances a lot.
+   * Get all blobs of STRING type (sorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset/namespace.
+   * @param keys keys (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getStrings(ScannerBase scanner, String dataset, Set<String> keys,
-      Set<String> fields) {
-    return get(scanner, dataset, TYPE_STRING, keys, fields, null);
+  public View<Blob<Value>> getStringsSorted(Authorizations authorizations, String dataset,
+      Set<String> keys, Set<String> fields) {
+    return get(scanner(authorizations), dataset, TYPE_STRING, keys, fields, null);
   }
 
   /**
-   * Get all blobs. Note that using a BatchScanner improves performances a lot.
+   * Get all blobs of STRING type (unsorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset/namespace.
+   * @param keys keys (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getJsons(ScannerBase scanner, String dataset, Set<String> keys,
-      Set<String> fields) {
-    return get(scanner, dataset, TYPE_JSON, keys, fields, null);
+  public View<Blob<Value>> getStrings(Authorizations authorizations, String dataset,
+      Set<String> keys, Set<String> fields) {
+    return get(batchScanner(authorizations), dataset, TYPE_STRING, keys, fields, null);
   }
 
   /**
-   * Get all blobs. Note that using a BatchScanner improves performances a lot.
+   * Get all blobs of JSON type (sorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset/namespace.
+   * @param keys keys (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
+   * @return an iterator of (key, value) pairs.
+   */
+  public View<Blob<Value>> getJsonsSorted(Authorizations authorizations, String dataset,
+      Set<String> keys, Set<String> fields) {
+    return get(scanner(authorizations), dataset, TYPE_JSON, keys, fields, null);
+  }
+
+  /**
+   * Get all blobs of JSON type (unsorted).
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset/namespace.
+   * @param keys keys (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
+   * @return an iterator of (key, value) pairs.
+   */
+  public View<Blob<Value>> getJsons(Authorizations authorizations, String dataset, Set<String> keys,
+      Set<String> fields) {
+    return get(batchScanner(authorizations), dataset, TYPE_JSON, keys, fields, null);
+  }
+
+  /**
+   * Get all blobs of JSON type (sorted).
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset/namespace.
+   * @param keys keys (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @param hashes JSON fields filters (optional).
    * @return an iterator of (key, value) pairs.
    */
-  @Beta
-  public View<Blob<Value>> getJsons(ScannerBase scanner, String dataset, Set<String> keys,
+  public View<Blob<Value>> getJsonsSorted(Authorizations authorizations, String dataset,
+      Set<String> keys, Set<String> fields, Set<Map.Entry<String, String>> hashes) {
+    return get(scanner(authorizations), dataset, TYPE_JSON, keys, fields, hashes);
+  }
+
+  /**
+   * Get all blobs of JSON type (unsorted).
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset/namespace.
+   * @param keys keys (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
+   * @param hashes JSON fields filters (optional).
+   * @return an iterator of (key, value) pairs.
+   */
+  public View<Blob<Value>> getJsons(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields, Set<Map.Entry<String, String>> hashes) {
-    return get(scanner, dataset, TYPE_JSON, keys, fields, hashes);
+    return get(batchScanner(authorizations), dataset, TYPE_JSON, keys, fields, hashes);
   }
 
   /**
-   * Get all blobs. Note that using a BatchScanner improves performances a lot.
+   * Get all blobs of FILE type (sorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset/namespace.
+   * @param keys keys (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getFiles(ScannerBase scanner, String dataset, Set<String> keys,
-      Set<String> fields) {
-    return get(scanner, dataset, TYPE_FILE, keys, fields, null);
+  public View<Blob<Value>> getFilesSorted(Authorizations authorizations, String dataset,
+      Set<String> keys, Set<String> fields) {
+    return get(scanner(authorizations), dataset, TYPE_FILE, keys, fields, null);
   }
 
   /**
-   * Get all blobs. Note that using a BatchScanner improves performances a lot.
+   * Get all blobs of FILE type (unsorted).
    *
-   * @param scanner scanner.
+   * @param authorizations authorizations.
    * @param dataset dataset/namespace.
+   * @param keys keys (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getArrays(ScannerBase scanner, String dataset, Set<String> keys,
+  public View<Blob<Value>> getFiles(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(scanner, dataset, TYPE_ARRAY, keys, fields, null);
+    return get(batchScanner(authorizations), dataset, TYPE_FILE, keys, fields, null);
+  }
+
+  /**
+   * Get all blobs of ARRAY type (sorted).
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset/namespace.
+   * @param keys keys (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
+   * @return an iterator of (key, value) pairs.
+   */
+  public View<Blob<Value>> getArraysSorted(Authorizations authorizations, String dataset,
+      Set<String> keys, Set<String> fields) {
+    return get(scanner(authorizations), dataset, TYPE_ARRAY, keys, fields, null);
+  }
+
+  /**
+   * Get all blobs of ARRAY type (unsorted).
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset/namespace.
+   * @param keys keys (optional).
+   * @param fields fields to keep if Accumulo Values are JSON objects (optional).
+   * @return an iterator of (key, value) pairs.
+   */
+  public View<Blob<Value>> getArrays(Authorizations authorizations, String dataset,
+      Set<String> keys, Set<String> fields) {
+    return get(batchScanner(authorizations), dataset, TYPE_ARRAY, keys, fields, null);
   }
 
   /**
