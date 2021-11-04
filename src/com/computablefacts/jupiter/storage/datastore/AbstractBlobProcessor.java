@@ -5,6 +5,11 @@ import com.google.errorprone.annotations.CheckReturnValue;
 @CheckReturnValue
 public abstract class AbstractBlobProcessor implements AutoCloseable {
 
+  @Override
+  protected void finalize() throws Exception {
+    close();
+  }
+
   /**
    * Persist a single JSON object.
    *

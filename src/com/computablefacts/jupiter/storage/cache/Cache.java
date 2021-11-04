@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.storage.cache;
 
 import static com.computablefacts.jupiter.storage.Constants.ITERATOR_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
@@ -201,7 +202,7 @@ public final class Cache {
 
   @Deprecated
   public BatchDeleter deleter(Authorizations authorizations) {
-    return cache_.deleter(authorizations);
+    return cache_.deleter(authorizations, NB_QUERY_THREADS, Tables.batchWriterConfig());
   }
 
   /**

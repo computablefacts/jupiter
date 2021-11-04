@@ -2,6 +2,8 @@ package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.datastore.AccumuloHashProcessor.CF;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -14,9 +16,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,8 +33,12 @@ import com.computablefacts.asterix.Generated;
 import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.jupiter.OrderedView;
+import com.computablefacts.jupiter.UnorderedView;
 import com.computablefacts.jupiter.Users;
+import com.computablefacts.jupiter.filters.TermStoreBucketFieldFilter;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
+import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.jupiter.storage.cache.Cache;
@@ -42,7 +55,6 @@ import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
 import com.github.wnameless.json.flattener.JsonFlattener;
-import com.google.common.annotations.Beta;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
@@ -113,20 +125,9 @@ final public class DataStore implements AutoCloseable {
     blobStore_ = new BlobStore(configurations, blobStoreName(name));
     termStore_ = new TermStore(configurations, termStoreName(name));
     cache_ = new Cache(configurations, cacheName(name));
-    blobProcessor_ = newAccumuloBlobProcessor();
-    termProcessor_ = newAccumuloTermProcessor();
-    hashProcessor_ = newAccumuloHashProcessor();
-  }
-
-  @Beta
-  public DataStore(Configurations configurations, String name, Authorizations authorizations) {
-    name_ = Preconditions.checkNotNull(name, "name should neither be null nor empty");
-    blobStore_ = new BlobStore(configurations, blobStoreName(name));
-    termStore_ = new TermStore(configurations, termStoreName(name));
-    cache_ = new Cache(configurations, cacheName(name));
-    blobProcessor_ = newAccumuloBlobProcessor(authorizations, NB_QUERY_THREADS);
-    termProcessor_ = newAccumuloTermProcessor(authorizations, NB_QUERY_THREADS);
-    hashProcessor_ = newAccumuloHashProcessor(authorizations, NB_QUERY_THREADS);
+    blobProcessor_ = new AccumuloBlobProcessor(blobStore_);
+    termProcessor_ = new AccumuloTermProcessor(termStore_);
+    hashProcessor_ = new AccumuloHashProcessor(termStore_);
   }
 
   static String normalize(String str) {
@@ -158,39 +159,6 @@ final public class DataStore implements AutoCloseable {
   @Override
   protected void finalize() {
     flush();
-  }
-
-  @Beta
-  public AccumuloBlobProcessor newAccumuloBlobProcessor() {
-    return newAccumuloBlobProcessor(null, NB_QUERY_THREADS);
-  }
-
-  @Beta
-  public AccumuloBlobProcessor newAccumuloBlobProcessor(Authorizations authorizations,
-      int nbQueryThreads) {
-    return new AccumuloBlobProcessor(blobStore_, authorizations, nbQueryThreads);
-  }
-
-  @Beta
-  public AccumuloTermProcessor newAccumuloTermProcessor() {
-    return newAccumuloTermProcessor(null, NB_QUERY_THREADS);
-  }
-
-  @Beta
-  public AccumuloTermProcessor newAccumuloTermProcessor(Authorizations authorizations,
-      int nbQueryThreads) {
-    return new AccumuloTermProcessor(termStore_, authorizations, nbQueryThreads);
-  }
-
-  @Beta
-  public AccumuloHashProcessor newAccumuloHashProcessor() {
-    return newAccumuloHashProcessor(null, NB_QUERY_THREADS);
-  }
-
-  @Beta
-  public AccumuloHashProcessor newAccumuloHashProcessor(Authorizations authorizations,
-      int nbQueryThreads) {
-    return new AccumuloHashProcessor(termStore_, authorizations, nbQueryThreads);
   }
 
   /**
@@ -265,9 +233,7 @@ final public class DataStore implements AutoCloseable {
    * Set the term processor.
    *
    * @param termProcessor the processor used to deal with terms when
-   *        {@link #persistTerm(String, String, String, Object, int)},
-   *        {@link #docsIds(String, String, Set, BloomFilters)} or
-   *        {@link #docsIds(String, Set, Object, Object, BloomFilters)} is called.
+   *        {@link #persistTerm(String, String, String, Object, int)}.
    */
   @Generated
   public void setTermProcessor(AbstractTermProcessor termProcessor) {
@@ -285,9 +251,7 @@ final public class DataStore implements AutoCloseable {
    * Set the hash processor.
    *
    * @param hashProcessor the processor used to deal with hashes when
-   *        {@link #persistHash(String, String, String, Object)},
-   *        {@link #matchHash(String, String, String)} or
-   *        {@link #matchValue(String, String, Object)} is called.
+   *        {@link #persistHash(String, String, String, Object)}.
    */
   @Generated
   public void setHashProcessor(AbstractHashProcessor hashProcessor) {
@@ -789,36 +753,48 @@ final public class DataStore implements AutoCloseable {
   /**
    * Get the ids of all documents where at least one token matches "term" (sorted).
    *
+   * @param authorizations authorizations.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  public View<String> docsIdsSorted(String dataset, String term, Set<String> fields,
-      BloomFilters<String> docsIds) {
-    return termProcessor_ == null ? View.of()
-        : termProcessor_.readSorted(dataset, term, fields, docsIds);
+  public View<String> docsIdsSorted(Authorizations authorizations, String dataset, String term,
+      Set<String> fields, BloomFilters<String> docsIds) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+
+    return termStore_.bucketsIdsSorted(authorizations, dataset, fields, term, docsIds)
+        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
   /**
    * Get the ids of all documents where at least one token matches "term" (unsorted).
    *
+   * @param authorizations authorizations.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param term searched term. Might contain wildcard characters.
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  public View<String> docsIds(String dataset, String term, Set<String> fields,
-      BloomFilters<String> docsIds) {
-    return termProcessor_ == null ? View.of() : termProcessor_.read(dataset, term, fields, docsIds);
+  public View<String> docsIds(Authorizations authorizations, String dataset, String term,
+      Set<String> fields, BloomFilters<String> docsIds) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+
+    return termStore_.bucketsIds(authorizations, dataset, fields, term, docsIds)
+        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
   /**
    * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
    * (sorted).
    *
+   * @param authorizations authorizations.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param minTerm first searched term (included). Wildcard characters are not allowed.
@@ -826,16 +802,25 @@ final public class DataStore implements AutoCloseable {
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  public View<String> docsIdsSorted(String dataset, Set<String> fields, Object minTerm,
-      Object maxTerm, BloomFilters<String> docsIds) {
-    return termProcessor_ == null ? View.of()
-        : termProcessor_.readSorted(dataset, fields, minTerm, maxTerm, docsIds);
+  public View<String> docsIdsSorted(Authorizations authorizations, String dataset,
+      Set<String> fields, Object minTerm, Object maxTerm, BloomFilters<String> docsIds) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+    Preconditions.checkArgument(
+        minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
+        "minTerm and maxTerm must be of the same type");
+
+    return termStore_.bucketsIdsSorted(authorizations, dataset, fields, minTerm, maxTerm, docsIds)
+        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
   /**
    * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
    * (unsorted).
    *
+   * @param authorizations authorizations.
    * @param dataset dataset (optional).
    * @param fields which fields must be considered (optional).
    * @param minTerm first searched term (included). Wildcard characters are not allowed.
@@ -843,45 +828,102 @@ final public class DataStore implements AutoCloseable {
    * @param docsIds which docs must be considered (optional).
    * @return an ordered stream of documents ids.
    */
-  public View<String> docsIds(String dataset, Set<String> fields, Object minTerm, Object maxTerm,
-      BloomFilters<String> docsIds) {
-    return termProcessor_ == null ? View.of()
-        : termProcessor_.read(dataset, fields, minTerm, maxTerm, docsIds);
+  public View<String> docsIds(Authorizations authorizations, String dataset, Set<String> fields,
+      Object minTerm, Object maxTerm, BloomFilters<String> docsIds) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkArgument(minTerm != null || maxTerm != null,
+        "minTerm and maxTerm cannot be null at the same time");
+    Preconditions.checkArgument(
+        minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
+        "minTerm and maxTerm must be of the same type");
+
+    return termStore_.bucketsIds(authorizations, dataset, fields, minTerm, maxTerm, docsIds)
+        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
   /**
-   * Get the ids of all documents where a field value exactly matches a given value.
+   * Get the ids of all documents where a field value exactly matches a given value (sorted).
    *
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param field which field must be considered.
    * @param value the value to match.
    * @return an unordered stream of documents ids.
    */
-  public View<String> matchValue(String dataset, String field, Object value) {
+  public View<String> matchValueSorted(Authorizations authorizations, String dataset, String field,
+      Object value) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    return hashProcessor_ == null ? View.of()
-        : hashProcessor_.read(dataset, field, MaskingIterator.hash(null, value.toString()));
+    return readHash(termStore_.scanner(authorizations), dataset, field,
+        MaskingIterator.hash(null, value.toString()));
   }
 
   /**
-   * Get the ids of all documents where a field hashed value exactly matches a given hash.
+   * Get the ids of all documents where a field value exactly matches a given value (unsorted).
    *
+   * @param authorizations authorizations.
+   * @param dataset dataset.
+   * @param field which field must be considered.
+   * @param value the value to match.
+   * @return an unordered stream of documents ids.
+   */
+  public View<String> matchValue(Authorizations authorizations, String dataset, String field,
+      Object value) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(value, "value should not be null");
+
+    return readHash(termStore_.batchScanner(authorizations, NB_QUERY_THREADS), dataset, field,
+        MaskingIterator.hash(null, value.toString()));
+  }
+
+  /**
+   * Get the ids of all documents where a field hashed value exactly matches a given hash (sorted).
+   *
+   * @param authorizations authorizations.
    * @param dataset dataset.
    * @param field which field must be considered.
    * @param hash the hash to match.
    * @return an unordered stream of documents ids.
    */
-  public View<String> matchHash(String dataset, String field, String hash) {
+  public View<String> matchHashSorted(Authorizations authorizations, String dataset, String field,
+      String hash) {
 
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
     Preconditions.checkNotNull(hash, "hash should not be null");
 
-    return hashProcessor_ == null ? View.of() : hashProcessor_.read(dataset, field, hash);
+    return readHash(termStore_.scanner(authorizations), dataset, field, hash);
+  }
+
+  /**
+   * Get the ids of all documents where a field hashed value exactly matches a given hash
+   * (unsorted).
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset.
+   * @param field which field must be considered.
+   * @param hash the hash to match.
+   * @return an unordered stream of documents ids.
+   */
+  public View<String> matchHash(Authorizations authorizations, String dataset, String field,
+      String hash) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+    Preconditions.checkNotNull(hash, "hash should not be null");
+
+    return readHash(termStore_.batchScanner(authorizations, NB_QUERY_THREADS), dataset, field,
+        hash);
   }
 
   /**
@@ -1100,5 +1142,48 @@ final public class DataStore implements AutoCloseable {
 
   private boolean persistHash(String dataset, String docId, String field, Object value) {
     return hashProcessor_ == null || hashProcessor_.write(dataset, docId, field, value);
+  }
+
+  private View<String> readHash(ScannerBase scanner, String dataset, String field, String hash) {
+
+    Preconditions.checkNotNull(scanner, "scanner should neither be null nor empty");
+    Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
+
+    scanner.clearColumns();
+    scanner.clearScanIterators();
+    scanner.fetchColumnFamily(new Text(CF));
+
+    Range range;
+
+    if (hash != null) {
+      range = Range.exact(dataset + SEPARATOR_NUL + hash, CF);
+    } else {
+      range = Range.prefix(dataset + SEPARATOR_NUL);
+    }
+
+    if (!AbstractStorage.setRanges(scanner, Sets.newHashSet(range))) {
+      return View.of();
+    }
+
+    if (field != null) {
+
+      IteratorSetting setting =
+          new IteratorSetting(31, "TermStoreBucketFieldFilter", TermStoreBucketFieldFilter.class);
+      TermStoreBucketFieldFilter.setFieldsToKeep(setting, Sets.newHashSet(field));
+
+      scanner.addScanIterator(setting);
+    }
+
+    View<Map.Entry<Key, Value>> view;
+
+    if (scanner instanceof BatchScanner) {
+      view = new UnorderedView<>((BatchScanner) scanner, s -> s.iterator());
+    } else {
+      view = new OrderedView<>((Scanner) scanner, s -> s.iterator());
+    }
+    return view.map(e -> {
+      String cq = e.getKey().getColumnQualifier().toString();
+      return cq.substring(0, cq.indexOf(SEPARATOR_NUL));
+    });
   }
 }

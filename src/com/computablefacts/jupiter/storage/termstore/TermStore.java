@@ -1,5 +1,6 @@
 package com.computablefacts.jupiter.storage.termstore;
 
+import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
@@ -545,7 +546,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    BatchScanner scanner = batchScanner(authorizations);
+    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(VISIBILITY));
@@ -580,7 +581,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    BatchScanner scanner = batchScanner(authorizations);
+    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(LAST_UPDATE));
@@ -615,7 +616,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    BatchScanner scanner = batchScanner(authorizations);
+    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(DISTINCT_TERMS));
@@ -650,7 +651,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    BatchScanner scanner = batchScanner(authorizations);
+    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(DISTINCT_BUCKETS));
@@ -685,7 +686,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    BatchScanner scanner = batchScanner(authorizations);
+    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(TOP_TERMS));
@@ -738,7 +739,7 @@ final public class TermStore extends AbstractStorage {
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
         "term cannot start AND end with a wildcard");
 
-    BatchScanner scanner = batchScanner(authorizations);
+    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
 
@@ -819,7 +820,8 @@ final public class TermStore extends AbstractStorage {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
 
-    return bucketsIds(batchScanner(authorizations), dataset, fields, term, bucketsIds);
+    return bucketsIds(batchScanner(authorizations, NB_QUERY_THREADS), dataset, fields, term,
+        bucketsIds);
   }
 
   /**
@@ -844,7 +846,7 @@ final public class TermStore extends AbstractStorage {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    BatchScanner scanner = batchScanner(authorizations);
+    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
 
@@ -908,7 +910,8 @@ final public class TermStore extends AbstractStorage {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
 
-    return bucketsIds(batchScanner(authorizations), dataset, fields, minTerm, maxTerm, bucketsIds);
+    return bucketsIds(batchScanner(authorizations, NB_QUERY_THREADS), dataset, fields, minTerm,
+        maxTerm, bucketsIds);
   }
 
   private View<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,

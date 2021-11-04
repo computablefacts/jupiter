@@ -1,5 +1,6 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
+import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.util.EnumSet;
@@ -292,7 +293,8 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> getStrings(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields) {
-    return get(batchScanner(authorizations), dataset, TYPE_STRING, keys, fields, null);
+    return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_STRING, keys, fields,
+        null);
   }
 
   /**
@@ -320,7 +322,8 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> getJsons(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(batchScanner(authorizations), dataset, TYPE_JSON, keys, fields, null);
+    return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_JSON, keys, fields,
+        null);
   }
 
   /**
@@ -350,7 +353,8 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> getJsons(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields, Set<Map.Entry<String, String>> hashes) {
-    return get(batchScanner(authorizations), dataset, TYPE_JSON, keys, fields, hashes);
+    return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_JSON, keys, fields,
+        hashes);
   }
 
   /**
@@ -378,7 +382,8 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> getFiles(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(batchScanner(authorizations), dataset, TYPE_FILE, keys, fields, null);
+    return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_FILE, keys, fields,
+        null);
   }
 
   /**
@@ -406,7 +411,8 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> getArrays(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields) {
-    return get(batchScanner(authorizations), dataset, TYPE_ARRAY, keys, fields, null);
+    return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_ARRAY, keys, fields,
+        null);
   }
 
   /**

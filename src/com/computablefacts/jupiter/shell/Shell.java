@@ -502,7 +502,7 @@ public class Shell {
     Authorizations authorizations = authorizations(auths);
     Stopwatch stopwatch = Stopwatch.createStarted();
 
-    try (DataStore ds = new DataStore(configurations, datastore, authorizations)) {
+    try (DataStore ds = new DataStore(configurations, datastore)) {
 
       if (!ds.termStore().removeDataset(dataset)) {
         logger_.error(LogFormatter.create(true)
@@ -571,7 +571,7 @@ public class Shell {
     Authorizations authorizations = authorizations(auths);
     Stopwatch stopwatch = Stopwatch.createStarted();
 
-    try (DataStore ds = new DataStore(configurations, datastore, authorizations)) {
+    try (DataStore ds = new DataStore(configurations, datastore)) {
       try (FileOutputStream fos = new FileOutputStream(f)) {
         try (BufferedWriter bw =
             new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {

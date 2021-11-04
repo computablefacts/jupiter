@@ -1,7 +1,6 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 
 import java.util.List;
@@ -9,12 +8,9 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.security.Authorizations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.asterix.View;
-import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
@@ -29,14 +25,10 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
   private static final Logger logger_ = LoggerFactory.getLogger(AccumuloTermProcessor.class);
 
   private final TermStore termStore_;
-  private final Authorizations authorizations_;
-  private final int nbQueryThreads_;
   private BatchWriter writer_;
 
-  AccumuloTermProcessor(TermStore termStore, Authorizations authorizations, int nbQueryThreads) {
+  AccumuloTermProcessor(TermStore termStore) {
     termStore_ = Preconditions.checkNotNull(termStore, "termStore should not be null");
-    authorizations_ = authorizations == null ? Authorizations.EMPTY : authorizations;
-    nbQueryThreads_ = nbQueryThreads <= 0 ? 1 : nbQueryThreads;
   }
 
   @Override
@@ -82,54 +74,6 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
           .add("doc_id", docId).add("field", field).add("term", term).formatError());
     }
     return isOk;
-  }
-
-  @Override
-  public View<String> readSorted(String dataset, String term, Set<String> fields,
-      BloomFilters<String> docsIds) {
-
-    Preconditions.checkNotNull(term, "term should not be null");
-
-    return termStore_.bucketsIdsSorted(authorizations_, dataset, fields, term, docsIds)
-        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
-  }
-
-  @Override
-  public View<String> read(String dataset, String term, Set<String> fields,
-      BloomFilters<String> docsIds) {
-
-    Preconditions.checkNotNull(term, "term should not be null");
-
-    return termStore_.bucketsIds(authorizations_, dataset, fields, term, docsIds)
-        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
-  }
-
-  @Override
-  public View<String> readSorted(String dataset, Set<String> fields, Object minTerm, Object maxTerm,
-      BloomFilters<String> docsIds) {
-
-    Preconditions.checkArgument(minTerm != null || maxTerm != null,
-        "minTerm and maxTerm cannot be null at the same time");
-    Preconditions.checkArgument(
-        minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
-        "minTerm and maxTerm must be of the same type");
-
-    return termStore_.bucketsIdsSorted(authorizations_, dataset, fields, minTerm, maxTerm, docsIds)
-        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
-  }
-
-  @Override
-  public View<String> read(String dataset, Set<String> fields, Object minTerm, Object maxTerm,
-      BloomFilters<String> docsIds) {
-
-    Preconditions.checkArgument(minTerm != null || maxTerm != null,
-        "minTerm and maxTerm cannot be null at the same time");
-    Preconditions.checkArgument(
-        minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
-        "minTerm and maxTerm must be of the same type");
-
-    return termStore_.bucketsIds(authorizations_, dataset, fields, minTerm, maxTerm, docsIds)
-        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
   BatchWriter writer() {

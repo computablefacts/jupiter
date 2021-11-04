@@ -5,8 +5,6 @@ import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.security.Authorizations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,14 +21,10 @@ final public class AccumuloBlobProcessor extends AbstractBlobProcessor {
   private static final Logger logger_ = LoggerFactory.getLogger(AccumuloBlobProcessor.class);
 
   private final BlobStore blobStore_;
-  private final Authorizations authorizations_;
-  private final int nbQueryThreads_;
   private BatchWriter writer_;
 
-  AccumuloBlobProcessor(BlobStore blobStore, Authorizations authorizations, int nbQueryThreads) {
+  AccumuloBlobProcessor(BlobStore blobStore) {
     blobStore_ = Preconditions.checkNotNull(blobStore, "blobStore should not be null");
-    authorizations_ = authorizations == null ? Authorizations.EMPTY : authorizations;
-    nbQueryThreads_ = nbQueryThreads <= 0 ? 1 : nbQueryThreads;
   }
 
   @Override
@@ -73,12 +67,5 @@ final public class AccumuloBlobProcessor extends AbstractBlobProcessor {
       writer_ = blobStore_.writer();
     }
     return writer_;
-  }
-
-  ScannerBase scanner() {
-    if (nbQueryThreads_ == 1) {
-      return blobStore_.scanner(authorizations_);
-    }
-    return blobStore_.batchScanner(authorizations_, nbQueryThreads_);
   }
 }

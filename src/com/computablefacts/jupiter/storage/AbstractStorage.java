@@ -479,11 +479,6 @@ public abstract class AbstractStorage {
     return Tables.batchWriter(configurations().connector(), tableName(), config);
   }
 
-  @Deprecated
-  public BatchDeleter deleter(Authorizations authorizations) {
-    return deleter(authorizations, 5, Tables.batchWriterConfig());
-  }
-
   public BatchDeleter deleter(Authorizations authorizations, int nbQueryThreads,
       BatchWriterConfig config) {
 
@@ -492,11 +487,6 @@ public abstract class AbstractStorage {
 
     return Tables.batchDeleter(configurations().connector(), tableName(),
         nullToEmpty(authorizations), nbQueryThreads, config);
-  }
-
-  @Deprecated
-  public BatchScanner batchScanner(Authorizations authorizations) {
-    return batchScanner(authorizations, 5);
   }
 
   public BatchScanner batchScanner(Authorizations authorizations, int nbQueryThreads) {

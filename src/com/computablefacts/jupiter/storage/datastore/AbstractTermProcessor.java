@@ -1,13 +1,14 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import java.util.Set;
-
-import com.computablefacts.asterix.View;
-import com.computablefacts.jupiter.BloomFilters;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
 public abstract class AbstractTermProcessor implements AutoCloseable {
+
+  @Override
+  protected void finalize() throws Exception {
+    close();
+  }
 
   /**
    * Persist a single term.
@@ -21,56 +22,4 @@ public abstract class AbstractTermProcessor implements AutoCloseable {
    */
   public abstract boolean write(String dataset, String docId, String field, Object term,
       int nbOccurrencesInDoc);
-
-  /**
-   * Get the ids of all documents where at least one token matches "term" (sorted).
-   *
-   * @param dataset dataset (optional).
-   * @param fields which fields must be considered (optional).
-   * @param term searched term. Might contain wildcard characters.
-   * @param docsIds which docs must be considered (optional).
-   * @return an ordered stream of documents ids.
-   */
-  public abstract View<String> readSorted(String dataset, String term, Set<String> fields,
-      BloomFilters<String> docsIds);
-
-  /**
-   * Get the ids of all documents where at least one token matches "term" (unsorted).
-   *
-   * @param dataset dataset (optional).
-   * @param fields which fields must be considered (optional).
-   * @param term searched term. Might contain wildcard characters.
-   * @param docsIds which docs must be considered (optional).
-   * @return an ordered stream of documents ids.
-   */
-  public abstract View<String> read(String dataset, String term, Set<String> fields,
-      BloomFilters<String> docsIds);
-
-  /**
-   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
-   * (sorted).
-   *
-   * @param dataset dataset (optional).
-   * @param fields which fields must be considered (optional).
-   * @param minTerm first searched term (included). Wildcard characters are not allowed.
-   * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
-   * @param docsIds which docs must be considered (optional).
-   * @return an ordered stream of documents ids.
-   */
-  public abstract View<String> readSorted(String dataset, Set<String> fields, Object minTerm,
-      Object maxTerm, BloomFilters<String> docsIds);
-
-  /**
-   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
-   * (unsorted).
-   *
-   * @param dataset dataset (optional).
-   * @param fields which fields must be considered (optional).
-   * @param minTerm first searched term (included). Wildcard characters are not allowed.
-   * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
-   * @param docsIds which docs must be considered (optional).
-   * @return an ordered stream of documents ids.
-   */
-  public abstract View<String> read(String dataset, Set<String> fields, Object minTerm,
-      Object maxTerm, BloomFilters<String> docsIds);
 }

@@ -220,7 +220,7 @@ final public class TerminalNode extends AbstractNode {
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.docsIdsSorted(dataset, fields,
+          return dataStore.docsIdsSorted(authorizations, dataset, fields,
               minTerm == null ? null : new BigDecimal(minTerm),
               maxTerm == null ? null : new BigDecimal(maxTerm), docsIds);
         }
@@ -242,7 +242,7 @@ final public class TerminalNode extends AbstractNode {
       List<Iterator<String>> ids = new ArrayList<>();
 
       for (String term : terms) {
-        ids.add(dataStore.docsIdsSorted(dataset,
+        ids.add(dataStore.docsIdsSorted(authorizations, dataset,
             WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"),
             fields(), docsIds));
       }
@@ -259,7 +259,8 @@ final public class TerminalNode extends AbstractNode {
 
       for (int i = 0; i < terms.size() - 1; i++) {
 
-        Iterator<String> iter = dataStore.docsIds(dataset, terms.get(i), fields(), bfs);
+        Iterator<String> iter =
+            dataStore.docsIds(authorizations, dataset, terms.get(i), fields(), bfs);
 
         if (!iter.hasNext()) {
           return View.of();
@@ -271,7 +272,8 @@ final public class TerminalNode extends AbstractNode {
           bfs.put(iter.next());
         }
       }
-      return dataStore.docsIdsSorted(dataset, terms.get(terms.size() - 1), fields(), bfs);
+      return dataStore.docsIdsSorted(authorizations, dataset, terms.get(terms.size() - 1), fields(),
+          bfs);
     }
     if (Thesaurus.equals(form_)) {
       // TODO : backport code
