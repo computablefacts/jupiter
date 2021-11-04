@@ -429,7 +429,7 @@ final public class TermStore extends AbstractStorage {
           .message(String.format(
               "%s has been lexicoded to null/an empty string. Term has been ignored.", term))
           .formatWarn());
-      return false;
+      return true;
     }
 
     // Compute the number of distinct terms
