@@ -329,9 +329,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.grantPermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.WRITE);
   }
@@ -340,9 +337,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.grantPermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.READ);
   }
@@ -351,9 +345,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.grantPermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.WRITE);
   }
@@ -362,9 +353,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.grantPermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.READ);
   }
@@ -373,9 +361,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.grantPermission(cache_.configurations().connector(), username, cacheName(name()),
         TablePermission.WRITE);
   }
@@ -384,9 +369,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.grantPermission(cache_.configurations().connector(), username, cacheName(name()),
         TablePermission.READ);
   }
@@ -395,9 +377,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.revokePermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.WRITE);
   }
@@ -406,9 +385,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.revokePermission(blobStore_.configurations().connector(), username,
         blobStoreName(name()), TablePermission.READ);
   }
@@ -417,9 +393,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.revokePermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.WRITE);
   }
@@ -428,9 +401,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.revokePermission(termStore_.configurations().connector(), username,
         termStoreName(name()), TablePermission.READ);
   }
@@ -439,9 +409,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.revokePermission(cache_.configurations().connector(), username, cacheName(name()),
         TablePermission.WRITE);
   }
@@ -450,9 +417,6 @@ final public class DataStore implements AutoCloseable {
 
     Preconditions.checkNotNull(username, "username should not be null");
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return Users.revokePermission(cache_.configurations().connector(), username, cacheName(name()),
         TablePermission.READ);
   }
@@ -463,9 +427,6 @@ final public class DataStore implements AutoCloseable {
    * @return true if the storage layer is ready to be used, false otherwise.
    */
   public boolean isReady() {
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
     return blobStore_.isReady() && termStore_.isReady() && cache_.isReady();
   }
 
@@ -476,10 +437,6 @@ final public class DataStore implements AutoCloseable {
    *         otherwise.
    */
   public boolean create() {
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("namespace", name()).formatDebug());
-    }
 
     @Var
     boolean isOk = blobStore_.create();
@@ -517,11 +474,6 @@ final public class DataStore implements AutoCloseable {
   public boolean remove(String dataset) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(
-          LogFormatter.create(true).add("namespace", name()).add("dataset", dataset).formatDebug());
-    }
 
     @Var
     boolean isOk = termStore_.removeDataset(dataset);

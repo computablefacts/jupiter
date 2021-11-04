@@ -133,10 +133,6 @@ final public class BlobStore extends AbstractStorage {
   @Override
   public boolean create() {
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
-    }
-
     if (!isReady()) {
       if (!super.create()) {
         return false;
@@ -188,11 +184,6 @@ final public class BlobStore extends AbstractStorage {
   public boolean removeDataset(String dataset) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .formatDebug());
-    }
 
     String begin = dataset + SEPARATOR_NUL;
     String end =
@@ -439,12 +430,6 @@ final public class BlobStore extends AbstractStorage {
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(blobType, "blobType should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("blob_type", blobType).add("has_fields", fields != null)
-          .add("has_keys", keys != null).add("has_hashes", hashes != null).formatDebug());
-    }
 
     scanner.clearColumns();
     scanner.clearScanIterators();

@@ -127,10 +127,6 @@ public final class Cache {
   @Generated
   public boolean create() {
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
-    }
-
     if (!isReady()) {
       if (!cache_.create()) {
         return false;
@@ -174,11 +170,6 @@ public final class Cache {
   public boolean removeDataset(String dataset) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .formatDebug());
-    }
 
     String begin = dataset + SEPARATOR_NUL;
     String end =
@@ -431,12 +422,6 @@ public final class Cache {
       } else {
         logger_.warn(LogFormatter.create(true).message("write ignored").add("cache_id", cacheId)
             .add("max_elements_to_write", maxElementsToWrite).formatWarn());
-      }
-
-      if (logger_.isDebugEnabled()) {
-        logger_.debug(LogFormatter.create(true).add("cache_id", cacheId)
-            .add("max_elements_to_write", maxElementsToWrite)
-            .add("nb_elements_written", nbElementsWritten).formatDebug());
       }
 
       // Flush otherwise mutations might not have been written when read() is called. However,

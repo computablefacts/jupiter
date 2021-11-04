@@ -202,10 +202,6 @@ final public class TermStore extends AbstractStorage {
   @Override
   public boolean create() {
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
-    }
-
     if (!isReady()) {
       if (!super.create()) {
         return false;
@@ -250,10 +246,6 @@ final public class TermStore extends AbstractStorage {
   @Override
   public boolean truncate() {
 
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).formatDebug());
-    }
-
     if (!super.truncate()) {
       return false;
     }
@@ -273,11 +265,6 @@ final public class TermStore extends AbstractStorage {
   public boolean removeDataset(String dataset) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .formatDebug());
-    }
 
     String begin = dataset + SEPARATOR_NUL;
     String end =
@@ -410,13 +397,6 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkArgument(nbOccurrences > 0, "nbOccurrences must be > 0");
     Preconditions.checkNotNull(bucketSpecificLabels, "bucketSpecificLabels should not be null");
     Preconditions.checkNotNull(fieldSpecificLabels, "fieldSpecificLabels should not be null");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("bucket_id", bucketId).add("field", field).add("term", term)
-          .add("nb_occurrences", nbOccurrences).add("bucket_specific_labels", bucketSpecificLabels)
-          .add("field_specific_labels", fieldSpecificLabels).formatDebug());
-    }
 
     @Var
     String newTerm;
@@ -976,12 +956,6 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkArgument(
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
-
-    if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("dataset", dataset)
-          .add("fields", fields).add("min_term", minTerm).add("max_term", maxTerm)
-          .add("has_buckets_ids", bucketsIds != null).formatDebug());
-    }
 
     scanner.clearColumns();
     scanner.clearScanIterators();
