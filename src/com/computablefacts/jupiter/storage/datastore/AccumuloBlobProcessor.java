@@ -51,12 +51,12 @@ final public class AccumuloBlobProcessor extends AbstractBlobProcessor {
     String vizUuid = vizDataset + AbstractStorage.toVisibilityLabel(docId);
     String vizRawData = vizDataset + STRING_RAW_DATA;
 
-    if (!blobStore_.putJson(writer(), dataset, docId, Sets.newHashSet(vizAdm, vizUuid, vizRawData),
-        blob)) {
+    boolean isOk = blobStore_.putJson(writer(), dataset, docId,
+        Sets.newHashSet(vizAdm, vizUuid, vizRawData), blob);
 
+    if (!isOk) {
       logger_.error(LogFormatter.create(true).message("write failed").add("dataset", dataset)
           .add("doc_id", docId).add("blob", blob).formatError());
-
       return false;
     }
     return true;
