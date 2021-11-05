@@ -6,6 +6,7 @@ import java.util.Stack;
 import org.apache.commons.io.Charsets;
 
 import com.computablefacts.asterix.BloomFilter;
+import com.computablefacts.asterix.Generated;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -122,6 +123,7 @@ final public class BloomFilters<T> {
     return bitSet;
   }
 
+  @Generated
   @Override
   public boolean equals(Object obj) {
     if (obj == this) {
@@ -134,6 +136,7 @@ final public class BloomFilters<T> {
     return Objects.equal(filters_, bfs.filters_);
   }
 
+  @Generated
   @Override
   public int hashCode() {
     return Objects.hashCode(filters_);
