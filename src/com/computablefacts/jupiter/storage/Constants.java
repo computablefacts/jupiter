@@ -22,6 +22,7 @@ final public class Constants {
   public static final String STRING_ADM = "ADM";
   public static final String STRING_RAW_DATA = "RAW_DATA";
   public static final String STRING_RAW_FILE = "RAW_FILE";
+  public static final String STRING_MASKED = "MASKED_";
   public static final Authorizations AUTH_ADM = new Authorizations(STRING_ADM);
   public static final int NB_QUERY_THREADS = 3;
   public static final HashFunction MURMUR3_128 = Hashing.murmur3_128();

@@ -2,6 +2,7 @@ package com.computablefacts.jupiter.filters;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.Constants.STRING_MASKED;
 
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -36,8 +37,8 @@ public class BlobStoreMaskedJsonFieldFilter extends Filter {
 
   public static void addFilter(IteratorSetting setting, String key, String value) {
     if (!Strings.isNullOrEmpty(key)) {
-      String hash = value != null && value.startsWith("MASKED_") ? value
-          : "MASKED_" + MaskingIterator.hash(null, value);
+      String hash = value != null && value.startsWith(STRING_MASKED) ? value
+          : STRING_MASKED + MaskingIterator.hash(null, value);
       setting.addOption(FILTER_CRITERION + setting.getOptions().size(), key + SEPARATOR_NUL + hash);
     }
   }
@@ -117,12 +118,10 @@ public class BlobStoreMaskedJsonFieldFilter extends Filter {
       }
 
       if (val.stream().noneMatch(v -> {
-        if (v.startsWith("MASKED_")) {
+        if (v.startsWith(STRING_MASKED)) {
           return v.equals(hash);
         } else {
-
-          String hashedVal = "MASKED_" + MaskingIterator.hash(null, v);
-
+          String hashedVal = STRING_MASKED + MaskingIterator.hash(null, v);
           return hashedVal.equals(hash);
         }
       })) {

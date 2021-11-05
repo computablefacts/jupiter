@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.iterators;
 
 import static com.computablefacts.jupiter.storage.Constants.MURMUR3_128;
+import static com.computablefacts.jupiter.storage.Constants.STRING_MASKED;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -104,7 +105,7 @@ public abstract class MaskingIterator
    * @return hashed value.
    */
   protected static String mask(String salt, String value) {
-    return "MASKED_" + hash(salt, value);
+    return STRING_MASKED + hash(salt, value);
   }
 
   /**
@@ -115,7 +116,7 @@ public abstract class MaskingIterator
    * @return hashed value.
    */
   protected static String mask(String salt, Value value) {
-    return "MASKED_" + hash(salt, value);
+    return STRING_MASKED + hash(salt, value);
   }
 
   @Override
