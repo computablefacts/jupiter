@@ -739,6 +739,86 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
+  public void testIndexDecimalNumbers() throws Exception {
+
+    Authorizations auths = new Authorizations("ADM");
+    DataStore dataStore = newDataStore(auths);
+
+    // Index
+    dataStore.beginIngest();
+
+    Assert.assertTrue(dataStore.persist("dataset", "row_1", Data.json6()));
+    Assert.assertTrue(dataStore.endIngest("dataset"));
+
+    dataStore.flush();
+
+    // Check BlobStore
+    try (Scanner scanner = dataStore.blobStore().scanner(auths)) {
+
+      List<Map.Entry<Key, Value>> blobs = new ArrayList<>();
+      scanner.iterator().forEachRemaining(blobs::add);
+
+      Assert.assertEquals(1, blobs.size());
+
+      List<String> items = blobs.stream()
+          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
+              + t.getValue().toString())
+          .collect(Collectors.toList());
+
+      // Raw data
+      Assert.assertTrue(items.contains(
+          "dataset\u0000row_1|JSO||{\"prénom\":\"john\",\"score_2\":\".99\",\"score_1\":\"0.98\",\"id\":\"1\",\"score_3\":\"97.\",\"nom\":\"doe\"}"));
+    }
+
+    // Check TermStore
+    try (Scanner scanner = dataStore.termStore().scanner(auths)) {
+
+      List<Map.Entry<Key, Value>> terms = new ArrayList<>();
+      scanner.iterator().forEachRemaining(terms::add);
+
+      Assert.assertEquals(56, terms.size());
+
+      List<String> items = terms.stream()
+          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
+              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
+              + t.getValue().toString())
+          .collect(Collectors.toList());
+
+      // Check id
+      Assert.assertTrue(items.contains("dataset\000?1*|FCNT|id\0002|1"));
+      Assert.assertTrue(items.contains("dataset\000?1*|FIDX|row_1\000id\0002|1"));
+
+      // Check scores
+      Assert.assertTrue(items.contains("dataset\00079|BCNT|score_3\0001|1"));
+      Assert.assertTrue(items.contains("dataset\00079|BIDX|row_1\000score_3\0001|1"));
+      Assert.assertTrue(items.contains("dataset\00097|FCNT|score_3\0001|1"));
+      Assert.assertTrue(items.contains("dataset\00097|FIDX|row_1\000score_3\0001|1"));
+
+      Assert.assertTrue(items.contains("dataset\00099|BCNT|score_2\0001|1"));
+      Assert.assertTrue(items.contains("dataset\00099|BIDX|row_1\000score_2\0001|1"));
+      Assert.assertTrue(items.contains("dataset\00099|FCNT|score_2\0001|1"));
+      Assert.assertTrue(items.contains("dataset\00099|FIDX|row_1\000score_2\0001|1"));
+
+      // Check hashes
+      Assert.assertTrue(
+          items.contains("dataset\0004b5c86196dd52c0cf2673d2d0a569431|H|row_1\000nom|"));
+      Assert.assertTrue(
+          items.contains("dataset\000705b98fa2fcabec353bc2af216a19c6c|H|row_1\000score_3|"));
+      Assert
+          .assertTrue(items.contains("dataset\000717c7b8afebbfb7137f6f0f99beb2a94|H|row_1\000id|"));
+      Assert.assertTrue(
+          items.contains("dataset\00088fecf016203005fdbeb018c1376c333|H|row_1\000prénom|"));
+      Assert.assertTrue(
+          items.contains("dataset\00099dc3020f1177845ed45f8b7651e0721|H|row_1\000score_2|"));
+      Assert.assertTrue(
+          items.contains("dataset\0009cd4452654e1932a5ba9bb7513af30e2|H|row_1\000score_1|"));
+    }
+  }
+
+  @Test
   public void testIndexNumbersPrefixedWithZeroes() throws Exception {
 
     Authorizations auths = new Authorizations("ADM");

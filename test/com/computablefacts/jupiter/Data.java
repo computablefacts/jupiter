@@ -73,6 +73,17 @@ final public class Data {
     return json;
   }
 
+  public static Map<String, Object> json6() {
+    Map<String, Object> json = new HashMap<>();
+    json.put("id", "1");
+    json.put("nom", "doe");
+    json.put("prénom", "john");
+    json.put("score_1", "0.98");
+    json.put("score_2", ".99");
+    json.put("score_3", "97.");
+    return json;
+  }
+
   public static File file(int size) throws Exception {
     java.io.File file = java.io.File.createTempFile("tmp-", ".txt");
     try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
