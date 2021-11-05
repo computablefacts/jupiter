@@ -766,7 +766,7 @@ final public class DataStore implements AutoCloseable {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
 
-    return termStore_.bucketsIdsSorted(authorizations, dataset, fields, term, docsIds)
+    return termStore_.termsSortedByBucketId(authorizations, dataset, fields, term, docsIds)
         .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
@@ -786,7 +786,7 @@ final public class DataStore implements AutoCloseable {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
 
-    return termStore_.bucketsIds(authorizations, dataset, fields, term, docsIds)
+    return termStore_.terms(authorizations, dataset, fields, term, docsIds)
         .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
@@ -812,7 +812,8 @@ final public class DataStore implements AutoCloseable {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    return termStore_.bucketsIdsSorted(authorizations, dataset, fields, minTerm, maxTerm, docsIds)
+    return termStore_
+        .termsSortedByBucketId(authorizations, dataset, fields, minTerm, maxTerm, docsIds)
         .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 
@@ -838,7 +839,7 @@ final public class DataStore implements AutoCloseable {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    return termStore_.bucketsIds(authorizations, dataset, fields, minTerm, maxTerm, docsIds)
+    return termStore_.terms(authorizations, dataset, fields, minTerm, maxTerm, docsIds)
         .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
   }
 

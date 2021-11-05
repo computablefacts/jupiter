@@ -952,20 +952,21 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     // Check queries
     @Var
-    Set<Term> terms = dataStore.termStore().bucketsIds(auths, "dataset", "myfile").toSet();
+    Set<Term> terms = dataStore.termStore().terms(auths, "dataset", "myfile").toSet();
 
     Assert.assertEquals(1, terms.size());
 
-    terms = dataStore.termStore().bucketsIds(auths, "dataset", "csv").toSet();
+    terms = dataStore.termStore().terms(auths, "dataset", "csv").toSet();
 
     Assert.assertEquals(1, terms.size());
 
     terms = dataStore.termStore()
-        .bucketsIds(auths, "dataset", Sets.newHashSet("path"), "myfile", null).toSet();
+        .terms(auths, "dataset", Sets.newHashSet("path"), "myfile", null).toSet();
 
     Assert.assertEquals(1, terms.size());
 
-    terms = dataStore.termStore().bucketsIds(auths, "dataset", Sets.newHashSet("path"), "csv", null)
+    terms =
+        dataStore.termStore().terms(auths, "dataset", Sets.newHashSet("path"), "csv", null)
         .toSet();
 
     Assert.assertEquals(1, terms.size());

@@ -64,7 +64,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals(1, termsCounts.size());
 
     @Var
-    List<Term> terms = termStore.bucketsIds(auths, dataset, "john").toList();
+    List<Term> terms = termStore.terms(auths, dataset, "john").toList();
 
     Assert.assertEquals(1, terms.size());
 
@@ -86,7 +86,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertTrue(termsCounts.isEmpty());
 
-    terms = termStore.bucketsIds(auths, dataset, "john").toList();
+    terms = termStore.terms(auths, dataset, "john").toList();
 
     Assert.assertTrue(terms.isEmpty());
   }
@@ -142,7 +142,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals(1, termsCounts.size());
 
     @Var
-    List<Term> terms = termStore.bucketsIds(auths, "dataset_1", "john").toList();
+    List<Term> terms = termStore.terms(auths, "dataset_1", "john").toList();
 
     Assert.assertEquals(1, terms.size());
 
@@ -162,7 +162,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertEquals(1, termsCounts.size());
 
-    terms = termStore.bucketsIds(auths, "dataset_2", "john").toList();
+    terms = termStore.terms(auths, "dataset_2", "john").toList();
 
     Assert.assertEquals(1, terms.size());
 
@@ -186,7 +186,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertTrue(termsCounts.isEmpty());
 
-    terms = termStore.bucketsIds(auths, "dataset_1", "john").toList();
+    terms = termStore.terms(auths, "dataset_1", "john").toList();
 
     Assert.assertTrue(terms.isEmpty());
 
@@ -206,7 +206,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertEquals(1, termsCounts.size());
 
-    terms = termStore.bucketsIds(auths, "dataset_2", "john").toList();
+    terms = termStore.terms(auths, "dataset_2", "john").toList();
 
     Assert.assertEquals(1, terms.size());
   }
@@ -268,7 +268,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     // Check terms
     @Var
-    List<Term> bucketsIds = termStore.bucketsIds(auths, dataset, "jo*").toList();
+    List<Term> bucketsIds = termStore.terms(auths, dataset, "jo*").toList();
 
     Assert.assertEquals(1, bucketsIds.size());
     Assert.assertEquals("1", bucketsIds.get(0).bucketId());
@@ -276,7 +276,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("john", bucketsIds.get(0).term());
     Assert.assertEquals(1, bucketsIds.get(0).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, "ja*").toList();
+    bucketsIds = termStore.terms(auths, dataset, "ja*").toList();
 
     Assert.assertEquals(1, bucketsIds.size());
     Assert.assertEquals("2", bucketsIds.get(0).bucketId());
@@ -284,7 +284,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("jane", bucketsIds.get(0).term());
     Assert.assertEquals(1, bucketsIds.get(0).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, "j???").toList();
+    bucketsIds = termStore.terms(auths, dataset, "j???").toList();
 
     Assert.assertEquals(2, bucketsIds.size());
     Assert.assertEquals("2", bucketsIds.get(0).bucketId());
@@ -296,7 +296,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("john", bucketsIds.get(1).term());
     Assert.assertEquals(1, bucketsIds.get(1).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, "d?e").toList();
+    bucketsIds = termStore.terms(auths, dataset, "d?e").toList();
 
     Assert.assertEquals(2, bucketsIds.size());
     Assert.assertEquals("1", bucketsIds.get(0).bucketId());
@@ -356,7 +356,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     // Check terms
     @Var
-    List<Term> bucketsIds = termStore.bucketsIds(auths, dataset, "*hn").toList();
+    List<Term> bucketsIds = termStore.terms(auths, dataset, "*hn").toList();
 
     Assert.assertEquals(1, bucketsIds.size());
     Assert.assertEquals("1", bucketsIds.get(0).bucketId());
@@ -364,7 +364,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("john", bucketsIds.get(0).term());
     Assert.assertEquals(1, bucketsIds.get(0).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, "*ne").toList();
+    bucketsIds = termStore.terms(auths, dataset, "*ne").toList();
 
     Assert.assertEquals(1, bucketsIds.size());
     Assert.assertEquals("2", bucketsIds.get(0).bucketId());
@@ -372,7 +372,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("jane", bucketsIds.get(0).term());
     Assert.assertEquals(1, bucketsIds.get(0).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, "?oe").toList();
+    bucketsIds = termStore.terms(auths, dataset, "?oe").toList();
 
     Assert.assertEquals(2, bucketsIds.size());
     Assert.assertEquals("1", bucketsIds.get(0).bucketId());
@@ -422,7 +422,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     // Throws an exception
     Iterator<Term> iterator =
-        termStore.bucketsIds(auths, dataset, Sets.newHashSet("age"), null, null, null);
+        termStore.terms(auths, dataset, Sets.newHashSet("age"), null, null, null);
   }
 
   @Test(expected = IllegalStateException.class)
@@ -462,7 +462,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     // Throws an exception
     Iterator<Term> iterator =
-        termStore.bucketsIds(auths, dataset, Sets.newHashSet("last_name"), "do*", null, null);
+        termStore.terms(auths, dataset, Sets.newHashSet("last_name"), "do*", null, null);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -501,7 +501,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     }
 
     // Throws an exception
-    Iterator<Term> iterator = termStore.bucketsIds(auths, dataset, null, "do*", 37, null);
+    Iterator<Term> iterator = termStore.terms(auths, dataset, null, "do*", 37, null);
   }
 
   @Test
@@ -538,7 +538,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals(1, termsCounts.get(0).count());
 
     @Var
-    List<Term> bucketsIds = termStore.bucketsIds(auths, dataset, fields, null, 30, null).toList();
+    List<Term> bucketsIds = termStore.terms(auths, dataset, fields, null, 30, null).toList();
 
     Assert.assertEquals(1, bucketsIds.size());
     Assert.assertEquals("2", bucketsIds.get(0).bucketId());
@@ -555,7 +555,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("27", termsCounts.get(0).term());
     Assert.assertEquals(1, termsCounts.get(0).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, fields, 20, 30, null).toList();
+    bucketsIds = termStore.terms(auths, dataset, fields, 20, 30, null).toList();
 
     Assert.assertEquals(1, bucketsIds.size());
     Assert.assertEquals("2", bucketsIds.get(0).bucketId());
@@ -575,7 +575,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("37", termsCounts.get(1).term());
     Assert.assertEquals(1, termsCounts.get(1).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, fields, 20, 40, null).toList();
+    bucketsIds = termStore.terms(auths, dataset, fields, 20, 40, null).toList();
 
     Assert.assertEquals(2, bucketsIds.size());
     Assert.assertEquals("2", bucketsIds.get(0).bucketId());
@@ -596,7 +596,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("37", termsCounts.get(0).term());
     Assert.assertEquals(1, termsCounts.get(0).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, fields, 30, null, null).toList();
+    bucketsIds = termStore.terms(auths, dataset, fields, 30, null, null).toList();
 
     Assert.assertEquals(1, bucketsIds.size());
     Assert.assertEquals("1", bucketsIds.get(0).bucketId());
@@ -626,7 +626,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("john", termsCounts.get(3).term());
     Assert.assertEquals(1, termsCounts.get(3).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, null, 30, null, null).toList();
+    bucketsIds = termStore.terms(auths, dataset, null, 30, null, null).toList();
 
     Assert.assertEquals(5, bucketsIds.size());
 
@@ -702,7 +702,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     // Check buckets ids
     @Var
-    List<Term> bucketsIds = termStore.bucketsIds(auths, dataset, fields, "ja", "jp", null).toList();
+    List<Term> bucketsIds = termStore.terms(auths, dataset, fields, "ja", "jp", null).toList();
 
     Assert.assertEquals(2, bucketsIds.size());
     Assert.assertEquals("2", bucketsIds.get(0).bucketId());
@@ -714,7 +714,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("john", bucketsIds.get(1).term());
     Assert.assertEquals(1, bucketsIds.get(1).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, fields, "ja", "jo", null).toList();
+    bucketsIds = termStore.terms(auths, dataset, fields, "ja", "jo", null).toList();
 
     Assert.assertEquals(1, bucketsIds.size());
     Assert.assertEquals("2", bucketsIds.get(0).bucketId());
@@ -967,7 +967,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     }
 
     @Var
-    List<Term> bucketsIds = termStore.bucketsIds(auths, dataset, null, "jan*", bfs).toList();
+    List<Term> bucketsIds = termStore.terms(auths, dataset, null, "jan*", bfs).toList();
 
     Assert.assertEquals(1, bucketsIds.size());
     Assert.assertEquals(dataset, bucketsIds.get(0).dataset());
@@ -978,7 +978,7 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals(0, bucketsIds.get(0).labels().size());
     Assert.assertEquals(1, bucketsIds.get(0).count());
 
-    bucketsIds = termStore.bucketsIds(auths, dataset, null, "joh*", bfs).toList();
+    bucketsIds = termStore.terms(auths, dataset, null, "joh*", bfs).toList();
 
     Assert.assertEquals(0, bucketsIds.size());
   }

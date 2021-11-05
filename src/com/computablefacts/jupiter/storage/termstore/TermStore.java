@@ -772,8 +772,9 @@ final public class TermStore extends AbstractStorage {
    * @param dataset dataset.
    * @param term searched term. Might contain wildcard characters.
    */
-  public View<Term> bucketsIdsSorted(Authorizations authorizations, String dataset, String term) {
-    return bucketsIdsSorted(authorizations, dataset, null, term, null);
+  public View<Term> termsSortedByBucketId(Authorizations authorizations, String dataset,
+      String term) {
+    return termsSortedByBucketId(authorizations, dataset, null, term, null);
   }
 
   /**
@@ -783,8 +784,8 @@ final public class TermStore extends AbstractStorage {
    * @param dataset dataset.
    * @param term searched term. Might contain wildcard characters.
    */
-  public View<Term> bucketsIds(Authorizations authorizations, String dataset, String term) {
-    return bucketsIds(authorizations, dataset, null, term, null);
+  public View<Term> terms(Authorizations authorizations, String dataset, String term) {
+    return terms(authorizations, dataset, null, term, null);
   }
 
   /**
@@ -797,12 +798,12 @@ final public class TermStore extends AbstractStorage {
    * @param term searched term. Might contain wildcard characters.
    * @param bucketsIds which buckets must be considered (optional).
    */
-  public View<Term> bucketsIdsSorted(Authorizations authorizations, String dataset,
+  public View<Term> termsSortedByBucketId(Authorizations authorizations, String dataset,
       Set<String> fields, String term, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
 
-    return bucketsIds(scanner(authorizations), dataset, fields, term, bucketsIds);
+    return terms(scanner(authorizations), dataset, fields, term, bucketsIds);
   }
 
   /**
@@ -815,13 +816,12 @@ final public class TermStore extends AbstractStorage {
    * @param term searched term. Might contain wildcard characters.
    * @param bucketsIds which buckets must be considered (optional).
    */
-  public View<Term> bucketsIds(Authorizations authorizations, String dataset, Set<String> fields,
+  public View<Term> terms(Authorizations authorizations, String dataset, Set<String> fields,
       String term, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
 
-    return bucketsIds(batchScanner(authorizations, NB_QUERY_THREADS), dataset, fields, term,
-        bucketsIds);
+    return terms(batchScanner(authorizations, NB_QUERY_THREADS), dataset, fields, term, bucketsIds);
   }
 
   /**
@@ -886,12 +886,12 @@ final public class TermStore extends AbstractStorage {
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @param bucketsIds which buckets must be considered (optional).
    */
-  public View<Term> bucketsIdsSorted(Authorizations authorizations, String dataset,
+  public View<Term> termsSortedByBucketId(Authorizations authorizations, String dataset,
       Set<String> fields, Object minTerm, Object maxTerm, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
 
-    return bucketsIds(scanner(authorizations), dataset, fields, minTerm, maxTerm, bucketsIds);
+    return terms(scanner(authorizations), dataset, fields, minTerm, maxTerm, bucketsIds);
   }
 
   /**
@@ -905,17 +905,17 @@ final public class TermStore extends AbstractStorage {
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @param bucketsIds which buckets must be considered (optional).
    */
-  public View<Term> bucketsIds(Authorizations authorizations, String dataset, Set<String> fields,
+  public View<Term> terms(Authorizations authorizations, String dataset, Set<String> fields,
       Object minTerm, Object maxTerm, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
 
-    return bucketsIds(batchScanner(authorizations, NB_QUERY_THREADS), dataset, fields, minTerm,
-        maxTerm, bucketsIds);
+    return terms(batchScanner(authorizations, NB_QUERY_THREADS), dataset, fields, minTerm, maxTerm,
+        bucketsIds);
   }
 
-  private View<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
-      String term, BloomFilters<String> bucketsIds) {
+  private View<Term> terms(ScannerBase scanner, String dataset, Set<String> fields, String term,
+      BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -949,8 +949,8 @@ final public class TermStore extends AbstractStorage {
     return scanIndex(scanner, fields, range, isTermBackward, bucketsIds);
   }
 
-  private View<Term> bucketsIds(ScannerBase scanner, String dataset, Set<String> fields,
-      Object minTerm, Object maxTerm, BloomFilters<String> bucketsIds) {
+  private View<Term> terms(ScannerBase scanner, String dataset, Set<String> fields, Object minTerm,
+      Object maxTerm, BloomFilters<String> bucketsIds) {
 
     Preconditions.checkNotNull(scanner, "scanner should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
