@@ -55,6 +55,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
 
+    dataStore.flush();
     AbstractNode query = QueryBuilder.build("doe");
 
     @Var
@@ -88,6 +89,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_2", "row_1", Data.json3(1)));
 
+    dataStore.flush();
     AbstractNode query = QueryBuilder.build("doe");
 
     @Var

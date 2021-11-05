@@ -239,7 +239,7 @@ final public class TerminalNode extends AbstractNode {
     }
     if (Inflectional.equals(form_)) {
 
-      List<Iterator<String>> ids = new ArrayList<>();
+      List<View<String>> ids = new ArrayList<>();
 
       for (String term : terms) {
         ids.add(dataStore.docsIdsSorted(authorizations, dataset,
