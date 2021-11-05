@@ -512,7 +512,7 @@ public class Shell {
 
       ds.beginIngest();
 
-      View<Blob<Value>> iterator = ds.jsonScan(authorizations, dataset, null);
+      View<Blob<Value>> iterator = ds.jsons(authorizations, dataset, null);
 
       while (iterator.hasNext()) {
 
@@ -577,7 +577,7 @@ public class Shell {
             new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {
 
           AtomicInteger count = new AtomicInteger(0);
-          Iterator<Blob<Value>> iterator = ds.jsonScan(authorizations, dataset, null);
+          Iterator<Blob<Value>> iterator = ds.jsons(authorizations, dataset, null);
 
           while (iterator.hasNext()) {
 

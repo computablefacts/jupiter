@@ -83,15 +83,15 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(blobStore.removeDataset(dataset));
 
     @Var
-    List<Blob<Value>> blobs = blobStore.getFiles(auths, dataset, null, null).toList();
+    List<Blob<Value>> blobs = blobStore.files(auths, dataset, null, null).toList();
 
     Assert.assertTrue(blobs.isEmpty());
 
-    blobs = blobStore.getStrings(auths, dataset, null, null).toList();
+    blobs = blobStore.strings(auths, dataset, null, null).toList();
 
     Assert.assertTrue(blobs.isEmpty());
 
-    blobs = blobStore.getJsons(auths, dataset, null, null).toList();
+    blobs = blobStore.jsons(auths, dataset, null, null).toList();
 
     Assert.assertTrue(blobs.isEmpty());
   }
@@ -111,7 +111,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     }
 
     List<Blob<Value>> blobs =
-        blobStore.getFilesSorted(auths, dataset, Sets.newHashSet(bucketId), null).toList();
+        blobStore.filesSortedByKey(auths, dataset, Sets.newHashSet(bucketId), null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -133,7 +133,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     }
 
     List<Blob<Value>> blobs =
-        blobStore.getStringsSorted(auths, dataset, Sets.newHashSet(bucketId), null).toList();
+        blobStore.stringsSortedByKey(auths, dataset, Sets.newHashSet(bucketId), null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -155,7 +155,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     }
 
     List<Blob<Value>> blobs =
-        blobStore.getJsonsSorted(auths, dataset, Sets.newHashSet(bucketId), null).toList();
+        blobStore.jsonsSortedByKey(auths, dataset, Sets.newHashSet(bucketId), null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -182,19 +182,19 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     @Var
     List<Blob<Value>> blobs =
-        blobStore.getJsons(auths, dataset, Sets.newHashSet("1", "3"), null).toList();
+        blobStore.jsons(auths, dataset, Sets.newHashSet("1", "3"), null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
     checkJson(blobs.get(0));
 
-    blobs = blobStore.getFiles(auths, dataset, Sets.newHashSet("1", "3"), null).toList();
+    blobs = blobStore.files(auths, dataset, Sets.newHashSet("1", "3"), null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
     checkFile(blobs.get(0), file);
 
-    blobs = blobStore.getStrings(auths, dataset, Sets.newHashSet("1", "3"), null).toList();
+    blobs = blobStore.strings(auths, dataset, Sets.newHashSet("1", "3"), null).toList();
 
     Assert.assertEquals(0, blobs.size());
   }
@@ -218,19 +218,19 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     }
 
     @Var
-    List<Blob<Value>> blobs = blobStore.getJsons(auths, dataset, null, null).toList();
+    List<Blob<Value>> blobs = blobStore.jsons(auths, dataset, null, null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
     checkJson(blobs.get(0));
 
-    blobs = blobStore.getStrings(auths, dataset, null, null).toList();
+    blobs = blobStore.strings(auths, dataset, null, null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
     checkString(blobs.get(0));
 
-    blobs = blobStore.getFiles(auths, dataset, null, null).toList();
+    blobs = blobStore.files(auths, dataset, null, null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -252,7 +252,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.putJson(writer, dataset, key, labels, json));
     }
 
-    List<Blob<Value>> blobs = blobStore.getJsons(new Authorizations("ADM", "BLOBS_RAW_DATA"),
+    List<Blob<Value>> blobs = blobStore.jsons(new Authorizations("ADM", "BLOBS_RAW_DATA"),
         dataset, null, Sets.newHashSet("Actors[*]¤name", "Actors[*]¤age")).toList();
 
     Assert.assertEquals(1, blobs.size());
@@ -285,7 +285,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     }
 
     List<Blob<Value>> blobs = blobStore
-        .getJsons(new Authorizations("ADM", "BLOBS_ACTORS_NAME"), dataset, null, null).toList();
+        .jsons(new Authorizations("ADM", "BLOBS_ACTORS_NAME"), dataset, null, null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -317,7 +317,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     }
 
     List<Blob<Value>> blobs =
-        blobStore.getStrings(new Authorizations("ADM"), dataset, null, null).toList();
+        blobStore.strings(new Authorizations("ADM"), dataset, null, null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -349,7 +349,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     Authorizations authorizations = new Authorizations("ADM", "BLOBS_ACTORS_NAME");
 
     @Var
-    List<Blob<Value>> blobs = blobStore.getJsons(authorizations, dataset, null, null,
+    List<Blob<Value>> blobs = blobStore.jsons(authorizations, dataset, null, null,
         Sets.newHashSet(new AbstractMap.SimpleEntry<>("Actors[*]¤weight",
             "MASKED_4103e8509cbdf6b3372222061bbe1da6")))
         .toList();
@@ -357,7 +357,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals(1, blobs.size());
 
     blobs = blobStore
-        .getJsons(authorizations, dataset, null, null,
+        .jsons(authorizations, dataset, null, null,
             Sets.newHashSet(new AbstractMap.SimpleEntry<>("Actors[*]¤name", "Tom Cruise")))
         .toList();
 

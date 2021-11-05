@@ -277,7 +277,7 @@ final public class BlobStore extends AbstractStorage {
    * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getStringsSorted(Authorizations authorizations, String dataset,
+  public View<Blob<Value>> stringsSortedByKey(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields) {
     return get(scanner(authorizations), dataset, TYPE_STRING, keys, fields, null);
   }
@@ -291,8 +291,8 @@ final public class BlobStore extends AbstractStorage {
    * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getStrings(Authorizations authorizations, String dataset,
-      Set<String> keys, Set<String> fields) {
+  public View<Blob<Value>> strings(Authorizations authorizations, String dataset, Set<String> keys,
+      Set<String> fields) {
     return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_STRING, keys, fields,
         null);
   }
@@ -306,7 +306,7 @@ final public class BlobStore extends AbstractStorage {
    * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getJsonsSorted(Authorizations authorizations, String dataset,
+  public View<Blob<Value>> jsonsSortedByKey(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields) {
     return get(scanner(authorizations), dataset, TYPE_JSON, keys, fields, null);
   }
@@ -320,7 +320,7 @@ final public class BlobStore extends AbstractStorage {
    * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getJsons(Authorizations authorizations, String dataset, Set<String> keys,
+  public View<Blob<Value>> jsons(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields) {
     return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_JSON, keys, fields,
         null);
@@ -336,7 +336,7 @@ final public class BlobStore extends AbstractStorage {
    * @param hashes JSON fields filters (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getJsonsSorted(Authorizations authorizations, String dataset,
+  public View<Blob<Value>> jsonsSortedByKey(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields, Set<Map.Entry<String, String>> hashes) {
     return get(scanner(authorizations), dataset, TYPE_JSON, keys, fields, hashes);
   }
@@ -351,7 +351,7 @@ final public class BlobStore extends AbstractStorage {
    * @param hashes JSON fields filters (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getJsons(Authorizations authorizations, String dataset, Set<String> keys,
+  public View<Blob<Value>> jsons(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields, Set<Map.Entry<String, String>> hashes) {
     return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_JSON, keys, fields,
         hashes);
@@ -366,7 +366,7 @@ final public class BlobStore extends AbstractStorage {
    * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getFilesSorted(Authorizations authorizations, String dataset,
+  public View<Blob<Value>> filesSortedByKey(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields) {
     return get(scanner(authorizations), dataset, TYPE_FILE, keys, fields, null);
   }
@@ -380,7 +380,7 @@ final public class BlobStore extends AbstractStorage {
    * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getFiles(Authorizations authorizations, String dataset, Set<String> keys,
+  public View<Blob<Value>> files(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields) {
     return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_FILE, keys, fields,
         null);
@@ -395,7 +395,7 @@ final public class BlobStore extends AbstractStorage {
    * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getArraysSorted(Authorizations authorizations, String dataset,
+  public View<Blob<Value>> arraysSortedByKey(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields) {
     return get(scanner(authorizations), dataset, TYPE_ARRAY, keys, fields, null);
   }
@@ -409,8 +409,8 @@ final public class BlobStore extends AbstractStorage {
    * @param fields fields to keep if Accumulo Values are JSON objects (optional).
    * @return an iterator of (key, value) pairs.
    */
-  public View<Blob<Value>> getArrays(Authorizations authorizations, String dataset,
-      Set<String> keys, Set<String> fields) {
+  public View<Blob<Value>> arrays(Authorizations authorizations, String dataset, Set<String> keys,
+      Set<String> fields) {
     return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_ARRAY, keys, fields,
         null);
   }

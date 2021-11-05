@@ -626,13 +626,13 @@ final public class DataStore implements AutoCloseable {
    * @return list of documents. No particular order should be expected from the returned iterator if
    *         {@code nbQueryThreads} is set to a value above 1.
    */
-  public View<Blob<Value>> jsonScanSorted(Authorizations authorizations, String dataset,
+  public View<Blob<Value>> jsonsSortedByKey(Authorizations authorizations, String dataset,
       Set<String> fields) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return blobStore_.getJsonsSorted(authorizations, dataset, null, fields);
+    return blobStore_.jsonsSortedByKey(authorizations, dataset, null, fields);
   }
 
   /**
@@ -647,13 +647,13 @@ final public class DataStore implements AutoCloseable {
    * @return list of documents. No particular order should be expected from the returned iterator if
    *         {@code nbQueryThreads} is set to a value above 1.
    */
-  public View<Blob<Value>> jsonScan(Authorizations authorizations, String dataset,
+  public View<Blob<Value>> jsons(Authorizations authorizations, String dataset,
       Set<String> fields) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return blobStore_.getJsons(authorizations, dataset, null, fields);
+    return blobStore_.jsons(authorizations, dataset, null, fields);
   }
 
   /**
@@ -669,14 +669,14 @@ final public class DataStore implements AutoCloseable {
    * @return list of documents. No particular order should be expected from the returned iterator if
    *         {@code nbQueryThreads} is set to a value above 1.
    */
-  public View<Blob<Value>> jsonScanSorted(Authorizations authorizations, String dataset,
+  public View<Blob<Value>> jsonsSortedByKey(Authorizations authorizations, String dataset,
       Set<String> fields, Set<String> docsIds) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docsIds, "docsIds should not be null");
 
-    return blobStore_.getJsonsSorted(authorizations, dataset, docsIds, fields);
+    return blobStore_.jsonsSortedByKey(authorizations, dataset, docsIds, fields);
   }
 
   /**
@@ -692,14 +692,14 @@ final public class DataStore implements AutoCloseable {
    * @return list of documents. No particular order should be expected from the returned iterator if
    *         {@code nbQueryThreads} is set to a value above 1.
    */
-  public View<Blob<Value>> jsonScan(Authorizations authorizations, String dataset,
-      Set<String> fields, Set<String> docsIds) {
+  public View<Blob<Value>> jsons(Authorizations authorizations, String dataset, Set<String> fields,
+      Set<String> docsIds) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(docsIds, "docsIds should not be null");
 
-    return blobStore_.getJsons(authorizations, dataset, docsIds, fields);
+    return blobStore_.jsons(authorizations, dataset, docsIds, fields);
   }
 
   /**
