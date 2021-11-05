@@ -74,6 +74,7 @@ import com.google.errorprone.annotations.Var;
  * </pre>
  *
  */
+@Deprecated
 @CheckReturnValue
 public final class Cache {
 
