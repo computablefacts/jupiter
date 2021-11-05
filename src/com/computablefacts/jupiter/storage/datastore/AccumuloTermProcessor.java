@@ -76,7 +76,7 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
     return isOk;
   }
 
-  BatchWriter writer() {
+  private BatchWriter writer() {
     if (writer_ == null) {
       writer_ = termStore_.writer();
     }
