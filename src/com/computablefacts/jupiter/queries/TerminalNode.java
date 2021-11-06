@@ -179,10 +179,9 @@ final public class TerminalNode extends AbstractNode {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(
-          LogFormatter.create(true).add("dataset", dataset).add("key", key_).add("value", value_)
-              .add("has_docs_ids", expectedDocsIds != null).add("form", form_.toString())
-              .formatDebug());
+      logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
+          .add("value", value_).add("has_docs_ids", expectedDocsIds != null)
+          .add("form", form_.toString()).formatDebug());
     }
 
     if (Range.equals(form_)) {
