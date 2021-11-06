@@ -759,4 +759,18 @@ public class ViewTest {
 
     Assert.assertEquals(Lists.newArrayList("cat", "dog"), result);
   }
+
+  @Test
+  public void testMerge() {
+
+    View<String> view1 = View.of(Lists.newArrayList("0", "2", "4"));
+    View<String> view2 = View.of(Lists.newArrayList("1", "3", "5"));
+    View<String> view3 = View.of(Lists.newArrayList("6", "7", "8", "9", "b", "d", "f"));
+    View<String> view4 = View.of(Lists.newArrayList("a", "c", "e", "g"));
+
+    View<String> merged = view1.merge(Lists.newArrayList(view2, view3, view4), String::compareTo);
+
+    Assert.assertEquals(Lists.newArrayList("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a",
+        "b", "c", "d", "e", "f", "g"), merged.toList());
+  }
 }
