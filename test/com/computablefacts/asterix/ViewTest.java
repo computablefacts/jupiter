@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
@@ -772,5 +773,33 @@ public class ViewTest {
 
     Assert.assertEquals(Lists.newArrayList("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a",
         "b", "c", "d", "e", "f", "g"), merged.toList());
+  }
+
+  @Test
+  public void testOverlappingWindow() {
+
+    View<String> view = View.of(Lists.newArrayList("1", "2", "3", "4", "5", "6", "7"));
+    List<ImmutableList<String>> windows = view.overlappingWindow(3).toList();
+
+    Assert.assertEquals(7, windows.size());
+    Assert.assertTrue(windows.contains(ImmutableList.of("1", "2", "3")));
+    Assert.assertTrue(windows.contains(ImmutableList.of("2", "3", "4")));
+    Assert.assertTrue(windows.contains(ImmutableList.of("3", "4", "5")));
+    Assert.assertTrue(windows.contains(ImmutableList.of("4", "5", "6")));
+    Assert.assertTrue(windows.contains(ImmutableList.of("5", "6", "7")));
+    Assert.assertTrue(windows.contains(ImmutableList.of("6", "7")));
+    Assert.assertTrue(windows.contains(ImmutableList.of("7")));
+  }
+
+  @Test
+  public void testNonOverlappingWindow() {
+
+    View<String> view = View.of(Lists.newArrayList("1", "2", "3", "4", "5", "6", "7"));
+    List<ImmutableList<String>> windows = view.nonOverlappingWindow(3).toList();
+
+    Assert.assertEquals(3, windows.size());
+    Assert.assertTrue(windows.contains(ImmutableList.of("1", "2", "3")));
+    Assert.assertTrue(windows.contains(ImmutableList.of("4", "5", "6")));
+    Assert.assertTrue(windows.contains(ImmutableList.of("7")));
   }
 }

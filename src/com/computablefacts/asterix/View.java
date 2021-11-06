@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.AbstractSequentialIterator;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
@@ -855,6 +856,29 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
   }
 
   /**
+   * Split the view into windows of fixed size {@code length} (the final list may be smaller). At
+   * each step, the first {@code length - 1} elements of the window are a suffix of the previous
+   * window.
+   * 
+   * @param length the window size.
+   * @return a {@link ImmutableList}.
+   */
+  public View<ImmutableList<T>> overlappingWindow(int length) {
+    return new View<>(new SlidingWindowIterator<>(this, length, true));
+  }
+
+  /**
+   * Split the view into windows of fixed size {@code length} (the final list may be smaller). The
+   * returned windows do not intersect.
+   *
+   * @param length the window size.
+   * @return a {@link ImmutableList}.
+   */
+  public View<ImmutableList<T>> nonOverlappingWindow(int length) {
+    return new View<>(new SlidingWindowIterator<>(this, length, false));
+  }
+
+  /**
    * Preload the next {@code capacity} view elements.
    *
    * @param capacity the maximum number of element to preload.
@@ -962,6 +986,38 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
     public boolean shouldBreak() {
       return shouldBreak_;
+    }
+  }
+
+  private static class SlidingWindowIterator<T> extends AbstractIterator<ImmutableList<T>> {
+
+    private final Iterator<T> iterator_;
+    private final int length_;
+    private final boolean overlaps_;
+    private final List<T> list_;
+
+    public SlidingWindowIterator(Iterator<T> iterator, int length, boolean overlaps) {
+
+      Preconditions.checkNotNull(iterator, "iterator should not be null");
+      Preconditions.checkArgument(length > 0, "length must be > 0");
+
+      iterator_ = iterator;
+      length_ = length;
+      overlaps_ = overlaps;
+      list_ = new ArrayList<>(length);
+    }
+
+    @Override
+    protected ImmutableList<T> computeNext() {
+      if (!overlaps_) {
+        list_.clear();
+      } else if (!list_.isEmpty()) {
+        list_.remove(0);
+      }
+      while (iterator_.hasNext() && list_.size() < length_) {
+        list_.add(iterator_.next());
+      }
+      return list_.isEmpty() ? endOfData() : ImmutableList.copyOf(list_);
     }
   }
 }
