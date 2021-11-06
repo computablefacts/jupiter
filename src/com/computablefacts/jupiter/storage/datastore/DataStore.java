@@ -8,9 +8,11 @@ import static com.computablefacts.jupiter.storage.datastore.AccumuloHashProcesso
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -47,6 +49,7 @@ import com.computablefacts.jupiter.storage.termstore.FieldDistinctTerms;
 import com.computablefacts.jupiter.storage.termstore.FieldLabels;
 import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
 import com.computablefacts.jupiter.storage.termstore.FieldTopTerms;
+import com.computablefacts.jupiter.storage.termstore.Term;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.helpers.Codecs;
@@ -751,7 +754,7 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the ids of all documents where at least one token matches "term" (sorted).
+   * Get the ids of all documents where at least one token matches {@code term} (ordered).
    *
    * @param authorizations authorizations.
    * @param dataset dataset (optional).
@@ -766,33 +769,32 @@ final public class DataStore implements AutoCloseable {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(term, "term should not be null");
 
-    return termStore_.termsSortedByBucketId(authorizations, dataset, fields, term, docsIds)
-        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
+    View<String> CARRY = View.of();
+    return termsSortedByTermAndDocId(authorizations, dataset, term, fields, docsIds)
+        .groupSorted((t1, t2) -> t1.term().equals(t2.term())).reduce(CARRY, (carry, termz) -> {
+
+          // On the first iteration, extract docs ids (sorted) and returns the whole list
+          if (carry == CARRY) {
+            return termz.map(Term::bucketId);
+          }
+
+          // On subsequent iterations, extract docs ids (sorted) and merge the previous list
+          // with the current one
+          List<View<String>> list = new ArrayList<>();
+          list.add(carry);
+
+          return termz.map(Term::bucketId).mergeSorted(list, String::compareTo).dedupSorted();
+        });
   }
 
-  /**
-   * Get the ids of all documents where at least one token matches "term" (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset (optional).
-   * @param fields which fields must be considered (optional).
-   * @param term searched term. Might contain wildcard characters.
-   * @param docsIds which docs must be considered (optional).
-   * @return an ordered stream of documents ids.
-   */
-  public View<String> docsIds(Authorizations authorizations, String dataset, String term,
-      Set<String> fields, BloomFilters<String> docsIds) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(term, "term should not be null");
-
-    return termStore_.terms(authorizations, dataset, fields, term, docsIds)
-        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
+  public View<Term> termsSortedByTermAndDocId(Authorizations authorizations, String dataset,
+      String term, Set<String> fields, BloomFilters<String> docsIds) {
+    return termStore_.termsSortedByTermAndBucketId(authorizations, dataset, fields, term, docsIds);
   }
 
   /**
    * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
-   * (sorted).
+   * (ordered).
    *
    * @param authorizations authorizations.
    * @param dataset dataset (optional).
@@ -812,14 +814,52 @@ final public class DataStore implements AutoCloseable {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    return termStore_
-        .termsSortedByBucketId(authorizations, dataset, fields, minTerm, maxTerm, docsIds)
-        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
+    View<String> CARRY = View.of();
+    return termsSortedByTermAndDocId(authorizations, dataset, fields, minTerm, maxTerm, docsIds)
+        .groupSorted((t1, t2) -> t1.term().equals(t2.term())).reduce(CARRY, (carry, termz) -> {
+
+          // On the first iteration, extract docs ids (sorted) and returns the whole list
+          if (carry == CARRY) {
+            return termz.map(Term::bucketId);
+          }
+
+          // On subsequent iterations, extract docs ids (sorted) and merge the previous list
+          // with the current one
+          List<View<String>> list = new ArrayList<>();
+          list.add(carry);
+
+          return termz.map(Term::bucketId).mergeSorted(list, String::compareTo).dedupSorted();
+        });
+  }
+
+  public View<Term> termsSortedByTermAndDocId(Authorizations authorizations, String dataset,
+      Set<String> fields, Object minTerm, Object maxTerm, BloomFilters<String> docsIds) {
+    return termStore_.termsSortedByTermAndBucketId(authorizations, dataset, fields, minTerm,
+        maxTerm, docsIds);
+  }
+
+  /**
+   * Get the ids of all documents where at least one token matches {@code term} (unordered).
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset (optional).
+   * @param fields which fields must be considered (optional).
+   * @param term searched term. Might contain wildcard characters.
+   * @param docsIds which docs must be considered (optional).
+   * @return an unordered stream of terms.
+   */
+  public View<Term> terms(Authorizations authorizations, String dataset, String term,
+      Set<String> fields, BloomFilters<String> docsIds) {
+
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(term, "term should not be null");
+
+    return termStore_.terms(authorizations, dataset, fields, term, docsIds);
   }
 
   /**
    * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
-   * (unsorted).
+   * (unordered).
    *
    * @param authorizations authorizations.
    * @param dataset dataset (optional).
@@ -827,9 +867,9 @@ final public class DataStore implements AutoCloseable {
    * @param minTerm first searched term (included). Wildcard characters are not allowed.
    * @param maxTerm last searched term (excluded). Wildcard characters are not allowed.
    * @param docsIds which docs must be considered (optional).
-   * @return an ordered stream of documents ids.
+   * @return an unordered stream of terms.
    */
-  public View<String> docsIds(Authorizations authorizations, String dataset, Set<String> fields,
+  public View<Term> terms(Authorizations authorizations, String dataset, Set<String> fields,
       Object minTerm, Object maxTerm, BloomFilters<String> docsIds) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
@@ -838,22 +878,20 @@ final public class DataStore implements AutoCloseable {
     Preconditions.checkArgument(
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
-
-    return termStore_.terms(authorizations, dataset, fields, minTerm, maxTerm, docsIds)
-        .map(t -> t.bucketId() + SEPARATOR_NUL + t.dataset());
+    return termStore_.terms(authorizations, dataset, fields, minTerm, maxTerm, docsIds);
   }
 
   /**
-   * Get the ids of all documents where a field value exactly matches a given value (sorted).
+   * Get the ids of all documents where a field value exactly matches a given value (ordered).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
    * @param field which field must be considered.
    * @param value the value to match.
-   * @return an unordered stream of documents ids.
+   * @return an ordered stream of documents ids.
    */
-  public View<String> matchValueSorted(Authorizations authorizations, String dataset, String field,
-      Object value) {
+  public View<String> matchValueSortedByDocId(Authorizations authorizations, String dataset,
+      String field, Object value) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -865,7 +903,7 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the ids of all documents where a field value exactly matches a given value (unsorted).
+   * Get the ids of all documents where a field value exactly matches a given value (unordered).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -886,16 +924,16 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the ids of all documents where a field hashed value exactly matches a given hash (sorted).
+   * Get the ids of all documents where a field hashed value exactly matches a given hash (ordered).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
    * @param field which field must be considered.
    * @param hash the hash to match.
-   * @return an unordered stream of documents ids.
+   * @return an ordered stream of documents ids.
    */
-  public View<String> matchHashSorted(Authorizations authorizations, String dataset, String field,
-      String hash) {
+  public View<String> matchHashSortedByDocId(Authorizations authorizations, String dataset,
+      String field, String hash) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -907,7 +945,7 @@ final public class DataStore implements AutoCloseable {
 
   /**
    * Get the ids of all documents where a field hashed value exactly matches a given hash
-   * (unsorted).
+   * (unordered).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.

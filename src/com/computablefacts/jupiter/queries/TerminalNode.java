@@ -4,7 +4,6 @@ import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Inflec
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Literal;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Range;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Thesaurus;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.math.BigDecimal;
 import java.util.AbstractMap;
@@ -259,7 +258,7 @@ final public class TerminalNode extends AbstractNode {
           fields(), expectedDocsIds));
     }
     return docsIds.size() == 1 ? docsIds.get(0)
-        : docsIds.get(0).merge(docsIds.subList(1, docsIds.size() - 1), String::compareTo)
+        : docsIds.get(0).mergeSorted(docsIds.subList(1, docsIds.size() - 1), String::compareTo)
             .dedupSorted();
   }
 
@@ -283,7 +282,7 @@ final public class TerminalNode extends AbstractNode {
     for (int i = 0; i < terms.size() - 1; i++) {
 
       Iterator<String> iter =
-          dataStore.docsIds(authorizations, dataset, terms.get(i).getKey(), fields(), bfs);
+          dataStore.docsIdsSorted(authorizations, dataset, terms.get(i).getKey(), fields(), bfs);
 
       if (!iter.hasNext()) {
         return View.of();
@@ -292,8 +291,7 @@ final public class TerminalNode extends AbstractNode {
       bfs = new BloomFilters<>();
 
       while (iter.hasNext()) {
-        String docIdAndDataset = iter.next();
-        bfs.put(docIdAndDataset.substring(0, docIdAndDataset.indexOf(SEPARATOR_NUL)));
+        bfs.put(iter.next());
       }
     }
     return dataStore.docsIdsSorted(authorizations, dataset, terms.get(terms.size() - 1).getKey(),

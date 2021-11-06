@@ -1,5 +1,7 @@
 package com.computablefacts.jupiter.queries;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.security.Authorizations;
@@ -13,8 +15,6 @@ import com.computablefacts.logfmt.LogFormatter;
 import com.computablefacts.nona.types.SpanSequence;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 
@@ -180,12 +180,7 @@ final public class InternalNode extends AbstractNode {
         logger_.error(LogFormatter.create(true).add("dataset", dataset).add("query", toString())
             .message("ill-formed query : (A OR NOT B) or (NOT A OR B)").formatError());
       }
-      if (child1_.exclude()) {
-        // NOT A OR B
-        return child2_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer);
-      }
-      // A OR NOT B
-      return child1_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer);
+      return View.of();
     }
 
     View<String> ids1 =
@@ -204,14 +199,14 @@ final public class InternalNode extends AbstractNode {
     // Here, the query is in {A OR B, A AND B}
     if (eConjunctionTypes.Or.equals(conjunction_)) {
 
+      List<View<String>> list = new ArrayList<>();
+      list.add(ids2);
+
       // Advance both iterators synchronously. The assumption is that both iterators are sorted.
-      // Hence, DataStore.Scanners should have been initialized with nbQueryThreads=1
-      return View.of(Iterators.mergeSorted(Lists.newArrayList(ids1, ids2), String::compareTo))
-          .dedupSorted();
+      return ids1.mergeSorted(list, String::compareTo);
     }
 
     // Advance both iterators synchronously. The assumption is that both iterators are sorted.
-    // Hence, DataStore.Scanners should have been initialized with nbQueryThreads=1
     return ids1.intersectSorted(ids2);
   }
 

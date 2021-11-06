@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -793,6 +794,62 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
   }
 
   /**
+   * Merge the output of one or more sorted views with the output of the current view. The
+   * assumption is that all views (including this one) are sorted in non-descending order.
+   *
+   * @param views the views to merge with the output of the current view.
+   * @param comparator the comparator used to merge the output of each view.
+   * @return a new {@link View}.
+   */
+  public View<T> mergeSorted(Iterable<? extends View<? extends T>> views,
+      Comparator<? super T> comparator) {
+
+    Preconditions.checkNotNull(views, "views should not be null");
+    Preconditions.checkNotNull(comparator, "comparator should not be null");
+
+    List<View<? extends T>> list = new ArrayList<>();
+    list.add(this);
+    views.forEach(list::add);
+
+    return new View<>(Iterators.mergeSorted(list, comparator));
+  }
+
+  /**
+   * Group consecutive values matching a given predicate together. Return the group as a whole.
+   *
+   * @param predicate the predicate to match.
+   * @return a new {@link View}.
+   */
+  public View<View<T>> groupSorted(BiPredicate<? super T, ? super T> predicate) {
+
+    Preconditions.checkNotNull(predicate, "predicate should not be null");
+
+    PeekingIterator<T> self = Iterators.peekingIterator(this);
+    return new View<>(new AbstractIterator<View<T>>() {
+
+      private final List<T> list_ = new ArrayList<>();
+
+      @Override
+      protected View<T> computeNext() {
+
+        list_.clear();
+
+        while (self.hasNext()) {
+
+          T t = self.peek();
+
+          if (list_.isEmpty() || predicate.test(list_.get(list_.size() - 1), t)) {
+            list_.add(self.next());
+          } else {
+            return new View<>(ImmutableList.copyOf(list_).iterator());
+          }
+        }
+        return list_.isEmpty() ? endOfData() : new View<>(ImmutableList.copyOf(list_).iterator());
+      }
+    });
+  }
+
+  /**
    * Flatten a view. Optionally map the view entries at the same time.
    *
    * @param fn the mapping function.
@@ -832,27 +889,6 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
         return view_.next();
       }
     });
-  }
-
-  /**
-   * Merge the output of one or more sorted views with the output of the current view. The
-   * assumption is that all views (including this one) are sorted in non-descending order.
-   *
-   * @param views the views to merge with the output of the current view.
-   * @param comparator the comparator used to merge the output of each view.
-   * @return a new {@link View}.
-   */
-  public View<T> merge(Iterable<? extends View<? extends T>> views,
-      Comparator<? super T> comparator) {
-
-    Preconditions.checkNotNull(views, "views should not be null");
-    Preconditions.checkNotNull(comparator, "comparator should not be null");
-
-    List<View<? extends T>> list = new ArrayList<>();
-    list.add(this);
-    views.forEach(list::add);
-
-    return new View<>(Iterators.mergeSorted(list, comparator));
   }
 
   /**

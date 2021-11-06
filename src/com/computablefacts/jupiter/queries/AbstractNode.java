@@ -1,9 +1,5 @@
 package com.computablefacts.jupiter.queries;
 
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-
-import java.util.AbstractMap;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.security.Authorizations;
@@ -45,20 +41,14 @@ public abstract class AbstractNode {
     return cardinality(dataStore, authorizations, dataset, null);
   }
 
-  final public View<Map.Entry<String, String>> execute(DataStore dataStore,
-      Authorizations authorizations, String dataset) {
-    return execute(dataStore, authorizations, dataset, null, null).map(t -> {
-      int index = t.indexOf(SEPARATOR_NUL);
-      return new AbstractMap.SimpleEntry<>(t.substring(0, index), t.substring(index + 1));
-    });
+  final public View<String> execute(DataStore dataStore, Authorizations authorizations,
+      String dataset) {
+    return execute(dataStore, authorizations, dataset, null, null);
   }
 
-  final public View<Map.Entry<String, String>> execute(DataStore dataStore,
-      Authorizations authorizations, String dataset, BloomFilters<String> expectedDocsIds) {
-    return execute(dataStore, authorizations, dataset, expectedDocsIds, null).map(t -> {
-      int index = t.indexOf(SEPARATOR_NUL);
-      return new AbstractMap.SimpleEntry<>(t.substring(0, index), t.substring(index + 1));
-    });
+  final public View<String> execute(DataStore dataStore, Authorizations authorizations,
+      String dataset, BloomFilters<String> expectedDocsIds) {
+    return execute(dataStore, authorizations, dataset, expectedDocsIds, null);
   }
 
   @Deprecated

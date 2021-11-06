@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.Var;
 
 public class ViewTest {
 
@@ -769,7 +770,8 @@ public class ViewTest {
     View<String> view3 = View.of(Lists.newArrayList("6", "7", "8", "9", "b", "d", "f"));
     View<String> view4 = View.of(Lists.newArrayList("a", "c", "e", "g"));
 
-    View<String> merged = view1.merge(Lists.newArrayList(view2, view3, view4), String::compareTo);
+    View<String> merged =
+        view1.mergeSorted(Lists.newArrayList(view2, view3, view4), String::compareTo);
 
     Assert.assertEquals(Lists.newArrayList("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a",
         "b", "c", "d", "e", "f", "g"), merged.toList());
@@ -801,5 +803,39 @@ public class ViewTest {
     Assert.assertTrue(windows.contains(ImmutableList.of("1", "2", "3")));
     Assert.assertTrue(windows.contains(ImmutableList.of("4", "5", "6")));
     Assert.assertTrue(windows.contains(ImmutableList.of("7")));
+  }
+
+  @Test
+  public void testGroupSorted() {
+
+    List<Integer> list = new ArrayList<>();
+    list.add(1);
+
+    @Var
+    List<List<Integer>> groups =
+        View.of(list).groupSorted(Integer::equals).map(View::toList).toList();
+
+    Assert.assertEquals(1, groups.size());
+    Assert.assertTrue(groups.contains(ImmutableList.of(1)));
+
+    list.add(2);
+    list.add(2);
+
+    groups = View.of(list).groupSorted(Integer::equals).map(View::toList).toList();
+
+    Assert.assertEquals(2, groups.size());
+    Assert.assertEquals(ImmutableList.of(1), groups.get(0));
+    Assert.assertEquals(ImmutableList.of(2, 2), groups.get(1));
+
+    list.add(3);
+    list.add(3);
+    list.add(3);
+
+    groups = View.of(list).groupSorted(Integer::equals).map(View::toList).toList();
+
+    Assert.assertEquals(3, groups.size());
+    Assert.assertEquals(ImmutableList.of(1), groups.get(0));
+    Assert.assertEquals(ImmutableList.of(2, 2), groups.get(1));
+    Assert.assertEquals(ImmutableList.of(3, 3, 3), groups.get(2));
   }
 }

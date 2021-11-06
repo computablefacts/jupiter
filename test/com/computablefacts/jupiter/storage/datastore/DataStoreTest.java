@@ -1,10 +1,8 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -61,16 +59,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode query = QueryBuilder.build("doe");
 
     @Var
-    List<Map.Entry<String, String>> docsIds =
-        query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
 
     docsIds = query.execute(dataStore, AUTH_ADM, "dataset_2").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
 
     Assert.assertTrue(dataStore.truncate());
 
@@ -95,16 +92,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode query = QueryBuilder.build("doe");
 
     @Var
-    List<Map.Entry<String, String>> docsIds =
-        query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
 
     docsIds = query.execute(dataStore, AUTH_ADM, "dataset_2").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
 
     Assert.assertTrue(dataStore.remove("dataset_1"));
 
@@ -115,7 +111,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     docsIds = query.execute(dataStore, AUTH_ADM, "dataset_2").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
   }
 
   @Test
@@ -135,11 +131,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode query = QueryBuilder.build("joh? AND doe");
 
     @Var
-    List<Map.Entry<String, String>> docsIds =
-        query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
 
     docsIds = query.execute(dataStore, AUTH_ADM, "dataset_2").toList();
 
@@ -163,11 +158,10 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode query = QueryBuilder.build("doe AND NOT jan?");
 
     @Var
-    List<Map.Entry<String, String>> docsIds =
-        query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
 
     docsIds = query.execute(dataStore, AUTH_ADM, "dataset_2").toList();
 
@@ -191,16 +185,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
     @Var
-    List<Map.Entry<String, String>> docsIds =
-        query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
 
     docsIds = query.execute(dataStore, AUTH_ADM, "dataset_2").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_2"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
   }
 
   @Test
@@ -221,16 +214,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
     @Var
-    List<Map.Entry<String, String>> docsIds =
+    List<String> docsIds =
         query.execute(dataStore, new Authorizations("DATASET_1_ROW_1"), "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
 
     docsIds = query.execute(dataStore, new Authorizations("DATASET_1_ROW_2"), "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals("row_2", docsIds.get(0));
   }
 
   @Test
@@ -324,28 +317,27 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode query = QueryBuilder.build("age:[* TO 20]");
 
     @Var
-    List<Map.Entry<String, String>> docsIds =
-        query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(2, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(1));
+    Assert.assertEquals("row_1", docsIds.get(0));
+    Assert.assertEquals("row_2", docsIds.get(1));
 
     query = QueryBuilder.build("age:[15 TO 20]");
 
     docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(2, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(1));
+    Assert.assertEquals("row_1", docsIds.get(0));
+    Assert.assertEquals("row_2", docsIds.get(1));
 
     query = QueryBuilder.build("age:[15 TO *]");
 
     docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(2, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_2", "dataset_1"), docsIds.get(1));
+    Assert.assertEquals("row_1", docsIds.get(0));
+    Assert.assertEquals("row_2", docsIds.get(1));
 
     // Min. term should be included and max. term excluded
     query = QueryBuilder.build("age:[17 TO 18]");
@@ -353,7 +345,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
-    Assert.assertEquals(new AbstractMap.SimpleEntry<>("row_1", "dataset_1"), docsIds.get(0));
+    Assert.assertEquals("row_1", docsIds.get(0));
   }
 
   @Test
@@ -977,26 +969,25 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode node = QueryBuilder.build("myfile.csv");
 
     @Var
-    Set<String> docsIds =
-        node.execute(dataStore, auths, "dataset").map(Map.Entry::getValue).toSet();
+    Set<String> docsIds = node.execute(dataStore, auths, "dataset").toSet();
 
     Assert.assertEquals(1, docsIds.size());
 
     node = QueryBuilder.build("path:myfile.csv");
 
-    docsIds = node.execute(dataStore, auths, "dataset").map(Map.Entry::getValue).toSet();
+    docsIds = node.execute(dataStore, auths, "dataset").toSet();
 
     Assert.assertEquals(1, docsIds.size());
 
     node = QueryBuilder.build("path:*myfile.csv");
 
-    docsIds = node.execute(dataStore, auths, "dataset").map(Map.Entry::getValue).toSet();
+    docsIds = node.execute(dataStore, auths, "dataset").toSet();
 
     Assert.assertEquals(1, docsIds.size());
 
     node = QueryBuilder.build("path:\"myfile\" AND path:\"csv\"");
 
-    docsIds = node.execute(dataStore, auths, "dataset").map(Map.Entry::getValue).toSet();
+    docsIds = node.execute(dataStore, auths, "dataset").toSet();
 
     Assert.assertEquals(1, docsIds.size());
   }
@@ -1020,17 +1011,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     AbstractNode node = QueryBuilder.build("path:\"myfile.csv\"");
 
     @Var
-    Set<Map.Entry<String, String>> docsIds = node.execute(dataStore, auths, "dataset").toSet();
+    Set<String> docsIds = node.execute(dataStore, auths, "dataset").toSet();
 
     Assert.assertEquals(0, docsIds.size());
 
     node = QueryBuilder.build("path:\"myfile.csv\"");
 
-    docsIds = node.execute(dataStore, auths, "dataset", null, Codecs.defaultTokenizer)
-        .map(docsIdAndDataset -> (Map.Entry<String, String>) new AbstractMap.SimpleImmutableEntry<>(
-            docsIdAndDataset.substring(0, docsIdAndDataset.indexOf(SEPARATOR_NUL)),
-            docsIdAndDataset.substring(docsIdAndDataset.indexOf(SEPARATOR_NUL) + 1)))
-        .toSet();
+    docsIds = node.execute(dataStore, auths, "dataset", null, Codecs.defaultTokenizer).toSet();
 
     Assert.assertEquals(1, docsIds.size());
   }
