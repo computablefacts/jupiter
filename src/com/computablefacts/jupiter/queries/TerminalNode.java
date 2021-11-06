@@ -4,6 +4,7 @@ import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Inflec
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Literal;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Range;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Thesaurus;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.math.BigDecimal;
 import java.util.AbstractMap;
@@ -291,7 +292,8 @@ final public class TerminalNode extends AbstractNode {
       bfs = new BloomFilters<>();
 
       while (iter.hasNext()) {
-        bfs.put(iter.next());
+        String docIdAndDataset = iter.next();
+        bfs.put(docIdAndDataset.substring(0, docIdAndDataset.indexOf(SEPARATOR_NUL)));
       }
     }
     return dataStore.docsIdsSorted(authorizations, dataset, terms.get(terms.size() - 1).getKey(),

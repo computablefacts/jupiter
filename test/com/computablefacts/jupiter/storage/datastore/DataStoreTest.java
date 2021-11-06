@@ -1,6 +1,7 @@
 package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 
 import java.util.AbstractMap;
@@ -25,6 +26,7 @@ import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.queries.AbstractNode;
 import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.termstore.Term;
+import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -995,6 +997,40 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     node = QueryBuilder.build("path:\"myfile\" AND path:\"csv\"");
 
     docsIds = node.execute(dataStore, auths, "dataset").map(Map.Entry::getValue).toSet();
+
+    Assert.assertEquals(1, docsIds.size());
+  }
+
+  @Test
+  public void testQueryWithBloomFilter() throws Exception {
+
+    Authorizations auths = new Authorizations("ADM");
+    DataStore dataStore = newDataStore(auths);
+
+    // Index
+    dataStore.beginIngest();
+
+    Assert.assertTrue(dataStore.persist("dataset", "row_1", Data.json5()));
+    Assert.assertTrue(dataStore.endIngest("dataset"));
+
+    dataStore.flush();
+
+    // Query
+    @Var
+    AbstractNode node = QueryBuilder.build("path:\"myfile.csv\"");
+
+    @Var
+    Set<Map.Entry<String, String>> docsIds = node.execute(dataStore, auths, "dataset").toSet();
+
+    Assert.assertEquals(0, docsIds.size());
+
+    node = QueryBuilder.build("path:\"myfile.csv\"");
+
+    docsIds = node.execute(dataStore, auths, "dataset", null, Codecs.defaultTokenizer)
+        .map(docsIdAndDataset -> (Map.Entry<String, String>) new AbstractMap.SimpleImmutableEntry<>(
+            docsIdAndDataset.substring(0, docsIdAndDataset.indexOf(SEPARATOR_NUL)),
+            docsIdAndDataset.substring(docsIdAndDataset.indexOf(SEPARATOR_NUL) + 1)))
+        .toSet();
 
     Assert.assertEquals(1, docsIds.size());
   }
