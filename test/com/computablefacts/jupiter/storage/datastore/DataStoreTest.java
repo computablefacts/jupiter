@@ -960,14 +960,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertEquals(1, terms.size());
 
-    terms = dataStore.termStore()
-        .terms(auths, "dataset", Sets.newHashSet("path"), "myfile", null).toSet();
+    terms = dataStore.termStore().terms(auths, "dataset", Sets.newHashSet("path"), "myfile", null)
+        .toSet();
 
     Assert.assertEquals(1, terms.size());
 
     terms =
-        dataStore.termStore().terms(auths, "dataset", Sets.newHashSet("path"), "csv", null)
-        .toSet();
+        dataStore.termStore().terms(auths, "dataset", Sets.newHashSet("path"), "csv", null).toSet();
 
     Assert.assertEquals(1, terms.size());
 
@@ -977,19 +976,25 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     @Var
     Set<String> docsIds =
-        node.execute(dataStore, auths, "dataset").map(id -> id.getValue()).toSet();
+        node.execute(dataStore, auths, "dataset").map(Map.Entry::getValue).toSet();
 
     Assert.assertEquals(1, docsIds.size());
 
     node = QueryBuilder.build("path:myfile.csv");
 
-    docsIds = node.execute(dataStore, auths, "dataset").map(id -> id.getValue()).toSet();
+    docsIds = node.execute(dataStore, auths, "dataset").map(Map.Entry::getValue).toSet();
 
     Assert.assertEquals(1, docsIds.size());
 
     node = QueryBuilder.build("path:*myfile.csv");
 
-    docsIds = node.execute(dataStore, auths, "dataset").map(id -> id.getValue()).toSet();
+    docsIds = node.execute(dataStore, auths, "dataset").map(Map.Entry::getValue).toSet();
+
+    Assert.assertEquals(1, docsIds.size());
+
+    node = QueryBuilder.build("path:\"myfile\" AND path:\"csv\"");
+
+    docsIds = node.execute(dataStore, auths, "dataset").map(Map.Entry::getValue).toSet();
 
     Assert.assertEquals(1, docsIds.size());
   }

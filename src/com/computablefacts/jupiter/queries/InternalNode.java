@@ -125,7 +125,7 @@ final public class InternalNode extends AbstractNode {
 
   @Override
   public View<String> execute(DataStore dataStore, Authorizations authorizations, String dataset,
-      BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer) {
+      BloomFilters<String> expectedDocsIds, Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
@@ -148,7 +148,7 @@ final public class InternalNode extends AbstractNode {
         return View.of();
       }
       return eConjunctionTypes.Or.equals(conjunction_)
-          ? child2_.execute(dataStore, authorizations, dataset, docsIds, tokenizer)
+          ? child2_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer)
           : View.of();
     }
     if (child2_ == null) {
@@ -160,7 +160,7 @@ final public class InternalNode extends AbstractNode {
         return View.of();
       }
       return eConjunctionTypes.Or.equals(conjunction_)
-          ? child1_.execute(dataStore, authorizations, dataset, docsIds, tokenizer)
+          ? child1_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer)
           : View.of();
     }
 
@@ -182,14 +182,16 @@ final public class InternalNode extends AbstractNode {
       }
       if (child1_.exclude()) {
         // NOT A OR B
-        return child2_.execute(dataStore, authorizations, dataset, docsIds, tokenizer);
+        return child2_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer);
       }
       // A OR NOT B
-      return child1_.execute(dataStore, authorizations, dataset, docsIds, tokenizer);
+      return child1_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer);
     }
 
-    View<String> ids1 = child1_.execute(dataStore, authorizations, dataset, docsIds, tokenizer);
-    View<String> ids2 = child2_.execute(dataStore, authorizations, dataset, docsIds, tokenizer);
+    View<String> ids1 =
+        child1_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer);
+    View<String> ids2 =
+        child2_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer);
 
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B}
     if (eConjunctionTypes.And.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {

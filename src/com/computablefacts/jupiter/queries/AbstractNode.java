@@ -54,8 +54,8 @@ public abstract class AbstractNode {
   }
 
   final public View<Map.Entry<String, String>> execute(DataStore dataStore,
-      Authorizations authorizations, String dataset, BloomFilters<String> docsIds) {
-    return execute(dataStore, authorizations, dataset, docsIds, null).map(t -> {
+      Authorizations authorizations, String dataset, BloomFilters<String> expectedDocsIds) {
+    return execute(dataStore, authorizations, dataset, expectedDocsIds, null).map(t -> {
       int index = t.indexOf(SEPARATOR_NUL);
       return new AbstractMap.SimpleEntry<>(t.substring(0, index), t.substring(index + 1));
     });
@@ -68,5 +68,6 @@ public abstract class AbstractNode {
       String dataset, Function<String, SpanSequence> tokenizer);
 
   public abstract View<String> execute(DataStore dataStore, Authorizations authorizations,
-      String dataset, BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer);
+      String dataset, BloomFilters<String> expectedDocsIds,
+      Function<String, SpanSequence> tokenizer);
 }

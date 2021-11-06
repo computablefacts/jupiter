@@ -4,15 +4,15 @@ import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Inflec
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Literal;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Range;
 import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Thesaurus;
-import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.math.BigDecimal;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.security.Authorizations;
@@ -30,7 +30,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -143,14 +142,11 @@ final public class TerminalNode extends AbstractNode {
 
         if (isValid) {
 
-          // Set fields
-          Set<String> fields = Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
-
           // Set range
           String minTerm = "*".equals(min) ? null : min;
           String maxTerm = "*".equals(max) ? null : max;
 
-          return dataStore.termCardinalityEstimationForBuckets(authorizations, dataset, fields,
+          return dataStore.termCardinalityEstimationForBuckets(authorizations, dataset, fields(),
               minTerm == null ? null : new BigDecimal(minTerm),
               maxTerm == null ? null : new BigDecimal(maxTerm));
         }
@@ -158,23 +154,16 @@ final public class TerminalNode extends AbstractNode {
       return 0; // Invalid range
     }
 
-    List<String> terms = terms(tokenizer);
+    List<Map.Entry<String, Long>> terms = terms(dataStore, authorizations, dataset, tokenizer);
 
     if (terms.isEmpty()) {
-      if (logger_.isWarnEnabled()) {
-        logger_.warn(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
-            .add("value", value_).message("all terms have been discarded").formatWarn());
-      }
       return 0;
     }
     if (Inflectional.equals(form_)) {
-      return terms.stream().mapToLong(term -> dataStore
-          .termCardinalityEstimationForBuckets(authorizations, dataset, fields(), term)).sum();
+      return terms.stream().mapToLong(Map.Entry::getValue).sum();
     }
     if (Literal.equals(form_)) {
-      return terms.stream().mapToLong(term -> dataStore
-          .termCardinalityEstimationForBuckets(authorizations, dataset, fields(), term)).max()
-          .orElse(0);
+      return terms.stream().mapToLong(Map.Entry::getValue).max().orElse(0);
     }
     if (Thesaurus.equals(form_)) {
       // TODO : backport code
@@ -184,7 +173,7 @@ final public class TerminalNode extends AbstractNode {
 
   @Override
   public View<String> execute(DataStore dataStore, Authorizations authorizations, String dataset,
-      BloomFilters<String> docsIds, Function<String, SpanSequence> tokenizer) {
+      BloomFilters<String> expectedDocsIds, Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
@@ -192,88 +181,24 @@ final public class TerminalNode extends AbstractNode {
     if (logger_.isDebugEnabled()) {
       logger_.debug(
           LogFormatter.create(true).add("dataset", dataset).add("key", key_).add("value", value_)
-              .add("has_docs_ids", docsIds != null).add("form", form_.toString()).formatDebug());
+              .add("has_docs_ids", expectedDocsIds != null).add("form", form_.toString())
+              .formatDebug());
     }
 
     if (Range.equals(form_)) {
-
-      List<String> range =
-          Splitter.on(QueryBuilder._TO_).trimResults().omitEmptyStrings().splitToList(value_);
-
-      if (range.size() == 2) {
-
-        String min = range.get(0);
-        String max = range.get(1);
-
-        boolean isValid =
-            ("*".equals(min) && com.computablefacts.nona.helpers.Strings.isNumber(max))
-                || ("*".equals(max) && com.computablefacts.nona.helpers.Strings.isNumber(min))
-                || (com.computablefacts.nona.helpers.Strings.isNumber(min)
-                    && com.computablefacts.nona.helpers.Strings.isNumber(max));
-
-        if (isValid) {
-
-          // Set fields
-          Set<String> fields = Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
-
-          // Set range
-          String minTerm = "*".equals(min) ? null : min;
-          String maxTerm = "*".equals(max) ? null : max;
-
-          return dataStore.docsIdsSorted(authorizations, dataset, fields,
-              minTerm == null ? null : new BigDecimal(minTerm),
-              maxTerm == null ? null : new BigDecimal(maxTerm), docsIds);
-        }
-      }
-      return View.of(); // Invalid range
+      return range(dataStore, authorizations, dataset, expectedDocsIds);
     }
 
-    List<String> terms = terms(tokenizer);
+    List<Map.Entry<String, Long>> terms = terms(dataStore, authorizations, dataset, tokenizer);
 
     if (terms.isEmpty()) {
-      if (logger_.isWarnEnabled()) {
-        logger_.warn(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
-            .add("value", value_).message("all terms have been discarded").formatWarn());
-      }
       return View.of();
     }
     if (Inflectional.equals(form_)) {
-
-      List<View<String>> ids = new ArrayList<>();
-
-      for (String term : terms) {
-        ids.add(dataStore.docsIdsSorted(authorizations, dataset,
-            WildcardMatcher.compact(WildcardMatcher.hasWildcards(term) ? term : term + "*"),
-            fields(), docsIds));
-      }
-      return View.of(Iterators.mergeSorted(ids, String::compareTo)).dedupSorted();
+      return inflectional(dataStore, authorizations, dataset, expectedDocsIds, terms);
     }
     if (Literal.equals(form_)) {
-
-      // TODO : ensure that the order of appearance of each term is respected
-
-      // First, fill a Bloom filter with the UUIDs of the documents. Then, filter subsequent
-      // terms using the Bloom filter created with the previous term.
-      @Var
-      BloomFilters<String> bfs = docsIds == null ? null : new BloomFilters<>(docsIds);
-
-      for (int i = 0; i < terms.size() - 1; i++) {
-
-        Iterator<String> iter =
-            dataStore.docsIds(authorizations, dataset, terms.get(i), fields(), bfs);
-
-        if (!iter.hasNext()) {
-          return View.of();
-        }
-
-        bfs = new BloomFilters<>();
-
-        while (iter.hasNext()) {
-          bfs.put(iter.next());
-        }
-      }
-      return dataStore.docsIdsSorted(authorizations, dataset, terms.get(terms.size() - 1), fields(),
-          bfs);
+      return literal(dataStore, authorizations, dataset, expectedDocsIds, terms);
     }
     if (Thesaurus.equals(form_)) {
       // TODO : backport code
@@ -281,19 +206,109 @@ final public class TerminalNode extends AbstractNode {
     return View.of();
   }
 
+  private View<String> range(DataStore dataStore, Authorizations authorizations, String dataset,
+      BloomFilters<String> expectedDocsIds) {
+
+    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    List<String> range =
+        Splitter.on(QueryBuilder._TO_).trimResults().omitEmptyStrings().splitToList(value_);
+
+    if (range.size() != 2) {
+      return View.of(); // Invalid range
+    }
+
+    String min = range.get(0);
+    String max = range.get(1);
+
+    boolean isValid = ("*".equals(min) && com.computablefacts.nona.helpers.Strings.isNumber(max))
+        || ("*".equals(max) && com.computablefacts.nona.helpers.Strings.isNumber(min))
+        || (com.computablefacts.nona.helpers.Strings.isNumber(min)
+            && com.computablefacts.nona.helpers.Strings.isNumber(max));
+
+    if (!isValid) {
+      return View.of(); // Invalid range
+    }
+
+    // Set range
+    String minTerm = "*".equals(min) ? null : min;
+    String maxTerm = "*".equals(max) ? null : max;
+
+    return dataStore.docsIdsSorted(authorizations, dataset, fields(),
+        minTerm == null ? null : new BigDecimal(minTerm),
+        maxTerm == null ? null : new BigDecimal(maxTerm), expectedDocsIds);
+  }
+
+  private View<String> inflectional(DataStore dataStore, Authorizations authorizations,
+      String dataset, BloomFilters<String> expectedDocsIds, List<Map.Entry<String, Long>> terms) {
+
+    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(terms, "terms should not be null");
+    Preconditions.checkArgument(!terms.isEmpty(), "terms should not be empty");
+
+    List<View<String>> docsIds = new ArrayList<>();
+
+    for (Map.Entry<String, Long> term : terms) {
+      docsIds.add(dataStore.docsIdsSorted(authorizations, dataset,
+          WildcardMatcher.compact(
+              WildcardMatcher.hasWildcards(term.getKey()) ? term.getKey() : term.getKey() + "*"),
+          fields(), expectedDocsIds));
+    }
+    return docsIds.size() == 1 ? docsIds.get(0)
+        : docsIds.get(0).merge(docsIds.subList(1, docsIds.size() - 1), String::compareTo)
+            .dedupSorted();
+  }
+
+  private View<String> literal(DataStore dataStore, Authorizations authorizations, String dataset,
+      BloomFilters<String> expectedDocsIds, List<Map.Entry<String, Long>> terms) {
+
+    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(terms, "terms should not be null");
+    Preconditions.checkArgument(!terms.isEmpty(), "terms should not be empty");
+
+    // TODO : ensure that the order of appearance of each term is respected
+
+    // First, fill a Bloom filter with the UUIDs of the documents. Then, filter subsequent
+    // terms using the Bloom filter created with the previous term. Thus, the number of documents
+    // returned should be decreasing at each iteration.
+    @Var
+    BloomFilters<String> bfs = expectedDocsIds == null ? null : new BloomFilters<>(expectedDocsIds);
+
+    for (int i = 0; i < terms.size() - 1; i++) {
+
+      Iterator<String> iter =
+          dataStore.docsIds(authorizations, dataset, terms.get(i).getKey(), fields(), bfs);
+
+      if (!iter.hasNext()) {
+        return View.of();
+      }
+
+      bfs = new BloomFilters<>();
+
+      while (iter.hasNext()) {
+        bfs.put(iter.next());
+      }
+    }
+    return dataStore.docsIdsSorted(authorizations, dataset, terms.get(terms.size() - 1).getKey(),
+        fields(), bfs);
+  }
+
   private Set<String> fields() {
     return Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
   }
 
-  private List<String> terms(Function<String, SpanSequence> tokenizer) {
+  private List<Map.Entry<String, Long>> terms(DataStore dataStore, Authorizations authorizations,
+      String dataset, Function<String, SpanSequence> tokenizer) {
 
-    // Sort terms by decreasing length
-    ToIntFunction<String> byTermLength = term -> {
-      if (WildcardMatcher.startsWithWildcard(term)) {
-        return WildcardMatcher.prefix(reverse(term)).length();
-      }
-      return WildcardMatcher.prefix(term).length();
-    };
+    Preconditions.checkNotNull(dataStore, "dataStore should not be null");
+    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     // Build a list of terms
     List<String> terms;
@@ -304,15 +319,14 @@ final public class TerminalNode extends AbstractNode {
       terms = tokenizer.apply(value_).stream().map(Span::text).collect(Collectors.toList());
     }
 
-    // Discard small terms and order the remaining ones by length
+    // Order terms by increasing number of matches
     return terms.stream()
         .filter(term -> !(WildcardMatcher.startsWithWildcard(term)
             && WildcardMatcher.endsWithWildcard(term)))
-        /*
-         * .filter(term -> { if (WildcardMatcher.startsWithWildcard(term)) { return
-         * WildcardMatcher.prefix(reverse(term)).length() >= 3; } return
-         * WildcardMatcher.prefix(term).length() >= 3; })
-         */.sorted(Comparator.comparingInt(byTermLength).reversed()).collect(Collectors.toList());
+        .map(term -> new AbstractMap.SimpleImmutableEntry<>(term,
+            dataStore.termCardinalityEstimationForBuckets(authorizations, dataset, fields(), term)))
+        .sorted(Comparator.comparingLong(AbstractMap.SimpleImmutableEntry::getValue))
+        .collect(Collectors.toList());
   }
 
   public enum eTermForms {
