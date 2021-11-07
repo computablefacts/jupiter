@@ -58,6 +58,7 @@ import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.computablefacts.nona.types.Span;
 import com.computablefacts.nona.types.SpanSequence;
 import com.github.wnameless.json.flattener.JsonFlattener;
+import com.google.common.annotations.Beta;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
@@ -119,9 +120,9 @@ final public class DataStore implements AutoCloseable {
   private final TermStore termStore_;
   private final Cache cache_;
 
-  private AbstractBlobProcessor blobProcessor_;
-  private AbstractTermProcessor termProcessor_;
-  private AbstractHashProcessor hashProcessor_;
+  private final AbstractBlobProcessor blobProcessor_;
+  private final AbstractTermProcessor termProcessor_;
+  private final AbstractHashProcessor hashProcessor_;
 
   public DataStore(Configurations configurations, String name) {
     name_ = Preconditions.checkNotNull(name, "name should neither be null nor empty");
@@ -131,6 +132,24 @@ final public class DataStore implements AutoCloseable {
     blobProcessor_ = new AccumuloBlobProcessor(blobStore_);
     termProcessor_ = new AccumuloTermProcessor(termStore_);
     hashProcessor_ = new AccumuloHashProcessor(termStore_);
+  }
+
+  @Beta
+  public DataStore(String name, BlobStore blobStore, TermStore termStore, Cache cache,
+      AbstractBlobProcessor blobProcessor, AbstractTermProcessor termProcessor,
+      AbstractHashProcessor hashProcessor) {
+    name_ = Preconditions.checkNotNull(name, "name should neither be null nor empty");
+    blobStore_ =
+        Preconditions.checkNotNull(blobStore, "blobStore should neither be null nor empty");
+    termStore_ =
+        Preconditions.checkNotNull(termStore, "termStore should neither be null nor empty");
+    cache_ = Preconditions.checkNotNull(cache, "cache should neither be null nor empty");
+    blobProcessor_ =
+        Preconditions.checkNotNull(blobProcessor, "blobProcessor should neither be null nor empty");
+    termProcessor_ =
+        Preconditions.checkNotNull(termProcessor, "termProcessor should neither be null nor empty");
+    hashProcessor_ =
+        Preconditions.checkNotNull(hashProcessor, "hashProcessor should neither be null nor empty");
   }
 
   static String normalize(String str) {
@@ -212,60 +231,6 @@ final public class DataStore implements AutoCloseable {
   @Generated
   public String name() {
     return name_;
-  }
-
-  /**
-   * Set the blob processor.
-   *
-   * @param blobProcessor the processor used to deal with terms when
-   *        {@link #persistBlob(String, String, String)} is called.
-   */
-  @Generated
-  public void setBlobProcessor(AbstractBlobProcessor blobProcessor) {
-    if (blobProcessor_ != null) {
-      try {
-        blobProcessor_.close();
-      } catch (Exception e) {
-        logger_.error(LogFormatter.create(true).message(e).formatError());
-      }
-    }
-    blobProcessor_ = blobProcessor;
-  }
-
-  /**
-   * Set the term processor.
-   *
-   * @param termProcessor the processor used to deal with terms when
-   *        {@link #persistTerm(String, String, String, Object, int)}.
-   */
-  @Generated
-  public void setTermProcessor(AbstractTermProcessor termProcessor) {
-    if (termProcessor_ != null) {
-      try {
-        termProcessor_.close();
-      } catch (Exception e) {
-        logger_.error(LogFormatter.create(true).message(e).formatError());
-      }
-    }
-    termProcessor_ = termProcessor;
-  }
-
-  /**
-   * Set the hash processor.
-   *
-   * @param hashProcessor the processor used to deal with hashes when
-   *        {@link #persistHash(String, String, String, Object)}.
-   */
-  @Generated
-  public void setHashProcessor(AbstractHashProcessor hashProcessor) {
-    if (hashProcessor_ != null) {
-      try {
-        hashProcessor_.close();
-      } catch (Exception e) {
-        logger_.error(LogFormatter.create(true).message(e).formatError());
-      }
-    }
-    hashProcessor_ = hashProcessor;
   }
 
   public void flush() {

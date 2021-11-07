@@ -450,6 +450,108 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
+  public void testMatchValueSortedByDocsIds() throws Exception {
+
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json(1)));
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json(2)));
+
+    dataStore.flush();
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
+
+    @Var
+    List<String> docsIds = dataStore
+        .matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤name", "Tom Cruise").toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+
+    docsIds =
+        dataStore.matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤weight", 67.5).toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+
+    docsIds =
+        dataStore.matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤age", 73).toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+
+    docsIds = dataStore
+        .matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤hasGreyHair", false).toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+
+    docsIds = dataStore
+        .matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤hasChildren", true).toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+  }
+
+  @Test
+  public void testMatchHashSortedByDocsIds() throws Exception {
+
+    String username = nextUsername();
+    DataStore dataStore = newDataStore(AUTH_ADM, username);
+
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json(1)));
+    Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json(2)));
+
+    dataStore.flush();
+
+    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
+    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
+
+    @Var
+    List<String> docsIds = dataStore.matchHashSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤name",
+        "8f8a04ea49585975fcf1e452b988e085").toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+
+    docsIds = dataStore.matchHashSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤weight",
+        "4103e8509cbdf6b3372222061bbe1da6").toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+
+    docsIds = dataStore.matchHashSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤age",
+        "3974c437d717863985a0b5618f289b46").toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+
+    docsIds = dataStore.matchHashSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤hasGreyHair",
+        "e495b7e5056dbfc4e854950696d4c3cc").toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+
+    docsIds = dataStore.matchHashSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤hasChildren",
+        "5db32d6ecc1f5ef816ebe6268a3343c2").toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+  }
+
+  @Test
   public void testDataStoreInfos() throws Exception {
 
     String username = nextUsername();
