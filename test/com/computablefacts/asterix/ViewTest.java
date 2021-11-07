@@ -838,4 +838,18 @@ public class ViewTest {
     Assert.assertEquals(ImmutableList.of(2, 2), groups.get(1));
     Assert.assertEquals(ImmutableList.of(3, 3, 3), groups.get(2));
   }
+
+  @Test
+  public void testPeek() {
+
+    List<String> valuesPeeked = new ArrayList<>();
+    View<String> view =
+        View.of(Lists.newArrayList("1", "2", "3", "4", "5", "6", "7")).peek(valuesPeeked::add);
+
+    Assert.assertTrue(valuesPeeked.isEmpty());
+
+    List<String> valuesMaterialized = view.toList();
+
+    Assert.assertEquals(valuesPeeked, valuesMaterialized);
+  }
 }
