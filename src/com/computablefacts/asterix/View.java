@@ -827,24 +827,22 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
     PeekingIterator<T> self = Iterators.peekingIterator(this);
     return new View<>(new AbstractIterator<View<T>>() {
 
-      private final List<T> list_ = new ArrayList<>();
-
       @Override
       protected View<T> computeNext() {
 
-        list_.clear();
+        List<T> list = new ArrayList<>();
 
         while (self.hasNext()) {
 
           T t = self.peek();
 
-          if (list_.isEmpty() || predicate.test(list_.get(list_.size() - 1), t)) {
-            list_.add(self.next());
+          if (list.isEmpty() || predicate.test(list.get(list.size() - 1), t)) {
+            list.add(self.next());
           } else {
-            return new View<>(ImmutableList.copyOf(list_).iterator());
+            return new View<>(list.iterator());
           }
         }
-        return list_.isEmpty() ? endOfData() : new View<>(ImmutableList.copyOf(list_).iterator());
+        return list.isEmpty() ? endOfData() : new View<>(list.iterator());
       }
     });
   }
