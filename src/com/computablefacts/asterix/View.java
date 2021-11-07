@@ -48,10 +48,10 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
   private static final Object NULL_MARKER = new Object();
   private static final ExecutorService defaultExecutor_ = Executors.newCachedThreadPool();
 
-  protected final Iterator<T> stream_;
+  protected final Iterator<T> iterator_;
 
-  protected View(Iterator<T> stream) {
-    stream_ = Preconditions.checkNotNull(stream, "stream should not be null");
+  protected View(Iterator<T> iterator) {
+    iterator_ = Preconditions.checkNotNull(iterator, "iterator should not be null");
   }
 
   public static <T> View<T> of() {
@@ -162,14 +162,14 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
 
   @Override
   public T computeNext() {
-    return stream_.hasNext() ? stream_.next() : endOfData();
+    return iterator_.hasNext() ? iterator_.next() : endOfData();
   }
 
   @Override
   public void close() {
-    if (stream_ instanceof AutoCloseable) {
+    if (iterator_ instanceof AutoCloseable) {
       try {
-        ((AutoCloseable) stream_).close();
+        ((AutoCloseable) iterator_).close();
       } catch (Exception e) {
         // TODO
       }
@@ -179,6 +179,24 @@ public class View<T> extends AbstractIterator<T> implements AutoCloseable {
   @Override
   protected void finalize() {
     close();
+  }
+
+  /**
+   * Returns the first element of the view, leaving the current view with one less element.
+   *
+   * @return the first element of the view.
+   */
+  public Optional<T> first() {
+    return hasNext() ? Optional.of(next()) : Optional.empty();
+  }
+
+  /**
+   * Returns the last element of the view, leaving the current view exhausted.
+   *
+   * @return the last element of the view.
+   */
+  public Optional<T> last() {
+    return hasNext() ? Optional.of(Iterators.getLast(this)) : Optional.empty();
   }
 
   /**

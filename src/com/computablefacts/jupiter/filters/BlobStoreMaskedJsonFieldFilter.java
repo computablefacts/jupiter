@@ -120,10 +120,9 @@ public class BlobStoreMaskedJsonFieldFilter extends Filter {
       if (val.stream().noneMatch(v -> {
         if (v.startsWith(STRING_MASKED)) {
           return v.equals(hash);
-        } else {
-          String hashedVal = STRING_MASKED + MaskingIterator.hash(null, v);
-          return hashedVal.equals(hash);
         }
+        String hashedVal = STRING_MASKED + MaskingIterator.hash(null, v);
+        return hashedVal.equals(hash);
       })) {
         return false;
       }

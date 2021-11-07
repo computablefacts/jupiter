@@ -852,4 +852,28 @@ public class ViewTest {
 
     Assert.assertEquals(valuesPeeked, valuesMaterialized);
   }
+
+  @Test
+  public void testFirst() {
+
+    View<String> view = View.of(Lists.newArrayList("1", "2", "3", "4", "5", "6", "7"));
+
+    Assert.assertEquals(Optional.of("1"), view.first());
+    Assert.assertEquals(Optional.of("2"), view.first());
+    Assert.assertEquals(Optional.of("3"), view.first());
+    Assert.assertEquals(Optional.of("4"), view.first());
+    Assert.assertEquals(Optional.of("5"), view.first());
+    Assert.assertEquals(Optional.of("6"), view.first());
+    Assert.assertEquals(Optional.of("7"), view.first());
+    Assert.assertFalse(view.first().isPresent());
+  }
+
+  @Test
+  public void testLast() {
+
+    View<String> view = View.of(Lists.newArrayList("1", "2", "3", "4", "5", "6", "7"));
+
+    Assert.assertEquals(Optional.of("7"), view.last());
+    Assert.assertFalse(view.first().isPresent());
+  }
 }
