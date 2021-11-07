@@ -23,7 +23,7 @@ final public class AccumuloBlobProcessor extends AbstractBlobProcessor {
   private final BlobStore blobStore_;
   private BatchWriter writer_;
 
-  AccumuloBlobProcessor(BlobStore blobStore) {
+  public AccumuloBlobProcessor(BlobStore blobStore) {
     blobStore_ = Preconditions.checkNotNull(blobStore, "blobStore should not be null");
   }
 

@@ -1,34 +1,31 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
-
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.zip.GZIPOutputStream;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.data.Mutation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.jupiter.iterators.MaskingIterator;
-import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
-final public class AccumuloHashProcessor extends AbstractHashProcessor {
+final public class FileHashProcessor extends AbstractHashProcessor {
 
-  static final String CF = "H";
-  private static final Logger logger_ = LoggerFactory.getLogger(AccumuloHashProcessor.class);
+  private static final Logger logger_ = LoggerFactory.getLogger(FileHashProcessor.class);
 
-  private final TermStore termStore_;
-  private BatchWriter writer_;
+  private final String filename_;
+  private BufferedWriter writer_;
 
-  public AccumuloHashProcessor(TermStore termStore) {
-    termStore_ =
-        Preconditions.checkNotNull(termStore, "termStore should neither be null nor empty");
+  public FileHashProcessor(String filename) {
+    filename_ = Preconditions.checkNotNull(filename, "filename should neither be null nor empty");
   }
 
   @Override
@@ -36,7 +33,7 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
     if (writer_ != null) {
       try {
         writer_.close();
-      } catch (MutationsRejectedException e) {
+      } catch (IOException e) {
         logger_.error(LogFormatter.create(true).message(e).formatError());
       }
       writer_ = null;
@@ -64,22 +61,35 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
     Preconditions.checkNotNull(value, "value should neither be null nor empty");
     Preconditions.checkNotNull(docId, "docId should neither be null nor empty");
 
+    BufferedWriter writer = writer();
+
+    Preconditions.checkState(writer != null, "writer should not be null");
+
     String hash = MaskingIterator.hash(null, value);
-    Mutation mutation = new Mutation(dataset + SEPARATOR_NUL + hash);
-    mutation.put(CF, docId + SEPARATOR_NUL + field, VALUE_EMPTY);
 
     try {
-      writer().addMutation(mutation);
-      return true;
-    } catch (MutationsRejectedException e) {
+      writer.write(dataset);
+      writer.write('\t');
+      writer.write(field);
+      writer.write('\t');
+      writer.write(hash);
+      writer.write('\t');
+      writer.write(docId);
+      writer.newLine();
+    } catch (IOException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
     }
-    return false;
+    return true;
   }
 
-  private BatchWriter writer() {
+  private BufferedWriter writer() {
     if (writer_ == null) {
-      writer_ = termStore_.writer();
+      try {
+        writer_ = new BufferedWriter(new OutputStreamWriter(
+            new GZIPOutputStream(new FileOutputStream(filename_)), StandardCharsets.UTF_8));
+      } catch (IOException e) {
+        logger_.error(LogFormatter.create(true).message(e).formatError());
+      }
     }
     return writer_;
   }

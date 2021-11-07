@@ -27,7 +27,7 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
   private final TermStore termStore_;
   private BatchWriter writer_;
 
-  AccumuloTermProcessor(TermStore termStore) {
+  public AccumuloTermProcessor(TermStore termStore) {
     termStore_ = Preconditions.checkNotNull(termStore, "termStore should not be null");
   }
 
