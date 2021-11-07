@@ -106,23 +106,9 @@ try (BatchWriter writer = blobStore.writer()) {
 // For convenience, <dataset>_RAW_DATA authorizations are automatically added to each blob
 Authorizations auths = new Authorizations("MY_STRINGS_RAW_DATA", "MY_JSONS_RAW_DATA", "MY_FILES_RAW_DATA");
 
-try (Scanner scanner = blobStore.scanner(auths)) {
-    
-    Iterator<Blob<Value>> iterator = blobStore.get(scanner, "my_strings");
-    while (iterator.hasNext()) {
-        ...    
-    }
-
-    iterator = blobStore.get(scanner, "my_jsons");
-    while (iterator.hasNext()) {
-        ...
-    }
-
-    iterator = blobStore.get(scanner, "my_files");
-    while (iterator.hasNext()) {
-        ...
-    }
-}
+blobStore.strings(auths, "my_strings", null, null).forEachRemaining(blob -> ...);
+blobStore.jsons(auths, "my_jsons", null, null).forEachRemaining(blob -> ...);
+blobStore.files(auths, "my_files", null, null).forEachRemaining(blob -> ...);
 ```
 
 Note that it is possible to filter-out JSON fields at the tserver level before 
@@ -139,16 +125,11 @@ try (BatchWriter writer = blobStore.writer()) {
     blobStore.putJson(writer, "my_jsons", UUID.randomUUID().toString(), Sets.newHashSet(), json);
 }
 
+Set<String> fieldsToKeep = Sets.newHashSet("first_name", "last_name", "email");
+Optional<Value> blob = blobStore.jsons(scanner, "my_jsons", null, fieldsToKeep).first();
+
 json.remove("password");
-
-try (Scanner scanner = blobStore.scanner(new Authorizations("MY_JSONS_RAW_DATA"))) {
-
-    Set<String> fieldsToKeep = Sets.newHashSet("first_name", "last_name", "email");
-    Iterator<Blob<Value>> iterator = blobStore.get(scanner, "my_jsons", null, fieldsToKeep);
-    Value blob = Iterators.get(iterator, 0).value();
-    
-    Assert.assertEquals(json, Codecs.asObject(blob.toString()));
-}
+Assert.assertEquals(json, Codecs.asObject(blob.get().toString()));
 ```
 
 ### TermStore
@@ -184,27 +165,21 @@ try (BatchWriter writer = termStore.writer()) {
     });
 }
 
-// Get the number of distinct buckets containing a given term
-try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA"))) {
+Authorizations auths = new Authorizations("MY_BUCKETS_RAW_DATA");
 
-    // Wildcard query
-    Iterator<TermDistinctBuckets> tcs = termStore.termCardinalityEstimationForBuckets(scanner, dataset, "joh*");
-    ...
+/* Get the number of distinct buckets containing a given term */
         
-    // Range query    
-    tcs = termStore.termCardinalityEstimationForBuckets(scanner, dataset, null, 30, 40);
-    ...
-}
+// Wildcard query
+termStore.termCardinalityEstimationForBuckets(scanner, dataset, "joh*").forEachRemaining(estimation -> ...);
 
-// Get buckets ids containing a given term
-try (Scanner scanner = termStore.scanner(new Authorizations("MY_BUCKETS_RAW_DATA"))) {
-    
-    // Wildcard query
-    Iterator<Term> ts = termStore.bucketsIds(scanner, dataset, "joh*");
-    ...
+// Range query
+termStore.termCardinalityEstimationForBuckets(scanner, dataset, null, 30, 40).forEachRemaining(estimation -> ...);
+
+/* Get buckets ids containing a given term */
+
+// Wildcard query
+termStore.bucketsIds(scanner, dataset, "joh*").forEachRemaining(term -> ...);
         
-    // Range query    
-    ts = termStore.bucketsIds(scanner, dataset, null, 30, 40, null);
-    ...
-}
+// Range query    
+termStore.bucketsIds(scanner, dataset, null, 30, 40, null).forEachRemaining(term -> ...);
 ```
