@@ -9,7 +9,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -572,35 +571,28 @@ public class Shell {
     Stopwatch stopwatch = Stopwatch.createStarted();
 
     try (DataStore ds = new DataStore(configurations, datastore)) {
-      try (FileOutputStream fos = new FileOutputStream(f)) {
-        try (BufferedWriter bw =
-            new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {
+      try (BufferedWriter bw = new BufferedWriter(
+          new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8))) {
 
-          AtomicInteger count = new AtomicInteger(0);
-          Iterator<Blob<Value>> iterator = ds.jsons(authorizations, dataset, null);
+        ds.jsons(authorizations, dataset, null).index().forEachRemaining(e -> {
 
-          while (iterator.hasNext()) {
+          int count = e.getKey();
+          Blob<Value> blob = e.getValue();
 
-            Blob<Value> blob = iterator.next();
-
+          try {
             bw.write(blob.value().toString());
             bw.newLine();
+          } catch (IOException ex) {
+            logger_.error(LogFormatter.create(true).message(ex).formatError());
+          }
 
-            if (count.incrementAndGet() % 100 == 0 && logger_.isInfoEnabled()) {
-              if (logger_.isInfoEnabled()) {
-                logger_.info(LogFormatter.create(true)
-                    .message("Number of JSON written : " + count.get()).formatInfo());
-              }
+          if (count % 100 == 0 && logger_.isInfoEnabled()) {
+            if (logger_.isInfoEnabled()) {
+              logger_.info(LogFormatter.create(true).message("Number of JSON written : " + count)
+                  .formatInfo());
             }
           }
-
-          if (logger_.isInfoEnabled()) {
-            logger_.info(LogFormatter.create(true)
-                .message("Number of JSON written : " + count.get()).formatInfo());
-          }
-        } catch (IOException e) {
-          logger_.error(LogFormatter.create(true).message(e).formatError());
-        }
+        });
       } catch (IOException e) {
         logger_.error(LogFormatter.create(true).message(e).formatError());
       }
