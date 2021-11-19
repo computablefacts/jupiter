@@ -3,11 +3,7 @@ package com.computablefacts.jupiter.shell;
 import static com.computablefacts.jupiter.Users.authorizations;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
@@ -27,15 +23,15 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.IO;
 import com.computablefacts.asterix.View;
+import com.computablefacts.asterix.codecs.JsonCodec;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.helpers.Codecs;
 import com.computablefacts.nona.helpers.Document;
-import com.computablefacts.nona.helpers.Files;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
@@ -418,43 +414,42 @@ public class Shell {
 
       ds.beginIngest();
 
-      View.of(Files.compressedLineStream(f, StandardCharsets.UTF_8))
-          .forEachRemaining((line, breaker) -> {
+      View.of(f, true).index().forEachRemaining((line, breaker) -> {
 
-            String row = line.getValue();
+        String row = line.getValue();
 
-            if (Strings.isNullOrEmpty(row)) {
-              return;
-            }
-            try {
-              Map<String, Object> json = Codecs.asObject(row);
-              Document document = new Document(json);
+        if (Strings.isNullOrEmpty(row)) {
+          return;
+        }
+        try {
+          Map<String, Object> json = JsonCodec.asObject(row);
+          Document document = new Document(json);
 
-              // if (!document.fileExists()) { // do not reindex missing files
-              // if (logger_.isInfoEnabled()) {
-              // logger_.info(LogFormatter.create(true).message(
-              // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " +
-              // document.path())
-              // .formatInfo());
-              // }
-              // } else {
+          // if (!document.fileExists()) { // do not reindex missing files
+          // if (logger_.isInfoEnabled()) {
+          // logger_.info(LogFormatter.create(true).message(
+          // "Number of JSON ignored : " + ignored.incrementAndGet() + " -> " +
+          // document.path())
+          // .formatInfo());
+          // }
+          // } else {
 
-              if (!ds.persist(dataset, document.docId(), row)) {
-                logger_.error(LogFormatter.create(true)
-                    .message("Persistence of " + document.docId() + " failed").formatError());
-                breaker.stop();
-              }
+          if (!ds.persist(dataset, document.docId(), row)) {
+            logger_.error(LogFormatter.create(true)
+                .message("Persistence of " + document.docId() + " failed").formatError());
+            breaker.stop();
+          }
 
-              if ((count.incrementAndGet() % 100 == 0 || breaker.shouldBreak())
-                  && logger_.isInfoEnabled()) {
-                logger_.info(LogFormatter.create(true)
-                    .message("Number of JSON processed : " + count.get()).formatInfo());
-              }
-              // }
-            } catch (Exception e) {
-              logger_.error(LogFormatter.create(true).message(e).formatError());
-            }
-          });
+          if ((count.incrementAndGet() % 100 == 0 || breaker.shouldBreak())
+              && logger_.isInfoEnabled()) {
+            logger_.info(LogFormatter.create(true)
+                .message("Number of JSON processed : " + count.get()).formatInfo());
+          }
+          // }
+        } catch (Exception e) {
+          logger_.error(LogFormatter.create(true).message(e).formatError());
+        }
+      });
 
       ds.endIngest(dataset);
     }
@@ -529,7 +524,7 @@ public class Shell {
           continue;
         }
 
-        Map<String, Object> json = Codecs.asObject(blob.value().toString());
+        Map<String, Object> json = JsonCodec.asObject(blob.value().toString());
         Document document = new Document(json);
 
         if (!ds.reindex(dataset, document.docId(), json)) {
@@ -636,8 +631,9 @@ public class Shell {
 
       stopwatch.reset();
       stopwatch.start();
-      com.computablefacts.nona.helpers.Files.gzip(new File(file), new File(fileCompressed));
-      com.computablefacts.nona.helpers.Files.delete(new File(file));
+      if (IO.gzip(new File(file), new File(fileCompressed))) {
+        new File(file).delete();
+      }
       stopwatch.stop();
 
       if (logger_.isInfoEnabled()) {

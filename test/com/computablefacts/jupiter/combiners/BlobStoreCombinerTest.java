@@ -12,7 +12,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.computablefacts.nona.helpers.WildcardMatcher;
+import com.computablefacts.asterix.WildcardMatcher;
 import com.google.common.collect.Lists;
 
 public class BlobStoreCombinerTest {

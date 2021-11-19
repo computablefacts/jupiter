@@ -5,8 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.computablefacts.nona.helpers.StringIterator;
-import com.computablefacts.nona.helpers.WildcardMatcher;
+import com.computablefacts.asterix.StringIterator;
+import com.computablefacts.asterix.WildcardMatcher;
 import com.google.common.base.Splitter;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
@@ -23,7 +23,7 @@ final public class QueryBuilder {
 
   // TODO : add $ to punctuation ?
   // Keep * and ? because they are considered wildcards
-  private final String PUNCTUATION = "~\'\"`!@#%^&()-+=[]{}\\|;:,.<>/";
+  private final String PUNCTUATION = "~'\"`!@#%^&()-+=[]{}\\|;:,.<>/";
   private final Set<String> STOPWORDS = new HashSet<>();
   private final boolean keepPunctuationMarks_;
 

@@ -4,23 +4,11 @@ import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -32,20 +20,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.computablefacts.asterix.View;
-import com.computablefacts.jupiter.BloomFilters;
-import com.computablefacts.jupiter.Configurations;
-import com.computablefacts.jupiter.OrderedView;
-import com.computablefacts.jupiter.Tables;
-import com.computablefacts.jupiter.UnorderedView;
+import com.computablefacts.asterix.WildcardMatcher;
+import com.computablefacts.asterix.codecs.BigDecimalCodec;
+import com.computablefacts.asterix.codecs.StringCodec;
+import com.computablefacts.jupiter.*;
 import com.computablefacts.jupiter.combiners.TermStoreCombiner;
 import com.computablefacts.jupiter.filters.TermStoreBucketFieldFilter;
 import com.computablefacts.jupiter.filters.TermStoreFieldFilter;
 import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.helpers.BigDecimalCodec;
-import com.computablefacts.nona.helpers.Codecs;
-import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -411,7 +395,7 @@ final public class TermStore extends AbstractStorage {
       newType = Term.TYPE_STRING;
       writeInForwardIndexOnly = false;
     } else { // Objects other than String are lexicoded
-      newTerm = Codecs.defaultLexicoder.apply(term).text();
+      newTerm = StringCodec.defaultLexicoder(term);
       if (term instanceof Number) {
         newType = Term.TYPE_NUMBER;
       } else if (term instanceof Boolean) {
@@ -860,9 +844,9 @@ final public class TermStore extends AbstractStorage {
 
     } else { // Objects other than String are lexicoded
       beginKey = minTerm == null ? null
-          : new Key(dataset + SEPARATOR_NUL + Codecs.defaultLexicoder.apply(minTerm).text());
+          : new Key(dataset + SEPARATOR_NUL + StringCodec.defaultLexicoder(minTerm));
       endKey = maxTerm == null ? null
-          : new Key(dataset + SEPARATOR_NUL + Codecs.defaultLexicoder.apply(maxTerm).text());
+          : new Key(dataset + SEPARATOR_NUL + StringCodec.defaultLexicoder(maxTerm));
     }
 
     Range range = new Range(beginKey, endKey);
@@ -967,9 +951,9 @@ final public class TermStore extends AbstractStorage {
 
     } else { // Objects other than String are lexicoded
       beginKey = minTerm == null ? null
-          : new Key(dataset + SEPARATOR_NUL + Codecs.defaultLexicoder.apply(minTerm).text());
+          : new Key(dataset + SEPARATOR_NUL + StringCodec.defaultLexicoder(minTerm));
       endKey = maxTerm == null ? null
-          : new Key(dataset + SEPARATOR_NUL + Codecs.defaultLexicoder.apply(maxTerm).text());
+          : new Key(dataset + SEPARATOR_NUL + StringCodec.defaultLexicoder(maxTerm));
     }
 
     Range range = new Range(beginKey, endKey);

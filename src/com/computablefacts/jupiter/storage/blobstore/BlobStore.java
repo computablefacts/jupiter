@@ -3,21 +3,11 @@ package com.computablefacts.jupiter.storage.blobstore;
 import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -29,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.computablefacts.asterix.Generated;
 import com.computablefacts.asterix.View;
+import com.computablefacts.asterix.codecs.JsonCodec;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.OrderedView;
 import com.computablefacts.jupiter.Tables;
@@ -39,7 +30,6 @@ import com.computablefacts.jupiter.iterators.BlobStoreFilterOutJsonFieldsIterato
 import com.computablefacts.jupiter.iterators.BlobStoreMaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -235,7 +225,7 @@ final public class BlobStore extends AbstractStorage {
    */
   public boolean putJson(BatchWriter writer, String dataset, String key, Set<String> labels,
       Map<String, Object> value) {
-    return putJson(writer, dataset, key, labels, Codecs.asString(value));
+    return putJson(writer, dataset, key, labels, JsonCodec.asString(value));
   }
 
   /**

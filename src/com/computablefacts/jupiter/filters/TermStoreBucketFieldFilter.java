@@ -15,8 +15,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.computablefacts.asterix.Generated;
+import com.computablefacts.asterix.WildcardMatcher;
 import com.computablefacts.jupiter.BloomFilters;
-import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;

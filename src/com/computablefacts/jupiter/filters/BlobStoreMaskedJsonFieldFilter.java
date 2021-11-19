@@ -1,15 +1,9 @@
 package com.computablefacts.jupiter.filters;
 
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.Constants.STRING_MASKED;
+import static com.computablefacts.jupiter.storage.Constants.*;
 
 import java.io.IOException;
-import java.util.AbstractMap;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -20,9 +14,9 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.computablefacts.asterix.Generated;
+import com.computablefacts.asterix.WildcardMatcher;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
-import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;

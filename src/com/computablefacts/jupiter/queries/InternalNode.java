@@ -8,11 +8,11 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.SpanSequence;
 import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.types.SpanSequence;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;

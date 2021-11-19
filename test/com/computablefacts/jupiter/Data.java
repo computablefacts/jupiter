@@ -7,14 +7,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.computablefacts.nona.helpers.Codecs;
+import com.computablefacts.asterix.codecs.JsonCodec;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
 final public class Data {
 
   public static Map<String, Object> json(int id) {
-    return Codecs.asObject(
+    return JsonCodec.asObject(
         "{" + "  \"uuid\": " + id + "," + "  \"Actors\": [" + "    {" + "      \"uuid\": \"item_"
             + id + "_1\"," + "      \"name\": \"Tom Cruise\"," + "      \"age\": 56,"
             + "      \"Born At\": \"Syracuse, NY\"," + "      \"Birthdate\": \"July 3, 1962\","

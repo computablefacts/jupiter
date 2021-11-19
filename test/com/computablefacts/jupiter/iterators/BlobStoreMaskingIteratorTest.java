@@ -17,8 +17,8 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.computablefacts.asterix.codecs.JsonCodec;
 import com.computablefacts.jupiter.storage.Constants;
-import com.computablefacts.nona.helpers.Codecs;
 import com.google.errorprone.annotations.Var;
 
 public class BlobStoreMaskingIteratorTest {
@@ -49,15 +49,15 @@ public class BlobStoreMaskingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if (row.startsWith("DATASET_1")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\", \"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\", \"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset1++;
       }
       if (row.startsWith("DATASET_2")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\", \"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\", \"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset2++;
       }
 
@@ -84,15 +84,15 @@ public class BlobStoreMaskingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if (row.startsWith("DATASET_1")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset1++;
       }
       if (row.startsWith("DATASET_2")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset2++;
       }
 
@@ -153,15 +153,15 @@ public class BlobStoreMaskingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if (row.startsWith("DATASET_1")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"city\":\"New York\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":31}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset1++;
       }
       if (row.startsWith("DATASET_2")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset2++;
       }
 
@@ -189,15 +189,15 @@ public class BlobStoreMaskingIteratorTest {
       String value = iterator.getTopValue().toString();
 
       if (row.startsWith("DATASET_1")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":31}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset1++;
       }
       if (row.startsWith("DATASET_2")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"city\":\"New York\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset2++;
       }
 

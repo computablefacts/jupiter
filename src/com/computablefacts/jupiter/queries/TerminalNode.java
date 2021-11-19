@@ -1,31 +1,23 @@
 package com.computablefacts.jupiter.queries;
 
-import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Inflectional;
-import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Literal;
-import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Range;
-import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Thesaurus;
+import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.*;
 
 import java.math.BigDecimal;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.security.Authorizations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.asterix.Span;
+import com.computablefacts.asterix.SpanSequence;
 import com.computablefacts.asterix.View;
+import com.computablefacts.asterix.WildcardMatcher;
+import com.computablefacts.asterix.codecs.StringCodec;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.helpers.WildcardMatcher;
-import com.computablefacts.nona.types.Span;
-import com.computablefacts.nona.types.SpanSequence;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -134,11 +126,9 @@ final public class TerminalNode extends AbstractNode {
         String min = range.get(0);
         String max = range.get(1);
 
-        boolean isValid =
-            ("*".equals(min) && com.computablefacts.nona.helpers.Strings.isNumber(max))
-                || ("*".equals(max) && com.computablefacts.nona.helpers.Strings.isNumber(min))
-                || (com.computablefacts.nona.helpers.Strings.isNumber(min)
-                    && com.computablefacts.nona.helpers.Strings.isNumber(max));
+        boolean isValid = ("*".equals(min) && StringCodec.isNumber(max))
+            || ("*".equals(max) && StringCodec.isNumber(min))
+            || (StringCodec.isNumber(min) && StringCodec.isNumber(max));
 
         if (isValid) {
 
@@ -222,10 +212,9 @@ final public class TerminalNode extends AbstractNode {
     String min = range.get(0);
     String max = range.get(1);
 
-    boolean isValid = ("*".equals(min) && com.computablefacts.nona.helpers.Strings.isNumber(max))
-        || ("*".equals(max) && com.computablefacts.nona.helpers.Strings.isNumber(min))
-        || (com.computablefacts.nona.helpers.Strings.isNumber(min)
-            && com.computablefacts.nona.helpers.Strings.isNumber(max));
+    boolean isValid = ("*".equals(min) && StringCodec.isNumber(max))
+        || ("*".equals(max) && StringCodec.isNumber(min))
+        || (StringCodec.isNumber(min) && StringCodec.isNumber(max));
 
     if (!isValid) {
       return View.of(); // Invalid range

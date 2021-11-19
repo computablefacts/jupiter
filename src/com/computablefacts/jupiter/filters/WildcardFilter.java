@@ -15,7 +15,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.computablefacts.asterix.Generated;
-import com.computablefacts.nona.helpers.WildcardMatcher;
+import com.computablefacts.asterix.WildcardMatcher;
 import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue

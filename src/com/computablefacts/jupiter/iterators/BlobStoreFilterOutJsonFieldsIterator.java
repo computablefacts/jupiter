@@ -20,8 +20,8 @@ import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.computablefacts.asterix.Generated;
+import com.computablefacts.asterix.WildcardMatcher;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
-import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wnameless.json.base.JacksonJsonCore;

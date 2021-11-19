@@ -1,21 +1,9 @@
 package com.computablefacts.jupiter.storage.datastore;
 
-import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.Constants.*;
 import static com.computablefacts.jupiter.storage.datastore.AccumuloHashProcessor.CF;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.BatchScanner;
@@ -31,32 +19,19 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.asterix.Generated;
-import com.computablefacts.asterix.View;
-import com.computablefacts.jupiter.BloomFilters;
-import com.computablefacts.jupiter.Configurations;
-import com.computablefacts.jupiter.OrderedView;
-import com.computablefacts.jupiter.UnorderedView;
-import com.computablefacts.jupiter.Users;
+import com.computablefacts.asterix.*;
+import com.computablefacts.asterix.codecs.Base64Codec;
+import com.computablefacts.asterix.codecs.JsonCodec;
+import com.computablefacts.asterix.codecs.StringCodec;
+import com.computablefacts.jupiter.*;
 import com.computablefacts.jupiter.filters.TermStoreBucketFieldFilter;
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.jupiter.storage.cache.Cache;
-import com.computablefacts.jupiter.storage.termstore.FieldDistinctBuckets;
-import com.computablefacts.jupiter.storage.termstore.FieldDistinctTerms;
-import com.computablefacts.jupiter.storage.termstore.FieldLabels;
-import com.computablefacts.jupiter.storage.termstore.FieldLastUpdate;
-import com.computablefacts.jupiter.storage.termstore.FieldTopTerms;
-import com.computablefacts.jupiter.storage.termstore.Term;
-import com.computablefacts.jupiter.storage.termstore.TermStore;
+import com.computablefacts.jupiter.storage.termstore.*;
 import com.computablefacts.logfmt.LogFormatter;
-import com.computablefacts.nona.helpers.Codecs;
-import com.computablefacts.nona.helpers.StringIterator;
-import com.computablefacts.nona.helpers.WildcardMatcher;
-import com.computablefacts.nona.types.Span;
-import com.computablefacts.nona.types.SpanSequence;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Function;
@@ -153,7 +128,7 @@ final public class DataStore implements AutoCloseable {
   }
 
   static String normalize(String str) {
-    return StringIterator.removeDiacriticalMarks(StringIterator.normalize(str)).toLowerCase();
+    return StringCodec.removeDiacriticalMarks(StringCodec.normalize(str)).toLowerCase();
   }
 
   @Generated
@@ -448,7 +423,7 @@ final public class DataStore implements AutoCloseable {
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean persist(String dataset, String docId, String json) {
-    return persistJson(dataset, docId, json, key -> true, Codecs.defaultTokenizer, true);
+    return persistJson(dataset, docId, json, key -> true, StringCodec::defaultTokenizer, true);
   }
 
   /**
@@ -460,8 +435,8 @@ final public class DataStore implements AutoCloseable {
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean persist(String dataset, String docId, Map<String, Object> json) {
-    return persistJson(dataset, docId, Codecs.asString(json), key -> true, Codecs.defaultTokenizer,
-        true);
+    return persistJson(dataset, docId, JsonCodec.asString(json), key -> true,
+        StringCodec::defaultTokenizer, true);
   }
 
   /**
@@ -473,7 +448,7 @@ final public class DataStore implements AutoCloseable {
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean reindex(String dataset, String docId, String json) {
-    return persistJson(dataset, docId, json, key -> true, Codecs.defaultTokenizer, false);
+    return persistJson(dataset, docId, json, key -> true, StringCodec::defaultTokenizer, false);
   }
 
   /**
@@ -485,8 +460,8 @@ final public class DataStore implements AutoCloseable {
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean reindex(String dataset, String docId, Map<String, Object> json) {
-    return persistJson(dataset, docId, Codecs.asString(json), key -> true, Codecs.defaultTokenizer,
-        false);
+    return persistJson(dataset, docId, JsonCodec.asString(json), key -> true,
+        StringCodec::defaultTokenizer, false);
   }
 
   /**
@@ -1019,59 +994,7 @@ final public class DataStore implements AutoCloseable {
       // Because the CSV file format does not have types, check if a string value can be directly
       // mapped to a primitive in {boolean, integer, decimal, date}
       if (value instanceof String) {
-        String text = (String) value;
-        if ("true".equalsIgnoreCase(text)) {
-          value = true;
-        } else if ("false".equalsIgnoreCase(text)) {
-          value = false;
-        } else if (!text.contains("E") && !text.contains("e")
-        /* ensure 79E2863560 is not coerced to 7.9E+2863561 */
-            && com.computablefacts.nona.helpers.Strings.isNumber(text)) {
-          try {
-
-            value = new BigInteger(text);
-
-            // Here, text is an integer (otherwise a NumberFormatException has been thrown)
-            StringIterator iterator = new StringIterator(text);
-            iterator.movePast(new char[] {'0'});
-
-            // The condition below ensures "0" is interpreted as a number but "00" as a string
-            if (iterator.position() > 1 || (iterator.position() > 0 && iterator.remaining() > 0)) {
-
-              // Ensure 00 is not mapped to 0
-              // Ensure 007 is not mapped to 7
-              value = text;
-            }
-          } catch (NumberFormatException nfe1) {
-            try {
-
-              value = new BigDecimal(text);
-
-              // Here, text is a decimal number (otherwise a NumberFormatException has been thrown)
-              if (text.trim().endsWith(".") || text.trim().startsWith(".")) {
-
-                // Ensure 123. is not mapped to 123.0
-                // Ensure .123 is not mapped to 0.123
-                value = text;
-              }
-            } catch (NumberFormatException nfe2) {
-              value = text;
-            }
-          }
-        } else {
-
-          // Because the JSON file format does not have a date type, check if val is in ISO Instant
-          // format
-          if (text.length() >= 20 && text.length() <= 24
-              && (text.charAt(10) == 'T' || text.charAt(10) == 't')
-              && (text.charAt(text.length() - 1) == 'Z' || text.charAt(text.length() - 1) == 'z')) {
-            try {
-              value = Date.from(Instant.parse(text));
-            } catch (Exception e) {
-              value = text;
-            }
-          }
-        }
+        value = StringCodec.defaultCoercer(value, false);
       }
 
       String newField = field.replaceAll("\\[\\d+\\]", "[*]");
@@ -1096,9 +1019,9 @@ final public class DataStore implements AutoCloseable {
 
         String val = ((String) value).trim();
 
-        if (Codecs.isProbablyBase64(val)) {
+        if (Base64Codec.isProbablyBase64(val)) {
           try {
-            Object newVal = Codecs.decodeB64(b64Decoder_, val);
+            Object newVal = Base64Codec.decodeB64(b64Decoder_, val);
             continue; // Base64 strings are NOT indexed
           } catch (Exception e) {
             // FALL THROUGH

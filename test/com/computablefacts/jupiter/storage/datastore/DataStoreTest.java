@@ -3,11 +3,7 @@ package com.computablefacts.jupiter.storage.datastore;
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Scanner;
@@ -17,6 +13,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.computablefacts.asterix.WildcardMatcher;
+import com.computablefacts.asterix.codecs.StringCodec;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Data;
 import com.computablefacts.jupiter.MiniAccumuloClusterTest;
@@ -24,8 +22,6 @@ import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.queries.AbstractNode;
 import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.termstore.Term;
-import com.computablefacts.nona.helpers.Codecs;
-import com.computablefacts.nona.helpers.WildcardMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -1119,7 +1115,8 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     node = QueryBuilder.build("path:\"myfile.csv\"");
 
-    docsIds = node.execute(dataStore, auths, "dataset", null, Codecs.defaultTokenizer).toSet();
+    docsIds =
+        node.execute(dataStore, auths, "dataset", null, StringCodec::defaultTokenizer).toSet();
 
     Assert.assertEquals(1, docsIds.size());
   }

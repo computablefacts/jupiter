@@ -1,10 +1,7 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_ARRAY;
-import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_FILE;
-import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_JSON;
-import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_STRING;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.*;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -20,8 +17,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.beust.jcommander.internal.Lists;
+import com.computablefacts.asterix.codecs.JsonCodec;
 import com.computablefacts.jupiter.Data;
-import com.computablefacts.nona.helpers.Codecs;
 import com.google.common.collect.Sets;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -71,7 +68,7 @@ public class BlobTest {
   @Test
   public void testFromString() {
 
-    String str = Codecs.asString(Data.json(1));
+    String str = JsonCodec.asString(Data.json(1));
     String uuid = UUID.randomUUID().toString();
 
     byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
@@ -98,12 +95,13 @@ public class BlobTest {
     byte[] cf = TYPE_JSON.getBytes(StandardCharsets.UTF_8);
     byte[] cq = "".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility("ADM|MY_DATASET_RAW_DATA").getExpression();
-    byte[] val = Codecs.asString(json).getBytes(StandardCharsets.UTF_8);
+    byte[] val = JsonCodec.asString(json).getBytes(StandardCharsets.UTF_8);
 
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual = Blob.fromJson("my_dataset", uuid, Sets.newHashSet(), Codecs.asString(json));
+    Mutation actual =
+        Blob.fromJson("my_dataset", uuid, Sets.newHashSet(), JsonCodec.asString(json));
 
     Assert.assertEquals(expected, actual);
   }
@@ -154,7 +152,7 @@ public class BlobTest {
   @Test
   public void testStringFromKeyValue() {
 
-    String str = Codecs.asString(Data.json(1));
+    String str = JsonCodec.asString(Data.json(1));
     String uuid = UUID.randomUUID().toString();
 
     byte[] row = ("my_dataset\0" + uuid).getBytes(StandardCharsets.UTF_8);
@@ -184,7 +182,7 @@ public class BlobTest {
     byte[] cf = TYPE_JSON.getBytes(StandardCharsets.UTF_8);
     byte[] cq = "".getBytes(StandardCharsets.UTF_8);
     byte[] cv = new ColumnVisibility().getExpression();
-    byte[] val = Codecs.asString(json).getBytes(StandardCharsets.UTF_8);
+    byte[] val = JsonCodec.asString(json).getBytes(StandardCharsets.UTF_8);
 
     Key key = new Key(row, cf, cq, cv);
     Value value = new Value(val);
@@ -194,7 +192,7 @@ public class BlobTest {
     Assert.assertEquals("my_dataset", blob.dataset());
     Assert.assertEquals(uuid, blob.key());
     Assert.assertEquals(Lists.newArrayList(), blob.properties());
-    Assert.assertEquals(Data.json(1), Codecs.asObject(new String(blob.value().get())));
+    Assert.assertEquals(Data.json(1), JsonCodec.asObject(new String(blob.value().get())));
   }
 
   @Test

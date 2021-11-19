@@ -17,8 +17,8 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.computablefacts.asterix.codecs.JsonCodec;
 import com.computablefacts.jupiter.storage.Constants;
-import com.computablefacts.nona.helpers.Codecs;
 import com.google.errorprone.annotations.Var;
 
 public class BlobStoreMaskingIteratorIllegalQuotedCharacterTest {
@@ -40,15 +40,15 @@ public class BlobStoreMaskingIteratorIllegalQuotedCharacterTest {
       String value = iterator.getTopValue().toString();
 
       if (row.startsWith("DATASET_1")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"name\":\"John\",\"city\":\"MASKED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":31}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset1++;
       }
       if (row.startsWith("DATASET_2")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"city\":\"MASKED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset2++;
       }
 
@@ -76,15 +76,15 @@ public class BlobStoreMaskingIteratorIllegalQuotedCharacterTest {
       String value = iterator.getTopValue().toString();
 
       if (row.startsWith("DATASET_1")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"name\":\"John\",\"city\":\"New\\u0007York\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset1++;
       }
       if (row.startsWith("DATASET_2")) {
-        Assert.assertEquals(Codecs.asObject(
+        Assert.assertEquals(JsonCodec.asObject(
             "{\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"city\":\"MASKED_4e6b610487d59bc2c6ee3642e988f8e2\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
-            Codecs.asObject(value));
+            JsonCodec.asObject(value));
         countDataset2++;
       }
 

@@ -4,10 +4,10 @@ import java.util.Set;
 
 import org.apache.accumulo.core.security.Authorizations;
 
+import com.computablefacts.asterix.SpanSequence;
 import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
-import com.computablefacts.nona.types.SpanSequence;
 import com.google.common.base.Function;
 import com.google.errorprone.annotations.CheckReturnValue;
 
