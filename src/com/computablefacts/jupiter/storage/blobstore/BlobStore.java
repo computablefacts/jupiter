@@ -464,7 +464,20 @@ final public class BlobStore extends AbstractStorage {
     List<Range> ranges;
 
     if (keys == null || keys.isEmpty()) {
-      ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
+      if (!(scanner instanceof BatchScanner)) {
+        ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
+      } else {
+        ranges = new ArrayList<>();
+        for (char i = '0'; i < '9' + 1; i++) {
+          ranges.add(Range.prefix(dataset + SEPARATOR_NUL + i));
+        }
+        for (char i = 'a'; i < 'z' + 1; i++) {
+          ranges.add(Range.prefix(dataset + SEPARATOR_NUL + i));
+        }
+        for (char i = 'A'; i < 'Z' + 1; i++) {
+          ranges.add(Range.prefix(dataset + SEPARATOR_NUL + i));
+        }
+      }
     } else {
       ranges = Range.mergeOverlapping(
           keys.stream().map(key -> Range.exact(new Text(dataset + SEPARATOR_NUL + key)))
