@@ -80,5 +80,8 @@ public class AbstractStorageTest extends MiniAccumuloClusterTest {
     Assert.assertEquals(new Authorizations("DS1_CONTENT", "DS1_CONTENT_TEXT"),
         AbstractStorage.compact(new Authorizations("DS1_CONTENT", "DS1_CONTENT_TEXT", "DS2_CONTENT",
             "DS2_CONTENT_TEXT"), "ds1"));
+    Assert.assertEquals(new Authorizations(Constants.STRING_ADM, "DS2_CONTENT", "DS2_CONTENT_TEXT"),
+        AbstractStorage.compact(new Authorizations(Constants.STRING_ADM, "DS1_CONTENT",
+            "DS1_CONTENT_TEXT", "DS2_CONTENT", "DS2_CONTENT_TEXT"), "ds2"));
   }
 }

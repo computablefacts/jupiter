@@ -124,7 +124,8 @@ public abstract class AbstractStorage {
     String label = toVisibilityLabel(dataset + "_");
     Set<String> auths =
         Splitter.on(',').trimResults().omitEmptyStrings().splitToStream(authorizations.toString())
-            .filter(auth -> auth.startsWith(label)).collect(Collectors.toSet());
+            .filter(auth -> Constants.STRING_ADM.equals(auth) || auth.startsWith(label))
+            .collect(Collectors.toSet());
 
     return new Authorizations(Iterables.toArray(auths, String.class));
   }
