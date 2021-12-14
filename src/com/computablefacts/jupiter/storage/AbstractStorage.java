@@ -1,22 +1,10 @@
 package com.computablefacts.jupiter.storage;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.BatchDeleter;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
@@ -33,7 +21,9 @@ import com.computablefacts.jupiter.Tables;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -57,6 +47,7 @@ public abstract class AbstractStorage {
     tableName_ = tableName;
   }
 
+  @Deprecated
   public static String encode(String string) {
 
     Preconditions.checkNotNull(string, "string should not be null");
@@ -64,6 +55,7 @@ public abstract class AbstractStorage {
     return string.replace("\0", "\\u0000");
   }
 
+  @Deprecated
   public static String decode(String string) {
 
     Preconditions.checkNotNull(string, "string should not be null");
@@ -111,6 +103,30 @@ public abstract class AbstractStorage {
    */
   public static Authorizations nullToEmpty(Authorizations authorizations) {
     return authorizations == null ? Authorizations.EMPTY : authorizations;
+  }
+
+  /**
+   * Keep only authorizations starting with {@code <dataset>_}.
+   *
+   * @param authorizations authorizations.
+   * @param dataset dataset.
+   * @return authorizations, not null.
+   */
+  public static Authorizations compact(Authorizations authorizations, String dataset) {
+
+    if (authorizations == null) {
+      return Authorizations.EMPTY;
+    }
+    if (Strings.isNullOrEmpty(dataset)) {
+      return authorizations;
+    }
+
+    String label = toVisibilityLabel(dataset + "_");
+    Set<String> auths =
+        Splitter.on(',').trimResults().omitEmptyStrings().splitToStream(authorizations.toString())
+            .filter(auth -> auth.startsWith(label)).collect(Collectors.toSet());
+
+    return new Authorizations(Iterables.toArray(auths, String.class));
   }
 
   /**

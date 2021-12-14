@@ -25,6 +25,6 @@ final public class Constants {
   public static final String STRING_MASKED = "MASKED_";
   public static final Authorizations AUTH_ADM = new Authorizations(STRING_ADM);
   public static final int NB_QUERY_THREADS =
-      Math.max(Runtime.getRuntime().availableProcessors(), 2) * 8;
+      Math.max(Runtime.getRuntime().availableProcessors(), 2) * 4;
   public static final HashFunction MURMUR3_128 = Hashing.murmur3_128();
 }

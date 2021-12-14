@@ -259,7 +259,7 @@ final public class BlobStore extends AbstractStorage {
   }
 
   /**
-   * Get all blobs of STRING type (sorted).
+   * Get all blobs of {@code STRING} type (sorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset/namespace.
@@ -269,11 +269,14 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> stringsSortedByKey(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields) {
-    return get(scanner(authorizations), dataset, TYPE_STRING, keys, fields, null);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return get(scanner(compact(authorizations, dataset)), dataset, TYPE_STRING, keys, fields, null);
   }
 
   /**
-   * Get all blobs of STRING type (unsorted).
+   * Get all blobs of {@code STRING} type (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset/namespace.
@@ -283,12 +286,15 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> strings(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_STRING, keys, fields,
-        null);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return get(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset,
+        TYPE_STRING, keys, fields, null);
   }
 
   /**
-   * Get all blobs of JSON type (sorted).
+   * Get all blobs of {@code JSON} type (sorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset/namespace.
@@ -298,11 +304,14 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> jsonsSortedByKey(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields) {
-    return get(scanner(authorizations), dataset, TYPE_JSON, keys, fields, null);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return get(scanner(compact(authorizations, dataset)), dataset, TYPE_JSON, keys, fields, null);
   }
 
   /**
-   * Get all blobs of JSON type (unsorted).
+   * Get all blobs of {@code JSON} type (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset/namespace.
@@ -312,12 +321,15 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> jsons(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_JSON, keys, fields,
-        null);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return get(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset, TYPE_JSON,
+        keys, fields, null);
   }
 
   /**
-   * Get all blobs of JSON type (sorted).
+   * Get all blobs of {@code JSON} type (sorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset/namespace.
@@ -328,11 +340,14 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> jsonsSortedByKey(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields, Set<Map.Entry<String, String>> hashes) {
-    return get(scanner(authorizations), dataset, TYPE_JSON, keys, fields, hashes);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return get(scanner(compact(authorizations, dataset)), dataset, TYPE_JSON, keys, fields, hashes);
   }
 
   /**
-   * Get all blobs of JSON type (unsorted).
+   * Get all blobs of {@code JSON} type (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset/namespace.
@@ -343,12 +358,15 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> jsons(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields, Set<Map.Entry<String, String>> hashes) {
-    return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_JSON, keys, fields,
-        hashes);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return get(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset, TYPE_JSON,
+        keys, fields, hashes);
   }
 
   /**
-   * Get all blobs of FILE type (sorted).
+   * Get all blobs of {@code FILE} type (sorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset/namespace.
@@ -358,11 +376,14 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> filesSortedByKey(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields) {
-    return get(scanner(authorizations), dataset, TYPE_FILE, keys, fields, null);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return get(scanner(compact(authorizations, dataset)), dataset, TYPE_FILE, keys, fields, null);
   }
 
   /**
-   * Get all blobs of FILE type (unsorted).
+   * Get all blobs of {@code FILE} type (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset/namespace.
@@ -372,12 +393,15 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> files(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_FILE, keys, fields,
-        null);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return get(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset, TYPE_FILE,
+        keys, fields, null);
   }
 
   /**
-   * Get all blobs of ARRAY type (sorted).
+   * Get all blobs of {@code ARRAY} type (sorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset/namespace.
@@ -387,11 +411,14 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> arraysSortedByKey(Authorizations authorizations, String dataset,
       Set<String> keys, Set<String> fields) {
-    return get(scanner(authorizations), dataset, TYPE_ARRAY, keys, fields, null);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return get(scanner(compact(authorizations, dataset)), dataset, TYPE_ARRAY, keys, fields, null);
   }
 
   /**
-   * Get all blobs of ARRAY type (unsorted).
+   * Get all blobs of {@code ARRAY} type (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset/namespace.
@@ -401,16 +428,19 @@ final public class BlobStore extends AbstractStorage {
    */
   public View<Blob<Value>> arrays(Authorizations authorizations, String dataset, Set<String> keys,
       Set<String> fields) {
-    return get(batchScanner(authorizations, NB_QUERY_THREADS), dataset, TYPE_ARRAY, keys, fields,
-        null);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return get(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset,
+        TYPE_ARRAY, keys, fields, null);
   }
 
   /**
    * Get one or more blobs.
    *
-   * The <dataset>_RAW_DATA authorization gives the user access to the full JSON document. If this
-   * authorization is not specified, the user must have the <dataset>_<field> auth for each
-   * requested field.
+   * The {@code <dataset>_RAW_DATA} authorization gives the user access to the full JSON document.
+   * If this authorization is not specified, the user must have the {@code <dataset>_<field>} auth
+   * for each requested field.
    *
    * @param scanner scanner.
    * @param dataset dataset/namespace.
