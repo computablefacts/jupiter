@@ -342,10 +342,12 @@ final public class TermStore extends AbstractStorage {
 
   /**
    * Persist data. Term extraction for a given field from a given bucket should be performed by the
-   * caller. This method should be called only once for each quad (dataset, bucketId, field, term).
+   * caller. This method should be called only once for each quad ({@code dataset},
+   * {@code bucketId}, {@code field}, {@code term}).
    *
-   * WARNING : this method makes the assumption that triples (dataset, bucketId, field) are ordered
-   * and processed one after the other. For example, this sequence will skew the bucket count :
+   * WARNING : this method makes the assumption that triples ({@code dataset}, {@code bucketId},
+   * {@code field}) are ordered and processed one after the other. For example, this sequence will
+   * skew the bucket count :
    *
    * <pre>
    *     Call n°1: (dataset_1, bucket_1, field_1)
@@ -530,7 +532,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
+    BatchScanner scanner = batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(VISIBILITY));
@@ -565,7 +567,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
+    BatchScanner scanner = batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(LAST_UPDATE));
@@ -600,7 +602,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
+    BatchScanner scanner = batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(DISTINCT_TERMS));
@@ -635,7 +637,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
+    BatchScanner scanner = batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(DISTINCT_BUCKETS));
@@ -670,7 +672,7 @@ final public class TermStore extends AbstractStorage {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
+    BatchScanner scanner = batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
     scanner.fetchColumnFamily(new Text(TOP_TERMS));
@@ -723,7 +725,7 @@ final public class TermStore extends AbstractStorage {
         !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term)),
         "term cannot start AND end with a wildcard");
 
-    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
+    BatchScanner scanner = batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
 
@@ -784,7 +786,10 @@ final public class TermStore extends AbstractStorage {
    */
   public View<Term> termsSortedByTermAndBucketId(Authorizations authorizations, String dataset,
       Set<String> fields, String term, BloomFilters<String> bucketsIds) {
-    return terms(scanner(authorizations), dataset, fields, term, bucketsIds);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return terms(scanner(compact(authorizations, dataset)), dataset, fields, term, bucketsIds);
   }
 
   /**
@@ -799,7 +804,11 @@ final public class TermStore extends AbstractStorage {
    */
   public View<Term> terms(Authorizations authorizations, String dataset, Set<String> fields,
       String term, BloomFilters<String> bucketsIds) {
-    return terms(batchScanner(authorizations, NB_QUERY_THREADS), dataset, fields, term, bucketsIds);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return terms(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset, fields,
+        term, bucketsIds);
   }
 
   /**
@@ -824,7 +833,7 @@ final public class TermStore extends AbstractStorage {
         minTerm == null || maxTerm == null || minTerm.getClass().equals(maxTerm.getClass()),
         "minTerm and maxTerm must be of the same type");
 
-    BatchScanner scanner = batchScanner(authorizations, NB_QUERY_THREADS);
+    BatchScanner scanner = batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS);
     scanner.clearColumns();
     scanner.clearScanIterators();
 
@@ -866,7 +875,11 @@ final public class TermStore extends AbstractStorage {
    */
   public View<Term> termsSortedByTermAndBucketId(Authorizations authorizations, String dataset,
       Set<String> fields, Object minTerm, Object maxTerm, BloomFilters<String> bucketsIds) {
-    return terms(scanner(authorizations), dataset, fields, minTerm, maxTerm, bucketsIds);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return terms(scanner(compact(authorizations, dataset)), dataset, fields, minTerm, maxTerm,
+        bucketsIds);
   }
 
   /**
@@ -882,8 +895,11 @@ final public class TermStore extends AbstractStorage {
    */
   public View<Term> terms(Authorizations authorizations, String dataset, Set<String> fields,
       Object minTerm, Object maxTerm, BloomFilters<String> bucketsIds) {
-    return terms(batchScanner(authorizations, NB_QUERY_THREADS), dataset, fields, minTerm, maxTerm,
-        bucketsIds);
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+
+    return terms(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset, fields,
+        minTerm, maxTerm, bucketsIds);
   }
 
   private View<Term> terms(ScannerBase scanner, String dataset, Set<String> fields, String term,
