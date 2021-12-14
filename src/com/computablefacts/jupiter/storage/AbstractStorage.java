@@ -106,25 +106,31 @@ public abstract class AbstractStorage {
   }
 
   /**
-   * Keep only authorizations starting with {@code <dataset>_}.
+   * Keep only authorizations starting with {@code <prefix>_} and/or ending with {@code _<suffix>}.
    *
    * @param authorizations authorizations.
-   * @param dataset dataset.
+   * @param prefix prefix.
+   * @param suffix suffix.
    * @return authorizations, not null.
    */
-  public static Authorizations compact(Authorizations authorizations, String dataset) {
+  public static Authorizations compact(Authorizations authorizations, String prefix,
+      String suffix) {
 
     if (authorizations == null) {
       return Authorizations.EMPTY;
     }
-    if (Strings.isNullOrEmpty(dataset)) {
+    if (Strings.isNullOrEmpty(prefix) && Strings.isNullOrEmpty(suffix)) {
       return authorizations;
     }
 
-    String label = toVisibilityLabel(dataset + "_");
+    String authBegin = Strings.isNullOrEmpty(prefix) ? null : toVisibilityLabel(prefix + "_");
+    String authEnd = Strings.isNullOrEmpty(suffix) ? null : toVisibilityLabel("_" + suffix);
+
     Set<String> auths =
         Splitter.on(',').trimResults().omitEmptyStrings().splitToStream(authorizations.toString())
-            .filter(auth -> Constants.STRING_ADM.equals(auth) || auth.startsWith(label))
+            .filter(auth -> Constants.STRING_ADM.equals(auth)
+                || ((authBegin == null || auth.startsWith(authBegin))
+                    && (authEnd == null || auth.endsWith(authEnd))))
             .collect(Collectors.toSet());
 
     return new Authorizations(Iterables.toArray(auths, String.class));

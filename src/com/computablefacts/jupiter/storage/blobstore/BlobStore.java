@@ -272,7 +272,8 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(scanner(compact(authorizations, dataset)), dataset, TYPE_STRING, keys, fields, null);
+    return get(scanner(compact(authorizations, dataset, null)), dataset, TYPE_STRING, keys, fields,
+        null);
   }
 
   /**
@@ -289,7 +290,7 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset,
+    return get(batchScanner(compact(authorizations, dataset, null), NB_QUERY_THREADS), dataset,
         TYPE_STRING, keys, fields, null);
   }
 
@@ -307,7 +308,8 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(scanner(compact(authorizations, dataset)), dataset, TYPE_JSON, keys, fields, null);
+    return get(scanner(compact(authorizations, dataset, null)), dataset, TYPE_JSON, keys, fields,
+        null);
   }
 
   /**
@@ -324,8 +326,8 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset, TYPE_JSON,
-        keys, fields, null);
+    return get(batchScanner(compact(authorizations, dataset, null), NB_QUERY_THREADS), dataset,
+        TYPE_JSON, keys, fields, null);
   }
 
   /**
@@ -343,7 +345,8 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(scanner(compact(authorizations, dataset)), dataset, TYPE_JSON, keys, fields, hashes);
+    return get(scanner(compact(authorizations, dataset, null)), dataset, TYPE_JSON, keys, fields,
+        hashes);
   }
 
   /**
@@ -361,8 +364,8 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset, TYPE_JSON,
-        keys, fields, hashes);
+    return get(batchScanner(compact(authorizations, dataset, null), NB_QUERY_THREADS), dataset,
+        TYPE_JSON, keys, fields, hashes);
   }
 
   /**
@@ -379,7 +382,8 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(scanner(compact(authorizations, dataset)), dataset, TYPE_FILE, keys, fields, null);
+    return get(scanner(compact(authorizations, dataset, null)), dataset, TYPE_FILE, keys, fields,
+        null);
   }
 
   /**
@@ -396,8 +400,8 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset, TYPE_FILE,
-        keys, fields, null);
+    return get(batchScanner(compact(authorizations, dataset, null), NB_QUERY_THREADS), dataset,
+        TYPE_FILE, keys, fields, null);
   }
 
   /**
@@ -414,7 +418,8 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(scanner(compact(authorizations, dataset)), dataset, TYPE_ARRAY, keys, fields, null);
+    return get(scanner(compact(authorizations, dataset, null)), dataset, TYPE_ARRAY, keys, fields,
+        null);
   }
 
   /**
@@ -431,7 +436,7 @@ final public class BlobStore extends AbstractStorage {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    return get(batchScanner(compact(authorizations, dataset), NB_QUERY_THREADS), dataset,
+    return get(batchScanner(compact(authorizations, dataset, null), NB_QUERY_THREADS), dataset,
         TYPE_ARRAY, keys, fields, null);
   }
 

@@ -73,15 +73,49 @@ public class AbstractStorageTest extends MiniAccumuloClusterTest {
   }
 
   @Test
-  public void testCompact() {
-    Assert.assertEquals(Authorizations.EMPTY, AbstractStorage.compact(null, "ds"));
+  public void testCompactWithoutAuths() {
+    Assert.assertEquals(Authorizations.EMPTY, AbstractStorage.compact(null, null, null));
+  }
+
+  @Test
+  public void testCompactWithoutPrefixWithoutSuffix() {
     Assert.assertEquals(new Authorizations("DS1_CONTENT", "DS1_CONTENT_TEXT"),
-        AbstractStorage.compact(new Authorizations("DS1_CONTENT", "DS1_CONTENT_TEXT"), null));
+        AbstractStorage.compact(new Authorizations("DS1_CONTENT", "DS1_CONTENT_TEXT"), null, null));
+  }
+
+  @Test
+  public void testCompactWithPrefixWithoutSuffix() {
+
     Assert.assertEquals(new Authorizations("DS1_CONTENT", "DS1_CONTENT_TEXT"),
         AbstractStorage.compact(new Authorizations("DS1_CONTENT", "DS1_CONTENT_TEXT", "DS2_CONTENT",
-            "DS2_CONTENT_TEXT"), "ds1"));
+            "DS2_CONTENT_TEXT"), "ds1", null));
+
     Assert.assertEquals(new Authorizations(Constants.STRING_ADM, "DS2_CONTENT", "DS2_CONTENT_TEXT"),
         AbstractStorage.compact(new Authorizations(Constants.STRING_ADM, "DS1_CONTENT",
-            "DS1_CONTENT_TEXT", "DS2_CONTENT", "DS2_CONTENT_TEXT"), "ds2"));
+            "DS1_CONTENT_TEXT", "DS2_CONTENT", "DS2_CONTENT_TEXT"), "ds2", null));
+  }
+
+  @Test
+  public void testCompactWithoutPrefixWithSuffix() {
+
+    Assert.assertEquals(new Authorizations("DS1_CONTENT", "DS2_CONTENT"), AbstractStorage.compact(
+        new Authorizations("DS1_CONTENT", "DS1_CONTENT_TEXT", "DS2_CONTENT", "DS2_CONTENT_TEXT"),
+        null, "CONTENT"));
+
+    Assert.assertEquals(new Authorizations(Constants.STRING_ADM, "DS1_CONTENT", "DS2_CONTENT"),
+        AbstractStorage.compact(new Authorizations(Constants.STRING_ADM, "DS1_CONTENT",
+            "DS1_CONTENT_TEXT", "DS2_CONTENT", "DS2_CONTENT_TEXT"), null, "CONTENT"));
+  }
+
+  @Test
+  public void testCompactWithPrefixWithSuffix() {
+
+    Assert.assertEquals(new Authorizations("DS1_CONTENT"), AbstractStorage.compact(
+        new Authorizations("DS1_CONTENT", "DS1_CONTENT_TEXT", "DS2_CONTENT", "DS2_CONTENT_TEXT"),
+        "ds1", "CONTENT"));
+
+    Assert.assertEquals(new Authorizations(Constants.STRING_ADM, "DS1_CONTENT"),
+        AbstractStorage.compact(new Authorizations(Constants.STRING_ADM, "DS1_CONTENT",
+            "DS1_CONTENT_TEXT", "DS2_CONTENT", "DS2_CONTENT_TEXT"), "ds1", "CONTENT"));
   }
 }
