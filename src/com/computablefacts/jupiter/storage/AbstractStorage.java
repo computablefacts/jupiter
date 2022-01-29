@@ -493,6 +493,27 @@ public abstract class AbstractStorage {
     return true;
   }
 
+  /**
+   * Persist data.
+   *
+   * @param writer batch writer.
+   * @param mutations the mutations to write.
+   * @return true if the operation succeeded, false otherwise.
+   */
+  public boolean add(BatchWriter writer, Collection<Mutation> mutations) {
+
+    Preconditions.checkNotNull(writer, "writer should not be null");
+    Preconditions.checkNotNull(mutations, "mutations should not be null");
+
+    try {
+      writer.addMutations(mutations);
+    } catch (MutationsRejectedException e) {
+      handleExceptions(e);
+      return false;
+    }
+    return true;
+  }
+
   @Deprecated
   public BatchWriter writer() {
     return writer(Tables.batchWriterConfig());

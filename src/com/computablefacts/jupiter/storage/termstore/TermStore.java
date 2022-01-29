@@ -515,7 +515,7 @@ final public class TermStore extends AbstractStorage {
       Term.newBackwardMutation(mutations, dataset, bucketId, field, newType, newTerm, nbOccurrences,
           Sets.union(bucketSpecificLabels, fieldSpecificLabels));
     }
-    return mutations.values().stream().allMatch(v -> add(writer, v));
+    return add(writer, mutations.values());
   }
 
   /**
