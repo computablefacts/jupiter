@@ -437,11 +437,11 @@ final public class TermStore extends AbstractStorage {
 
       if (!distinctBuckets_.containsKey(key)) {
         distinctBuckets_.put(key,
-            new FieldDistinctBuckets(dataset, field, newType, fieldSpecificLabels, 0));
+            new FieldDistinctBuckets(dataset, field, Term.TYPE_NA, fieldSpecificLabels, 0));
       }
 
       FieldDistinctBuckets prev = distinctBuckets_.get(key);
-      FieldDistinctBuckets next = new FieldDistinctBuckets(dataset, field, newType,
+      FieldDistinctBuckets next = new FieldDistinctBuckets(dataset, field, Term.TYPE_NA,
           fieldSpecificLabels, prev.estimate() + 1);
 
       distinctBuckets_.put(key, next);
