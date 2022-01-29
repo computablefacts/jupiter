@@ -465,7 +465,7 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the visibility labels available for a given field (unsorted).
+   * Get the visibility labels available for a given {@code field} (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -483,7 +483,7 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the date of last of a given field (unsorted).
+   * Get the date of last of a given {@code field} (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -502,7 +502,7 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the number of distinct terms for a given field (unsorted).
+   * Get the number of distinct terms for a given {@code field} (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -521,7 +521,7 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the number of distinct buckets for a given field (unsorted).
+   * Get the number of distinct buckets for a given {@code field} (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -540,7 +540,7 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the number of distinct buckets for a given field (unsorted).
+   * Get the number of distinct buckets for a given {@code field} (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -646,7 +646,7 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Estimate the number of buckets with at least one of occurrence of a given term.
+   * Estimate the number of buckets with at least one of occurrence of a given {@code term}.
    *
    * @param authorizations authorizations.
    * @param dataset dataset (optional).
