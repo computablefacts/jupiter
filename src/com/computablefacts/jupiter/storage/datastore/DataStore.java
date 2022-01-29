@@ -560,8 +560,8 @@ final public class DataStore implements AutoCloseable {
   /**
    * Get all JSON from the blob storage layer (sorted).
    *
-   * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
-   * must also have the <dataset>_<field> auth for each requested field.
+   * The {@code <dataset>_RAW_DATA} auth is not enough to get access to the full JSON document. The
+   * user must also have the {@code <dataset>_<field>} auth for each requested field.
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -581,8 +581,8 @@ final public class DataStore implements AutoCloseable {
   /**
    * Get all JSON from the blob storage layer (unsorted).
    *
-   * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
-   * must also have the <dataset>_<field> auth for each requested field.
+   * The {@code <dataset>_RAW_DATA} auth is not enough to get access to the full JSON document. The
+   * user must also have the {@code <dataset>_<field>} auth for each requested field.
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -602,8 +602,8 @@ final public class DataStore implements AutoCloseable {
   /**
    * Get JSON from the blob storage layer (sorted).
    *
-   * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
-   * must also have the <dataset>_<field> auth for each requested field.
+   * The {@code <dataset>_RAW_DATA} auth is not enough to get access to the full JSON document. The
+   * user must also have the {@code <dataset>_<field>} auth for each requested field.
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -625,8 +625,8 @@ final public class DataStore implements AutoCloseable {
   /**
    * Get JSON from the blob storage layer (unsorted).
    *
-   * The <dataset>_RAW_DATA auth is not enough to get access to the full JSON document. The user
-   * must also have the <dataset>_<field> auth for each requested field.
+   * The {@code <dataset>_RAW_DATA} auth is not enough to get access to the full JSON document. The
+   * user must also have the {@code <dataset>_<field>} auth for each requested field.
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -668,8 +668,8 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Estimate the number of buckets with at least one of occurrence of all terms in [minTerm,
-   * maxTerm].
+   * Estimate the number of buckets with at least one of occurrence of all terms in {@code [minTerm,
+   * maxTerm]}.
    *
    * @param authorizations authorizations.
    * @param dataset dataset (optional).
@@ -733,8 +733,8 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
-   * (ordered).
+   * Get the ids of all documents where at least one token matches a term in
+   * {@code [minTerm, maxTerm]} (ordered).
    *
    * @param authorizations authorizations.
    * @param dataset dataset (optional).
@@ -798,8 +798,8 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Get the ids of all documents where at least one token matches a term in [minTerm, maxTerm]
-   * (unordered).
+   * Get the ids of all documents where at least one token matches a term in
+   * {@code [minTerm, maxTerm]} (unordered).
    *
    * @param authorizations authorizations.
    * @param dataset dataset (optional).

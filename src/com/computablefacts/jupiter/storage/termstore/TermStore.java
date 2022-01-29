@@ -700,7 +700,7 @@ final public class TermStore extends AbstractStorage {
 
   /**
    * For each field in a given dataset, get the number of buckets with at least one occurrence of a
-   * given term (unsorted).
+   * given {@code term} (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset (optional).
@@ -713,7 +713,7 @@ final public class TermStore extends AbstractStorage {
 
   /**
    * For each field of each bucket in a given dataset, get the number of buckets with at least one
-   * occurrence of a given term (unsorted).
+   * occurrence of a given {@code term} (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -757,7 +757,7 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * For each field in a given dataset, get the ones matching a given term (sorted).
+   * For each field in a given dataset, get the ones matching a given {@code term} (sorted).
    *
    * @param authorizations authorizations
    * @param dataset dataset.
@@ -769,7 +769,7 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * For each field in a given dataset, get the ones matching a given term (unsorted).
+   * For each field in a given dataset, get the ones matching a given {@code term} (unsorted).
    *
    * @param authorizations authorizations
    * @param dataset dataset.
@@ -781,7 +781,7 @@ final public class TermStore extends AbstractStorage {
 
   /**
    * For each field of a given list of buckets in a given dataset, get the ones matching a given
-   * term (sorted).
+   * {@code term} (sorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -800,7 +800,7 @@ final public class TermStore extends AbstractStorage {
 
   /**
    * For each field of a given list of buckets in a given dataset, get the ones matching a given
-   * term (unsorted).
+   * {@code term} (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -819,7 +819,7 @@ final public class TermStore extends AbstractStorage {
 
   /**
    * For each field of each bucket in a given dataset, get the number of occurrences of all terms in
-   * [minTerm, maxTerm]. Note that this method only hits the forward index (unsorted).
+   * {@code [minTerm, maxTerm]}. Note that this method only hits the forward index (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -870,7 +870,7 @@ final public class TermStore extends AbstractStorage {
 
   /**
    * For each field of a given list of buckets in a given dataset, get buckets having a term in
-   * [minTerm, maxTerm]. Note that this method only hits the forward index (sorted).
+   * {@code [minTerm, maxTerm]}. Note that this method only hits the forward index (sorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
@@ -890,7 +890,7 @@ final public class TermStore extends AbstractStorage {
 
   /**
    * For each field of a given list of buckets in a given dataset, get buckets having a term in
-   * [minTerm, maxTerm]. Note that this method only hits the forward index (unsorted).
+   * {@code [minTerm, maxTerm]}. Note that this method only hits the forward index (unsorted).
    *
    * @param authorizations authorizations.
    * @param dataset dataset.
