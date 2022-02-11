@@ -39,7 +39,8 @@
     </developers>
 
     <properties>
-        <nona.version>3.2</nona.version>
+        <asterix.version>0.7</asterix.version>
+        <logfmt.version>0.14</logfmt.version>
         <datasketches.version>2.0.0</datasketches.version>
         <guava.version>29.0-jre</guava.version>
         <accumulo.version>1.10.1</accumulo.version>
@@ -69,8 +70,13 @@
         </dependency>
         <dependency>
             <groupId>com.computablefacts</groupId>
-            <artifactId>nona</artifactId>
-            <version>${nona.version}</version>
+            <artifactId>asterix</artifactId>
+            <version>${asterix.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.computablefacts</groupId>
+            <artifactId>logfmt</artifactId>
+            <version>${logfmt.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.datasketches</groupId>
@@ -157,9 +163,6 @@
                                         implementation="de.skuzzle.enforcer.restrictimports.rule.RestrictImports">
                                     <reason>Jupiter must not inherit from Nona</reason>
                                     <bannedImport>com.computablefacts.nona.**</bannedImport>
-                                    <exclusions>
-                                        <exclusion>com.computablefacts.jupiter.shell.Shell</exclusion>
-                                    </exclusions>
                                 </restrictImports>
                                 <restrictImports
                                         implementation="de.skuzzle.enforcer.restrictimports.rule.RestrictImports">

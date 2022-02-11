@@ -4,14 +4,8 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_INDEX;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_INDEX;
-import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import javax.validation.constraints.NotNull;
 
@@ -22,11 +16,8 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
 import com.computablefacts.asterix.Generated;
-import com.google.common.base.Joiner;
-import com.google.common.base.MoreObjects;
+import com.google.common.base.*;
 import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -89,8 +80,8 @@ final public class Term implements HasTerm, Comparable<Term> {
   @CanIgnoreReturnValue
   public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset,
       String docId, String field, int type, String term, int count, Set<String> labels) {
-    return newMutation(mutations, BACKWARD_INDEX, dataset, docId, field, type, reverse(term), count,
-        labels);
+    return newMutation(mutations, BACKWARD_INDEX, dataset, docId, field, type,
+        new StringBuilder(term).reverse().toString(), count, labels);
   }
 
   public static Term fromKeyValue(Key key, Value value) {
@@ -108,7 +99,8 @@ final public class Term implements HasTerm, Comparable<Term> {
     int index = row.indexOf(SEPARATOR_NUL);
     String dataset = row.substring(0, index);
     String term =
-        cf.equals(BACKWARD_INDEX) ? reverse(row.substring(index + 1)) : row.substring(index + 1);
+        cf.equals(BACKWARD_INDEX) ? new StringBuilder(row.substring(index + 1)).reverse().toString()
+            : row.substring(index + 1);
 
     // Extract document id and field from CQ
     int index1 = cq.indexOf(SEPARATOR_NUL);

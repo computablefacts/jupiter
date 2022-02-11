@@ -1,10 +1,7 @@
 package com.computablefacts.jupiter.iterators;
 
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
-import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
-import static com.computablefacts.nona.helpers.Document.ID_MAGIC_KEY;
+import static com.computablefacts.asterix.Document.ID_MAGIC_KEY;
+import static com.computablefacts.jupiter.storage.Constants.*;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;

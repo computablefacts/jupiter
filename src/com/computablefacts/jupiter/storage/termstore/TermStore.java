@@ -2,7 +2,6 @@ package com.computablefacts.jupiter.storage.termstore;
 
 import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.nona.functions.patternoperators.PatternsBackward.reverse;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -733,7 +732,7 @@ final public class TermStore extends AbstractStorage {
     scanner.clearScanIterators();
 
     boolean isTermBackward = WildcardMatcher.startsWithWildcard(term);
-    String newTerm = isTermBackward ? reverse(term) : term;
+    String newTerm = isTermBackward ? new StringBuilder(term).reverse().toString() : term;
 
     Range range;
 
@@ -920,7 +919,7 @@ final public class TermStore extends AbstractStorage {
     scanner.clearScanIterators();
 
     boolean isTermBackward = WildcardMatcher.startsWithWildcard(term);
-    String newTerm = isTermBackward ? reverse(term) : term;
+    String newTerm = isTermBackward ? new StringBuilder(term).reverse().toString() : term;
 
     Range range;
 
