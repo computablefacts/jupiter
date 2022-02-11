@@ -1,10 +1,7 @@
 package com.computablefacts.jupiter.storage.termstore;
 
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
-import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.*;
+import static com.computablefacts.jupiter.storage.termstore.Term.TYPE_NA;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.DISTINCT_BUCKETS;
 
 import java.util.HashSet;
@@ -37,7 +34,12 @@ final public class FieldDistinctBuckets {
   private final Set<String> labels_;
   private final long estimate_;
 
-  FieldDistinctBuckets(String dataset, String field, int type, Set<String> labels, long estimate) {
+  FieldDistinctBuckets(String dataset, String field, long estimate) {
+    this(dataset, field, Term.TYPE_NA, Sets.newHashSet(), estimate);
+  }
+
+  private FieldDistinctBuckets(String dataset, String field, int type, Set<String> labels,
+      long estimate) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
@@ -164,7 +166,7 @@ final public class FieldDistinctBuckets {
 
   @Generated
   public boolean isNa() {
-    return type_ == Term.TYPE_NA;
+    return type_ == TYPE_NA;
   }
 
   @Generated
