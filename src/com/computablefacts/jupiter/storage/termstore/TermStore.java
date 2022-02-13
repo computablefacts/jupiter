@@ -409,14 +409,6 @@ final public class TermStore extends AbstractStorage {
       writeInForwardIndexOnly = true;
     }
 
-    if (com.google.common.base.Strings.isNullOrEmpty(newTerm)) {
-      logger_.warn(LogFormatter.create(true)
-          .message(String.format(
-              "%s has been lexicoded to null/an empty string. Term has been ignored.", term))
-          .formatWarn());
-      return true;
-    }
-
     // Compute the number of distinct terms
     if (cardinalityEstimatorsForTerms_ != null) {
 
@@ -494,6 +486,14 @@ final public class TermStore extends AbstractStorage {
 
         labels_.put(key, newFieldLabels); // Replace the previous entry (if any)
       }
+    }
+
+    if (com.google.common.base.Strings.isNullOrEmpty(newTerm)) {
+      logger_.warn(LogFormatter.create(true)
+          .message(String.format(
+              "%s has been lexicoded to null/an empty string. Term has been ignored.", term))
+          .formatWarn());
+      return true;
     }
 
     Map<Text, Mutation> mutations = new HashMap<>();
