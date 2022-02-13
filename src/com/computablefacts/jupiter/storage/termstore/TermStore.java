@@ -428,7 +428,7 @@ final public class TermStore extends AbstractStorage {
       cardinalityEstimatorsForTerms_.get(key).offer(newTerm);
     }
 
-    // Compute the number of distinct buckets
+    // Compute the number of distinct buckets for each field
     if (distinctBuckets_ != null && (!prevDataset_.equals(dataset) || !prevField_.equals(field)
         || !prevBucketId_.equals(bucketId))) {
 
