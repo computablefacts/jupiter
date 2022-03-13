@@ -44,7 +44,6 @@
         <datasketches.version>2.0.0</datasketches.version>
         <guava.version>29.0-jre</guava.version>
         <accumulo.version>1.10.1</accumulo.version>
-        <hadoop.version>2.7.3</hadoop.version>
         <zookeeper.version>3.4.14</zookeeper.version>
         <error-prone.version>2.3.1</error-prone.version>
         <junit.version>4.13.1</junit.version>
@@ -98,11 +97,6 @@
             <artifactId>accumulo-minicluster</artifactId>
             <version>${accumulo.version}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <version>${hadoop.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
