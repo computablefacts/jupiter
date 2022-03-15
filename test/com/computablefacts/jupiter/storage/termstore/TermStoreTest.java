@@ -740,9 +740,17 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
         Assert.assertTrue(
             termStore.put(writer, dataset, bucketId, "first_name", "john", 1, labels, labels));
+
+        termStore.incrementBucketCount(dataset, "first_name");
+
         Assert.assertTrue(
             termStore.put(writer, dataset, bucketId, "last_name", "doe", 1, labels, labels));
+
+        termStore.incrementBucketCount(dataset, "last_name");
+
         Assert.assertTrue(termStore.put(writer, dataset, bucketId, "age", 37, 1, labels, labels));
+
+        termStore.incrementBucketCount(dataset, "age");
       }
 
       Assert.assertTrue(termStore.endIngest(dataset));
@@ -846,9 +854,17 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
         Assert.assertTrue(
             termStore.put(writer, dataset, bucketId, "first_name", "jane", 1, labels, labels));
+
+        termStore.incrementBucketCount(dataset, "first_name");
+
         Assert.assertTrue(
             termStore.put(writer, dataset, bucketId, "last_name", "doe", 1, labels, labels));
+
+        termStore.incrementBucketCount(dataset, "last_name");
+
         Assert.assertTrue(termStore.put(writer, dataset, bucketId, "age", 27, 1, labels, labels));
+
+        termStore.incrementBucketCount(dataset, "age");
       }
 
       Assert.assertTrue(termStore.endIngest(dataset));

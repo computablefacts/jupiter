@@ -91,10 +91,6 @@ final public class TermStore extends AbstractStorage {
   private Map<String, FieldLastUpdate> lastUpdate_;
   private Map<String, FieldLabels> labels_;
 
-  private String prevDataset_ = "";
-  private String prevField_ = "";
-  private String prevBucketId_ = "";
-
   public TermStore(Configurations configurations, String name) {
     super(configurations, name);
   }
@@ -269,9 +265,6 @@ final public class TermStore extends AbstractStorage {
     topTerms_ = new HashMap<>();
     lastUpdate_ = new HashMap<>();
     labels_ = new HashMap<>();
-    prevDataset_ = "";
-    prevField_ = "";
-    prevBucketId_ = "";
   }
 
   /**
@@ -306,9 +299,6 @@ final public class TermStore extends AbstractStorage {
                 FieldDistinctBuckets.newMutation(dataset, db.getKey(), db.getValue().estimate())))
             && isOk;
         distinctBuckets_ = null;
-        prevDataset_ = "";
-        prevField_ = "";
-        prevBucketId_ = "";
       }
       if (topTerms_ != null) {
         isOk =
@@ -340,27 +330,36 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
+   * Update the number of distinct buckets seen for each field.
+   *
+   * @param dataset the dataset.
+   * @param field the field name.
+   */
+  public void incrementBucketCount(String dataset, String field) {
+
+    Preconditions.checkNotNull(dataset, "dataset should not be null");
+    Preconditions.checkNotNull(field, "field should not be null");
+
+    if (distinctBuckets_ == null) {
+      return;
+    }
+
+    String key = field + SEPARATOR_NUL + Term.TYPE_NA;
+
+    if (!distinctBuckets_.containsKey(key)) {
+      distinctBuckets_.put(key, new FieldDistinctBuckets(dataset, field, 0));
+    }
+
+    FieldDistinctBuckets prev = distinctBuckets_.get(key);
+    FieldDistinctBuckets next = new FieldDistinctBuckets(dataset, field, prev.estimate() + 1);
+
+    distinctBuckets_.put(key, next);
+  }
+
+  /**
    * Persist data. Term extraction for a given field from a given bucket should be performed by the
    * caller. This method should be called only once for each quad ({@code dataset},
    * {@code bucketId}, {@code field}, {@code term}).
-   *
-   * WARNING : this method makes the assumption that triples ({@code dataset}, {@code bucketId},
-   * {@code field}) are ordered and processed one after the other. For example, this sequence will
-   * skew the bucket count :
-   *
-   * <pre>
-   *     Call n°1: (dataset_1, bucket_1, field_1)
-   *     Call n°2: (dataset_1, bucket_1, field_2)
-   *     Call n°3: (dataset_1, bucket_1, field_1)
-   * </pre>
-   *
-   * but this sequence will not :
-   *
-   * <pre>
-   *     Call n°1: (dataset_1, bucket_1, field_1)
-   *     Call n°2: (dataset_1, bucket_1, field_1)
-   *     Call n°3: (dataset_1, bucket_1, field_2)
-   * </pre>
    *
    * @param writer batch writer.
    * @param dataset the dataset.
@@ -418,26 +417,6 @@ final public class TermStore extends AbstractStorage {
         cardinalityEstimatorsForTerms_.put(key, new ThetaSketch());
       }
       cardinalityEstimatorsForTerms_.get(key).offer(newTerm);
-    }
-
-    // Compute the number of distinct buckets for each field
-    if (distinctBuckets_ != null && (!prevDataset_.equals(dataset) || !prevField_.equals(field)
-        || !prevBucketId_.equals(bucketId))) {
-
-      String key = field + SEPARATOR_NUL + Term.TYPE_NA;
-
-      if (!distinctBuckets_.containsKey(key)) {
-        distinctBuckets_.put(key, new FieldDistinctBuckets(dataset, field, 0));
-      }
-
-      FieldDistinctBuckets prev = distinctBuckets_.get(key);
-      FieldDistinctBuckets next = new FieldDistinctBuckets(dataset, field, prev.estimate() + 1);
-
-      distinctBuckets_.put(key, next);
-
-      prevDataset_ = dataset;
-      prevField_ = field;
-      prevBucketId_ = bucketId;
     }
 
     // Compute the top k terms

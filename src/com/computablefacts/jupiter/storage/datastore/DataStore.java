@@ -1049,6 +1049,9 @@ final public class DataStore implements AutoCloseable {
     boolean isOk = true;
 
     for (Map.Entry<String, Multiset<Object>> field : fields.entrySet()) {
+
+      incrementBucketCount(dataset, field.getKey());
+
       for (Multiset.Entry<Object> term : field.getValue().entrySet()) {
         isOk =
             isOk && persistTerm(dataset, docId, field.getKey(), term.getElement(), term.getCount());
@@ -1069,6 +1072,12 @@ final public class DataStore implements AutoCloseable {
 
   private boolean persistHash(String dataset, String docId, String field, Object value) {
     return hashProcessor_ == null || hashProcessor_.write(dataset, docId, field, value);
+  }
+
+  private void incrementBucketCount(String dataset, String field) {
+    if (termProcessor_ != null) {
+      termProcessor_.incrementBucketCount(dataset, field);
+    }
   }
 
   private View<String> readHash(ScannerBase scanner, String dataset, String field, String hash) {
