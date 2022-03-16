@@ -153,7 +153,7 @@ public class Shell {
         break;
       case "ingest":
         Preconditions.checkState(
-            ingest(configurations, datastore, getArg(args, "ds"), getArg(args, "fi")),
+            ingest(configurations, datastore, getArg(args, "ds"), getArg(args, "fi"), false),
             "INGEST failed!");
         break;
       case "ingest_many":
@@ -369,7 +369,7 @@ public class Shell {
   }
 
   public static boolean ingest(Configurations configurations, String datastore, String dataset,
-      String file) {
+      String file, boolean split) {
 
     Preconditions.checkNotNull(configurations, "configurations should not be null");
     Preconditions.checkNotNull(datastore, "datastore should not be null");
@@ -384,32 +384,34 @@ public class Shell {
     Stopwatch stopwatch = Stopwatch.createStarted();
 
     try (DataStore ds = new DataStore(configurations, datastore)) {
-      try {
+      if (split) {
+        try {
 
-        SortedSet<Text> splits = new TreeSet<>();
+          SortedSet<Text> splits = new TreeSet<>();
 
-        for (char i = '0'; i < '9' + 1; i++) {
-          splits.add(new Text(dataset + SEPARATOR_NUL + i));
+          for (char i = '0'; i < '9' + 1; i++) {
+            splits.add(new Text(dataset + SEPARATOR_NUL + i));
+          }
+
+          for (char i = 'a'; i < 'z' + 1; i++) {
+            splits.add(new Text(dataset + SEPARATOR_NUL + i));
+          }
+
+          for (char i = 'A'; i < 'Z' + 1; i++) {
+            splits.add(new Text(dataset + SEPARATOR_NUL + i));
+          }
+
+          ds.blobStore().configurations().tableOperations().addSplits(ds.blobStore().tableName(),
+              splits);
+
+          ds.termStore().configurations().tableOperations().addSplits(ds.termStore().tableName(),
+              splits);
+
+          ds.cache().configurations().tableOperations().addSplits(ds.cache().tableName(), splits);
+
+        } catch (Exception e) {
+          logger_.error(LogFormatter.create(true).message(e).formatError());
         }
-
-        for (char i = 'a'; i < 'z' + 1; i++) {
-          splits.add(new Text(dataset + SEPARATOR_NUL + i));
-        }
-
-        for (char i = 'A'; i < 'Z' + 1; i++) {
-          splits.add(new Text(dataset + SEPARATOR_NUL + i));
-        }
-
-        ds.blobStore().configurations().tableOperations().addSplits(ds.blobStore().tableName(),
-            splits);
-
-        ds.termStore().configurations().tableOperations().addSplits(ds.termStore().tableName(),
-            splits);
-
-        ds.cache().configurations().tableOperations().addSplits(ds.cache().tableName(), splits);
-
-      } catch (Exception e) {
-        logger_.error(LogFormatter.create(true).message(e).formatError());
       }
 
       ds.beginIngest();
@@ -473,13 +475,18 @@ public class Shell {
     Preconditions.checkNotNull(datasets, "datasets should not be null");
     Preconditions.checkNotNull(directory, "directory should not be null");
 
+    @Var
+    boolean split = true;
+
     for (String dataset : datasets) {
 
       String file =
           directory + File.separator + String.format("backup-%s-%s.jsonl.gz", datastore, dataset);
 
-      Preconditions.checkState(Shell.ingest(configurations, datastore, dataset, file),
+      Preconditions.checkState(Shell.ingest(configurations, datastore, dataset, file, split),
           "INGEST of dataset %s for datastore %s failed", dataset, datastore);
+
+      split = false;
     }
     return true;
   }
