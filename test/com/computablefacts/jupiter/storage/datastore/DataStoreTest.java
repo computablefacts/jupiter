@@ -556,7 +556,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.beginIngest();
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
-    dataStore.endIngest("dataset_1");
+    Assert.assertTrue(dataStore.endIngest("dataset_1"));
 
     dataStore.flush();
 

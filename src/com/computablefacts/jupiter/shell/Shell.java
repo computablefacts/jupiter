@@ -453,7 +453,10 @@ public class Shell {
         }
       });
 
-      ds.endIngest(dataset);
+      if (!ds.endIngest(dataset)) {
+        logger_.error(LogFormatter.create(true)
+            .message("An error occurred while ending the ingestion process.").formatError());
+      }
     }
 
     stopwatch.stop();
@@ -541,7 +544,10 @@ public class Shell {
         }
       }
 
-      ds.endIngest(dataset);
+      if (!ds.endIngest(dataset)) {
+        logger_.error(LogFormatter.create(true)
+            .message("An error occurred while ending the ingestion process.").formatError());
+      }
     }
 
     stopwatch.stop();

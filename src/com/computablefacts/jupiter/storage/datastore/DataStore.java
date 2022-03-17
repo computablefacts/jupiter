@@ -39,7 +39,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -409,7 +408,6 @@ final public class DataStore implements AutoCloseable {
    * @param dataset the dataset.
    * @return true if the write operations succeeded, false otherwise.
    */
-  @CanIgnoreReturnValue
   public boolean endIngest(String dataset) {
     return termStore_.endIngest(dataset);
   }
