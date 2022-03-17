@@ -118,12 +118,9 @@ final public class DataStore implements AutoCloseable {
     termStore_ =
         Preconditions.checkNotNull(termStore, "termStore should neither be null nor empty");
     cache_ = Preconditions.checkNotNull(cache, "cache should neither be null nor empty");
-    blobProcessor_ =
-        Preconditions.checkNotNull(blobProcessor, "blobProcessor should neither be null nor empty");
-    termProcessor_ =
-        Preconditions.checkNotNull(termProcessor, "termProcessor should neither be null nor empty");
-    hashProcessor_ =
-        Preconditions.checkNotNull(hashProcessor, "hashProcessor should neither be null nor empty");
+    blobProcessor_ = blobProcessor;
+    termProcessor_ = termProcessor;
+    hashProcessor_ = hashProcessor;
   }
 
   static String normalize(String str) {
