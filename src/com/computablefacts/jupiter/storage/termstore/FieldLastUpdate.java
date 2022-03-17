@@ -1,10 +1,6 @@
 package com.computablefacts.jupiter.storage.termstore;
 
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
-import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.*;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.LAST_UPDATE;
 
 import java.time.Instant;
@@ -36,7 +32,7 @@ final public class FieldLastUpdate {
   private final String field_;
   private final int type_;
   private final Set<String> labels_;
-  private final String lastUpdate_;
+  private String lastUpdate_;
 
   FieldLastUpdate(String dataset, String field, int type, Set<String> labels) {
     this(dataset, field, type, labels, Instant.now().toString());
@@ -203,5 +199,10 @@ final public class FieldLastUpdate {
   @Generated
   public String lastUpdate() {
     return lastUpdate_;
+  }
+
+  @Generated
+  void update() {
+    lastUpdate_ = Instant.now().toString();
   }
 }

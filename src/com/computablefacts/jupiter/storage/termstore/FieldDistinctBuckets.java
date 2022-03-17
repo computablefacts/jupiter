@@ -32,7 +32,7 @@ final public class FieldDistinctBuckets {
   private final String field_;
   private final int type_;
   private final Set<String> labels_;
-  private final long estimate_;
+  private long estimate_;
 
   FieldDistinctBuckets(String dataset, String field, long estimate) {
     this(dataset, field, Term.TYPE_NA, Sets.newHashSet(), estimate);
@@ -177,5 +177,10 @@ final public class FieldDistinctBuckets {
   @Generated
   public long estimate() {
     return estimate_;
+  }
+
+  @Generated
+  void update() {
+    estimate_ += 1L;
   }
 }

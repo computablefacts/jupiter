@@ -17,6 +17,7 @@ import org.junit.Test;
 import com.google.common.collect.Sets;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
 
 public class FieldLastUpdateTest {
 
@@ -40,7 +41,7 @@ public class FieldLastUpdateTest {
 
   @Test
   public void testHashcodeAndEquals() {
-    EqualsVerifier.forClass(FieldLastUpdate.class).verify();
+    EqualsVerifier.forClass(FieldLastUpdate.class).suppress(Warning.NONFINAL_FIELDS).verify();
   }
 
   @Test

@@ -1,12 +1,9 @@
 package com.computablefacts.jupiter.storage.termstore;
 
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
-import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_UNDERSCORE;
-import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
-import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
+import static com.computablefacts.jupiter.storage.Constants.*;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.VISIBILITY;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -20,11 +17,7 @@ import org.apache.hadoop.io.Text;
 import com.computablefacts.asterix.Generated;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.Constants;
-import com.google.common.base.Joiner;
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
+import com.google.common.base.*;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
@@ -199,5 +192,10 @@ final public class FieldLabels {
   @Generated
   public Set<String> termLabels() {
     return labelsTerm_;
+  }
+
+  @Generated
+  void update(Collection<String> newLabels) {
+    labelsTerm_.addAll(newLabels);
   }
 }

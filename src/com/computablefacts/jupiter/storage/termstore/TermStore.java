@@ -349,11 +349,7 @@ final public class TermStore extends AbstractStorage {
     if (!distinctBuckets_.containsKey(key)) {
       distinctBuckets_.put(key, new FieldDistinctBuckets(dataset, field, 0));
     }
-
-    FieldDistinctBuckets prev = distinctBuckets_.get(key);
-    FieldDistinctBuckets next = new FieldDistinctBuckets(dataset, field, prev.estimate() + 1);
-
-    distinctBuckets_.put(key, next);
+    distinctBuckets_.get(key).update();
   }
 
   /**
@@ -434,36 +430,22 @@ final public class TermStore extends AbstractStorage {
     if (lastUpdate_ != null) {
 
       String key = field + SEPARATOR_NUL + newType;
-      FieldLastUpdate fieldLastUpdate =
-          new FieldLastUpdate(dataset, field, newType, fieldSpecificLabels);
 
-      lastUpdate_.put(key, fieldLastUpdate); // Replace the previous entry (if any)
+      if (!lastUpdate_.containsKey(key)) {
+        lastUpdate_.put(key, new FieldLastUpdate(dataset, field, newType, fieldSpecificLabels));
+      }
+      lastUpdate_.get(key).update();
     }
 
     // Compute visibility labels
     if (labels_ != null) {
 
       String key = field + SEPARATOR_NUL + newType;
-      FieldLabels fieldLabels = new FieldLabels(dataset, field, newType, fieldSpecificLabels);
 
       if (!labels_.containsKey(key)) {
-        labels_.put(key, fieldLabels);
-      }
-
-      FieldLabels prev = labels_.get(key);
-
-      if (!fieldLabels.equals(prev)) {
-
-        Preconditions.checkState(dataset.equals(prev.dataset()),
-            "mismatch between datasets : %s expected but %s found", dataset, prev.dataset());
-        Preconditions.checkState(fieldLabels.termLabels().equals(prev.termLabels()),
-            "mismatch between term labels : %s expected but %s found", fieldLabels.termLabels(),
-            prev.termLabels());
-
-        Set<String> labels = Sets.union(fieldSpecificLabels, prev.labels());
-        FieldLabels newFieldLabels = new FieldLabels(dataset, field, newType, labels);
-
-        labels_.put(key, newFieldLabels); // Replace the previous entry (if any)
+        labels_.put(key, new FieldLabels(dataset, field, newType, fieldSpecificLabels));
+      } else {
+        labels_.get(key).update(fieldSpecificLabels);
       }
     }
 

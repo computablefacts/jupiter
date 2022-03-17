@@ -3,6 +3,7 @@ package com.computablefacts.jupiter.storage.termstore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
 
 public class FieldDistinctBucketsTest {
 
@@ -18,6 +19,6 @@ public class FieldDistinctBucketsTest {
 
   @Test
   public void testHashcodeAndEquals() {
-    EqualsVerifier.forClass(FieldDistinctBuckets.class).verify();
+    EqualsVerifier.forClass(FieldDistinctBuckets.class).suppress(Warning.NONFINAL_FIELDS).verify();
   }
 }
