@@ -2,6 +2,7 @@ package com.computablefacts.jupiter.shell;
 
 import static com.computablefacts.jupiter.Users.authorizations;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.datastore.DataStore.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -30,7 +31,13 @@ import com.computablefacts.asterix.codecs.JsonCodec;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Users;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
+import com.computablefacts.jupiter.storage.blobstore.BlobStore;
+import com.computablefacts.jupiter.storage.cache.Cache;
+import com.computablefacts.jupiter.storage.datastore.AccumuloBlobProcessor;
+import com.computablefacts.jupiter.storage.datastore.AccumuloHashProcessor;
+import com.computablefacts.jupiter.storage.datastore.AccumuloTermProcessor;
 import com.computablefacts.jupiter.storage.datastore.DataStore;
+import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -152,15 +159,14 @@ public class Shell {
         Preconditions.checkState(compact(configurations, datastore), "COMPACT failed!");
         break;
       case "ingest":
-        Preconditions.checkState(
-            ingest(configurations, datastore, getArg(args, "ds"), getArg(args, "fi"), false),
+        Preconditions.checkState(ingest(configurations, datastore, getArg(args, "ds"),
+            getArg(args, "fi"), false, Boolean.parseBoolean(getArg(args, "hash", "false"))),
             "INGEST failed!");
         break;
       case "ingest_many":
-        Preconditions.checkState(
-            ingest(configurations, datastore,
-                Sets.newHashSet(Splitter.on(',').split(getArg(args, "ds"))), getArg(args, "dir")),
-            "INGEST failed!");
+        Preconditions.checkState(ingest(configurations, datastore,
+            Sets.newHashSet(Splitter.on(',').split(getArg(args, "ds"))), getArg(args, "dir"),
+            Boolean.parseBoolean(getArg(args, "hash", "false"))), "INGEST failed!");
         break;
       case "reindex":
         Preconditions.checkState(
@@ -369,7 +375,7 @@ public class Shell {
   }
 
   public static boolean ingest(Configurations configurations, String datastore, String dataset,
-      String file, boolean split) {
+      String file, boolean split, boolean hash) {
 
     Preconditions.checkNotNull(configurations, "configurations should not be null");
     Preconditions.checkNotNull(datastore, "datastore should not be null");
@@ -382,8 +388,15 @@ public class Shell {
 
     AtomicInteger count = new AtomicInteger(0);
     Stopwatch stopwatch = Stopwatch.createStarted();
+    BlobStore blobStore = new BlobStore(configurations, blobStoreName(datastore));
+    TermStore termStore = new TermStore(configurations, termStoreName(datastore));
+    Cache cache = new Cache(configurations, cacheName(datastore));
+    AccumuloBlobProcessor blobProcessor = new AccumuloBlobProcessor(blobStore);
+    AccumuloTermProcessor termProcessor = new AccumuloTermProcessor(termStore);
+    AccumuloHashProcessor hashProcessor = hash ? new AccumuloHashProcessor(termStore) : null;
 
-    try (DataStore ds = new DataStore(configurations, datastore)) {
+    try (DataStore ds = new DataStore(datastore, blobStore, termStore, cache, blobProcessor,
+        termProcessor, hashProcessor)) {
       if (split) {
         try {
 
@@ -471,7 +484,7 @@ public class Shell {
   }
 
   public static boolean ingest(Configurations configurations, String datastore,
-      Set<String> datasets, String directory) {
+      Set<String> datasets, String directory, boolean hash) {
 
     Preconditions.checkNotNull(configurations, "configurations should not be null");
     Preconditions.checkNotNull(datastore, "datastore should not be null");
@@ -486,7 +499,7 @@ public class Shell {
       String file =
           directory + File.separator + String.format("backup-%s-%s.jsonl.gz", datastore, dataset);
 
-      Preconditions.checkState(Shell.ingest(configurations, datastore, dataset, file, split),
+      Preconditions.checkState(Shell.ingest(configurations, datastore, dataset, file, split, hash),
           "INGEST of dataset %s for datastore %s failed", dataset, datastore);
 
       split = false;
