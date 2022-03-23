@@ -56,6 +56,7 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                             | Column Family   | Column Qualifier                  | Visibility                                  | Value
  * =================================+=================+===================================+=============================================+=================================
+ *  <dataset>\0_\05                 | DB              | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
  *  <dataset>\0<field>\0<term_type> | DB              | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets_with_a_given_field
  *  <dataset>\0<field>\0<term_type> | DT              | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms_for_a_given_field
  *  <dataset>\0<field>\0<term_type> | LU              | (empty)                           | ADM|<dataset>_LU                            | last_update_in_utc
@@ -1052,6 +1053,9 @@ final public class DataStore implements AutoCloseable {
             isOk && persistTerm(dataset, docId, field.getKey(), term.getElement(), term.getCount());
       }
     }
+
+    incrementBucketCount(dataset);
+
     return isOk;
   }
 
@@ -1067,6 +1071,12 @@ final public class DataStore implements AutoCloseable {
 
   private boolean persistHash(String dataset, String docId, String field, Object value) {
     return hashProcessor_ == null || hashProcessor_.write(dataset, docId, field, value);
+  }
+
+  private void incrementBucketCount(String dataset) {
+    if (termProcessor_ != null) {
+      termProcessor_.incrementBucketCount(dataset);
+    }
   }
 
   private void incrementBucketCount(String dataset, String field) {

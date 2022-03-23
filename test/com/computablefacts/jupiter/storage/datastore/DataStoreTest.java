@@ -568,12 +568,12 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     List<Map<String, Object>> jsons =
         ((List<Map<String, Object>>) json.get("fields")).stream().peek(map -> {
-          Assert.assertTrue(
-              WildcardMatcher.match((String) map.get("last_update"), "????-??-??T??:??:??*Z"));
+          Assert.assertTrue((map.get("last_update") == null && "_".equals(map.get("field")))
+              || WildcardMatcher.match((String) map.get("last_update"), "????-??-??T??:??:??*Z"));
           map.remove("last_update");
         }).collect(Collectors.toList());
 
-    Assert.assertEquals(5, jsons.size());
+    Assert.assertEquals(6, jsons.size());
 
     Map<String, Object> map = new HashMap<>();
     map.put("dataset", "dataset_1");
@@ -648,6 +648,18 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
             ImmutableMap.of("term", "18", "nb_occurrences", 1)));
     map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_AGE"));
     map.put("types", Sets.newHashSet("NUMBER"));
+
+    Assert.assertTrue(jsons.contains(map));
+
+    map.clear();
+    map.put("dataset", "dataset_1");
+    map.put("field", "_");
+    map.put("nb_distinct_terms", 0);
+    map.put("nb_distinct_buckets", 2L);
+    map.put("top_terms_no_false_positives", Sets.newHashSet());
+    map.put("top_terms_no_false_negatives", Sets.newHashSet());
+    map.put("visibility_labels", Sets.newHashSet());
+    map.put("types", Sets.newHashSet());
 
     Assert.assertTrue(jsons.contains(map));
   }

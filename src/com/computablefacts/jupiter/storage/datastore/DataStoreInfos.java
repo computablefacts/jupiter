@@ -2,12 +2,7 @@ package com.computablefacts.jupiter.storage.datastore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 
-import java.util.AbstractMap;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.computablefacts.jupiter.storage.termstore.Term;
@@ -63,11 +58,8 @@ final public class DataStoreInfos {
     Preconditions.checkNotNull(field, "field should not be null");
 
     if (cardEstForBuckets_.contains(dataset, field)) {
-      long oldEstimate = cardEstForBuckets_.get(dataset, field);
-      if (oldEstimate < estimate) {
-        cardEstForBuckets_.remove(dataset, field);
-        cardEstForBuckets_.put(dataset, field, estimate);
-      }
+      cardEstForBuckets_.remove(dataset, field);
+      cardEstForBuckets_.put(dataset, field, estimate);
     } else {
       cardEstForBuckets_.put(dataset, field, estimate);
     }

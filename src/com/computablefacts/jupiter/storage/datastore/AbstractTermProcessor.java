@@ -11,7 +11,14 @@ public abstract class AbstractTermProcessor implements AutoCloseable {
   }
 
   /**
-   * Update the number of distinct buckets seen for each field.
+   * Update the number of distinct buckets.
+   *
+   * @param dataset the dataset.
+   */
+  public void incrementBucketCount(String dataset) {}
+
+  /**
+   * Update the number of distinct buckets containing a given field.
    *
    * @param dataset the dataset.
    * @param field the field name.

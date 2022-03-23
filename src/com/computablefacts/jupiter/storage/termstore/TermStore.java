@@ -50,6 +50,7 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                             | Column Family   | Column Qualifier                  | Visibility                                  | Value
  * =================================+=================+===================================+=============================================+=================================
+ *  <dataset>\0_\05                 | DB              | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
  *  <dataset>\0<field>\0<term_type> | DB              | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets_with_a_given_field
  *  <dataset>\0<field>\0<term_type> | DT              | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms_for_a_given_field
  *  <dataset>\0<field>\0<term_type> | LU              | (empty)                           | ADM|<dataset>_LU                            | last_update_in_utc
@@ -330,7 +331,16 @@ final public class TermStore extends AbstractStorage {
   }
 
   /**
-   * Update the number of distinct buckets seen for each field.
+   * Update the number of distinct buckets.
+   *
+   * @param dataset the dataset.
+   */
+  public void incrementBucketCount(String dataset) {
+    incrementBucketCount(dataset, "_");
+  }
+
+  /**
+   * Update the number of distinct buckets containing a given field.
    *
    * @param dataset the dataset.
    * @param field the field name.
