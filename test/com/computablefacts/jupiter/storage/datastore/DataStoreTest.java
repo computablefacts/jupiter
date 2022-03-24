@@ -802,7 +802,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
           .collect(Collectors.toList());
 
       // Check the number of buckets
-      Assert.assertTrue(items.contains("dataset\u0000_\u00005|DB||1"));
+      Assert.assertTrue(items.contains("dataset_1\u0000_\u00005|DB||1"));
 
       // Check all items but the ones in the LU, DT and TT column families
       Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FCNT|birthdate\0003|1"));
