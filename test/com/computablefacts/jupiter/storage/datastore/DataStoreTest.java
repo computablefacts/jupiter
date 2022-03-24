@@ -654,7 +654,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     map.clear();
     map.put("dataset", "dataset_1");
     map.put("field", "_");
-    map.put("nb_distinct_terms", 0);
+    map.put("nb_distinct_terms", 0.0);
     map.put("nb_distinct_buckets", 2L);
     map.put("top_terms_no_false_positives", Sets.newHashSet());
     map.put("top_terms_no_false_negatives", Sets.newHashSet());
@@ -702,7 +702,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(44, terms.size());
+      Assert.assertEquals(45, terms.size());
 
       List<String> items = terms.stream()
           .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
@@ -710,6 +710,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
               + t.getValue().toString())
           .collect(Collectors.toList());
+
+      // Check the number of buckets
+      Assert.assertTrue(items.contains("dataset_1\u0000_\u00005|DB||1"));
 
       // Check all terms but the ones in the LU, DT and TT column families
       Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FCNT|birthdate\0003|1"));
@@ -789,7 +792,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(44, terms.size());
+      Assert.assertEquals(45, terms.size());
 
       List<String> items = terms.stream()
           .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
@@ -797,6 +800,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
               + t.getValue().toString())
           .collect(Collectors.toList());
+
+      // Check the number of buckets
+      Assert.assertTrue(items.contains("dataset\u0000_\u00005|DB||1"));
 
       // Check all items but the ones in the LU, DT and TT column families
       Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FCNT|birthdate\0003|1"));
@@ -882,7 +888,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(56, terms.size());
+      Assert.assertEquals(57, terms.size());
 
       List<String> items = terms.stream()
           .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
@@ -890,6 +896,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
               + t.getValue().toString())
           .collect(Collectors.toList());
+
+      // Check the number of buckets
+      Assert.assertTrue(items.contains("dataset\u0000_\u00005|DB||1"));
 
       // Check id
       Assert.assertTrue(items.contains("dataset\000?1*|FCNT|id\0002|1"));
@@ -962,7 +971,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(106, terms.size());
+      Assert.assertEquals(107, terms.size());
 
       List<String> items = terms.stream()
           .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
@@ -970,6 +979,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
               + t.getValue().toString())
           .collect(Collectors.toList());
+
+      // Check the number of buckets
+      Assert.assertTrue(items.contains("dataset\u0000_\u00005|DB||1"));
 
       // Check id
       Assert.assertTrue(items.contains("dataset\0000001|FCNT|id\0001|1"));
@@ -1040,7 +1052,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(26, terms.size());
+      Assert.assertEquals(27, terms.size());
 
       List<String> items = terms.stream()
           .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
@@ -1048,6 +1060,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
               + t.getValue().toString())
           .collect(Collectors.toList());
+
+      // Check the number of buckets
+      Assert.assertTrue(items.contains("dataset\u0000_\u00005|DB||1"));
 
       // Check hashes
       Assert.assertTrue(
