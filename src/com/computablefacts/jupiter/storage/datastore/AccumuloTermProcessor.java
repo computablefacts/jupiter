@@ -11,6 +11,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.computablefacts.jupiter.Tables;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
@@ -24,6 +25,10 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
 
   private static final Logger logger_ = LoggerFactory.getLogger(AccumuloTermProcessor.class);
 
+  private final long maxMemoryInBytes_ = 104857600L;
+  private final long maxLatencyInMs_ = 60000;
+  private final int maxWriteThreads_ = 5;
+  private final long timeoutInMs_ = 9223372036854775807L;
   private final TermStore termStore_;
   private BatchWriter writer_;
 
@@ -95,7 +100,8 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
 
   private BatchWriter writer() {
     if (writer_ == null) {
-      writer_ = termStore_.writer();
+      writer_ = termStore_.writer(Tables.batchWriterConfig(maxMemoryInBytes_, maxLatencyInMs_,
+          maxWriteThreads_, timeoutInMs_));
     }
     return writer_;
   }
