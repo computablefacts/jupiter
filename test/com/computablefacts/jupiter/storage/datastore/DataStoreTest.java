@@ -3,7 +3,10 @@ package com.computablefacts.jupiter.storage.datastore;
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Scanner;
@@ -13,7 +16,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.computablefacts.asterix.WildcardMatcher;
 import com.computablefacts.asterix.codecs.StringCodec;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Data;
@@ -22,8 +24,6 @@ import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
 import com.computablefacts.jupiter.queries.AbstractNode;
 import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.termstore.Term;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
 
@@ -548,133 +548,13 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   }
 
   @Test
-  public void testDataStoreInfos() throws Exception {
-
-    String username = nextUsername();
-    DataStore dataStore = newDataStore(AUTH_ADM, username);
-
-    dataStore.beginIngest();
-    Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
-    Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
-    Assert.assertTrue(dataStore.endIngest("dataset_1"));
-
-    dataStore.flush();
-
-    Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
-    Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
-
-    DataStoreInfos infos = dataStore.infos(AUTH_ADM, Sets.newHashSet("dataset_1"));
-    Map<String, Object> json = infos.json();
-
-    List<Map<String, Object>> jsons =
-        ((List<Map<String, Object>>) json.get("fields")).stream().peek(map -> {
-          Assert.assertTrue((map.get("last_update") == null && "_".equals(map.get("field")))
-              || WildcardMatcher.match((String) map.get("last_update"), "????-??-??T??:??:??*Z"));
-          map.remove("last_update");
-        }).collect(Collectors.toList());
-
-    Assert.assertEquals(6, jsons.size());
-
-    Map<String, Object> map = new HashMap<>();
-    map.put("dataset", "dataset_1");
-    map.put("field", "birthdate");
-    map.put("nb_distinct_terms", 2.0);
-    map.put("nb_distinct_buckets", 2L);
-    map.put("top_terms_no_false_positives",
-        Lists.newArrayList(ImmutableMap.of("term", "2004-04-01T00:00:00Z", "nb_occurrences", 1),
-            ImmutableMap.of("term", "2003-04-01T00:00:00Z", "nb_occurrences", 1)));
-    map.put("top_terms_no_false_negatives",
-        Lists.newArrayList(ImmutableMap.of("term", "2004-04-01T00:00:00Z", "nb_occurrences", 1),
-            ImmutableMap.of("term", "2003-04-01T00:00:00Z", "nb_occurrences", 1)));
-    map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_BIRTHDATE"));
-    map.put("types", Sets.newHashSet("DATE"));
-
-    Assert.assertTrue(jsons.contains(map));
-
-    map.clear();
-    map.put("dataset", "dataset_1");
-    map.put("field", "last_name");
-    map.put("nb_distinct_terms", 1.0);
-    map.put("nb_distinct_buckets", 2L);
-    map.put("top_terms_no_false_positives",
-        Lists.newArrayList(ImmutableMap.of("term", "doe", "nb_occurrences", 2)));
-    map.put("top_terms_no_false_negatives",
-        Lists.newArrayList(ImmutableMap.of("term", "doe", "nb_occurrences", 2)));
-    map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_LAST_NAME"));
-    map.put("types", Sets.newHashSet("TEXT"));
-
-    Assert.assertTrue(jsons.contains(map));
-
-    map.clear();
-    map.put("dataset", "dataset_1");
-    map.put("field", "id");
-    map.put("nb_distinct_terms", 1.0);
-    map.put("nb_distinct_buckets", 2L);
-    map.put("top_terms_no_false_positives",
-        Lists.newArrayList(ImmutableMap.of("term", "1", "nb_occurrences", 2)));
-    map.put("top_terms_no_false_negatives",
-        Lists.newArrayList(ImmutableMap.of("term", "1", "nb_occurrences", 2)));
-    map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_ID"));
-    map.put("types", Sets.newHashSet("NUMBER"));
-
-    Assert.assertTrue(jsons.contains(map));
-
-    map.clear();
-    map.put("dataset", "dataset_1");
-    map.put("field", "first_name");
-    map.put("nb_distinct_terms", 2.0);
-    map.put("nb_distinct_buckets", 2L);
-    map.put("top_terms_no_false_positives",
-        Lists.newArrayList(ImmutableMap.of("term", "john", "nb_occurrences", 1),
-            ImmutableMap.of("term", "jane", "nb_occurrences", 1)));
-    map.put("top_terms_no_false_negatives",
-        Lists.newArrayList(ImmutableMap.of("term", "john", "nb_occurrences", 1),
-            ImmutableMap.of("term", "jane", "nb_occurrences", 1)));
-    map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_FIRST_NAME"));
-    map.put("types", Sets.newHashSet("TEXT"));
-
-    Assert.assertTrue(jsons.contains(map));
-
-    map.clear();
-    map.put("dataset", "dataset_1");
-    map.put("field", "age");
-    map.put("nb_distinct_terms", 2.0);
-    map.put("nb_distinct_buckets", 2L);
-    map.put("top_terms_no_false_positives",
-        Lists.newArrayList(ImmutableMap.of("term", "17", "nb_occurrences", 1),
-            ImmutableMap.of("term", "18", "nb_occurrences", 1)));
-    map.put("top_terms_no_false_negatives",
-        Lists.newArrayList(ImmutableMap.of("term", "17", "nb_occurrences", 1),
-            ImmutableMap.of("term", "18", "nb_occurrences", 1)));
-    map.put("visibility_labels", Sets.newHashSet("ADM", "DATASET_1_AGE"));
-    map.put("types", Sets.newHashSet("NUMBER"));
-
-    Assert.assertTrue(jsons.contains(map));
-
-    map.clear();
-    map.put("dataset", "dataset_1");
-    map.put("field", "_");
-    map.put("nb_distinct_terms", 0.0);
-    map.put("nb_distinct_buckets", 2L);
-    map.put("top_terms_no_false_positives", Sets.newHashSet());
-    map.put("top_terms_no_false_negatives", Sets.newHashSet());
-    map.put("visibility_labels", Sets.newHashSet());
-    map.put("types", Sets.newHashSet());
-
-    Assert.assertTrue(jsons.contains(map));
-  }
-
-  @Test
   public void testReindex() throws Exception {
 
     Authorizations auths = new Authorizations("ADM");
     DataStore dataStore = newDataStore(auths);
 
     // Index
-    dataStore.beginIngest();
-
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
-    Assert.assertTrue(dataStore.endIngest("dataset_1"));
 
     dataStore.flush();
 
@@ -702,7 +582,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(45, terms.size());
+      Assert.assertEquals(19, terms.size());
 
       List<String> items = terms.stream()
           .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
@@ -710,9 +590,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
               + t.getValue().toString())
           .collect(Collectors.toList());
-
-      // Check the number of buckets
-      Assert.assertTrue(items.contains("dataset_1\u0000_\u00005|DB||1"));
 
       // Check all terms but the ones in the LU, DT and TT column families
       Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FCNT|birthdate\0003|1"));
@@ -722,25 +599,12 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(items.contains("dataset_1\000?1*|FIDX|row_1\000id\0002|1"));
       Assert.assertTrue(items.contains("dataset_1\000??217*|FCNT|age\0002|1"));
       Assert.assertTrue(items.contains("dataset_1\000??217*|FIDX|row_1\000age\0002|1"));
-      Assert.assertTrue(items.contains("dataset_1\000age\0002|VIZ||ADM\000DATASET_1_AGE"));
-      Assert.assertTrue(items.contains("dataset_1\000age\0005|DB||1"));
-      Assert
-          .assertTrue(items.contains("dataset_1\000birthdate\0003|VIZ||ADM\0DATASET_1_BIRTHDATE"));
-      Assert.assertTrue(items.contains("dataset_1\000birthdate\0005|DB||1"));
       Assert.assertTrue(items.contains("dataset_1\000doe|FCNT|last_name\0001|1"));
       Assert.assertTrue(items.contains("dataset_1\000doe|FIDX|row_1\000last_name\0001|1"));
       Assert.assertTrue(items.contains("dataset_1\000eod|BCNT|last_name\0001|1"));
       Assert.assertTrue(items.contains("dataset_1\000eod|BIDX|row_1\000last_name\0001|1"));
-      Assert.assertTrue(
-          items.contains("dataset_1\000first_name\0001|VIZ||DATASET_1_FIRST_NAME\000ADM"));
-      Assert.assertTrue(items.contains("dataset_1\000first_name\0005|DB||1"));
-      Assert.assertTrue(items.contains("dataset_1\000id\0002|VIZ||DATASET_1_ID\000ADM"));
-      Assert.assertTrue(items.contains("dataset_1\000id\0005|DB||1"));
       Assert.assertTrue(items.contains("dataset_1\000john|FCNT|first_name\0001|1"));
       Assert.assertTrue(items.contains("dataset_1\000john|FIDX|row_1\000first_name\0001|1"));
-      Assert.assertTrue(
-          items.contains("dataset_1\000last_name\0001|VIZ||DATASET_1_LAST_NAME\000ADM"));
-      Assert.assertTrue(items.contains("dataset_1\000last_name\0005|DB||1"));
       Assert.assertTrue(items.contains("dataset_1\000nhoj|BCNT|first_name\0001|1"));
       Assert.assertTrue(items.contains("dataset_1\000nhoj|BIDX|row_1\000first_name\0001|1"));
 
@@ -761,10 +625,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.termStore().removeDataset("dataset_1"));
 
     // Reindex -> do not update blobs but rebuild the whole terms index
-    dataStore.beginIngest();
-
     Assert.assertTrue(dataStore.reindex("dataset_1", "row_1", Data.json2(1)));
-    Assert.assertTrue(dataStore.endIngest("dataset_1"));
 
     dataStore.flush();
 
@@ -792,7 +653,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(45, terms.size());
+      Assert.assertEquals(19, terms.size());
 
       List<String> items = terms.stream()
           .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
@@ -800,9 +661,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
               + t.getValue().toString())
           .collect(Collectors.toList());
-
-      // Check the number of buckets
-      Assert.assertTrue(items.contains("dataset_1\u0000_\u00005|DB||1"));
 
       // Check all items but the ones in the LU, DT and TT column families
       Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FCNT|birthdate\0003|1"));
@@ -812,25 +670,12 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(items.contains("dataset_1\000?1*|FIDX|row_1\000id\0002|1"));
       Assert.assertTrue(items.contains("dataset_1\000??217*|FCNT|age\0002|1"));
       Assert.assertTrue(items.contains("dataset_1\000??217*|FIDX|row_1\000age\0002|1"));
-      Assert.assertTrue(items.contains("dataset_1\000age\0002|VIZ||ADM\000DATASET_1_AGE"));
-      Assert.assertTrue(items.contains("dataset_1\000age\0005|DB||1"));
-      Assert
-          .assertTrue(items.contains("dataset_1\000birthdate\0003|VIZ||ADM\0DATASET_1_BIRTHDATE"));
-      Assert.assertTrue(items.contains("dataset_1\000birthdate\0005|DB||1"));
       Assert.assertTrue(items.contains("dataset_1\000doe|FCNT|last_name\0001|1"));
       Assert.assertTrue(items.contains("dataset_1\000doe|FIDX|row_1\000last_name\0001|1"));
       Assert.assertTrue(items.contains("dataset_1\000eod|BCNT|last_name\0001|1"));
       Assert.assertTrue(items.contains("dataset_1\000eod|BIDX|row_1\000last_name\0001|1"));
-      Assert.assertTrue(
-          items.contains("dataset_1\000first_name\0001|VIZ||DATASET_1_FIRST_NAME\000ADM"));
-      Assert.assertTrue(items.contains("dataset_1\000first_name\0005|DB||1"));
-      Assert.assertTrue(items.contains("dataset_1\000id\0002|VIZ||DATASET_1_ID\000ADM"));
-      Assert.assertTrue(items.contains("dataset_1\000id\0005|DB||1"));
       Assert.assertTrue(items.contains("dataset_1\000john|FCNT|first_name\0001|1"));
       Assert.assertTrue(items.contains("dataset_1\000john|FIDX|row_1\000first_name\0001|1"));
-      Assert.assertTrue(
-          items.contains("dataset_1\000last_name\0001|VIZ||DATASET_1_LAST_NAME\000ADM"));
-      Assert.assertTrue(items.contains("dataset_1\000last_name\0005|DB||1"));
       Assert.assertTrue(items.contains("dataset_1\000nhoj|BCNT|first_name\0001|1"));
       Assert.assertTrue(items.contains("dataset_1\000nhoj|BIDX|row_1\000first_name\0001|1"));
 
@@ -855,10 +700,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore = newDataStore(auths);
 
     // Index
-    dataStore.beginIngest();
-
     Assert.assertTrue(dataStore.persist("dataset", "row_1", Data.json6()));
-    Assert.assertTrue(dataStore.endIngest("dataset"));
 
     dataStore.flush();
 
@@ -888,7 +730,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(57, terms.size());
+      Assert.assertEquals(26, terms.size());
 
       List<String> items = terms.stream()
           .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
@@ -896,9 +738,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
               + t.getValue().toString())
           .collect(Collectors.toList());
-
-      // Check the number of buckets
-      Assert.assertTrue(items.contains("dataset\u0000_\u00005|DB||1"));
 
       // Check id
       Assert.assertTrue(items.contains("dataset\000?1*|FCNT|id\0002|1"));
@@ -938,10 +777,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore = newDataStore(auths);
 
     // Index
-    dataStore.beginIngest();
-
     Assert.assertTrue(dataStore.persist("dataset", "row_1", Data.json4()));
-    Assert.assertTrue(dataStore.endIngest("dataset"));
 
     dataStore.flush();
 
@@ -971,7 +807,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(107, terms.size());
+      Assert.assertEquals(56, terms.size());
 
       List<String> items = terms.stream()
           .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
@@ -979,9 +815,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
               + t.getValue().toString())
           .collect(Collectors.toList());
-
-      // Check the number of buckets
-      Assert.assertTrue(items.contains("dataset\u0000_\u00005|DB||1"));
 
       // Check id
       Assert.assertTrue(items.contains("dataset\0000001|FCNT|id\0001|1"));
@@ -1030,10 +863,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore = newDataStore(auths);
 
     // Index
-    dataStore.beginIngest();
-
     Assert.assertTrue(dataStore.persist("dataset", "row_1", Data.json5()));
-    Assert.assertTrue(dataStore.endIngest("dataset"));
 
     dataStore.flush();
 
@@ -1052,7 +882,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       List<Map.Entry<Key, Value>> terms = new ArrayList<>();
       scanner.iterator().forEachRemaining(terms::add);
 
-      Assert.assertEquals(27, terms.size());
+      Assert.assertEquals(21, terms.size());
 
       List<String> items = terms.stream()
           .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
@@ -1060,9 +890,6 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
               + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
               + t.getValue().toString())
           .collect(Collectors.toList());
-
-      // Check the number of buckets
-      Assert.assertTrue(items.contains("dataset\u0000_\u00005|DB||1"));
 
       // Check hashes
       Assert.assertTrue(
@@ -1124,10 +951,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     DataStore dataStore = newDataStore(auths);
 
     // Index
-    dataStore.beginIngest();
-
     Assert.assertTrue(dataStore.persist("dataset", "row_1", Data.json5()));
-    Assert.assertTrue(dataStore.endIngest("dataset"));
 
     dataStore.flush();
 

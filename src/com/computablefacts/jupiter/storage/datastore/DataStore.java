@@ -30,7 +30,8 @@ import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
 import com.computablefacts.jupiter.storage.blobstore.BlobStore;
 import com.computablefacts.jupiter.storage.cache.Cache;
-import com.computablefacts.jupiter.storage.termstore.*;
+import com.computablefacts.jupiter.storage.termstore.Term;
+import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.google.common.annotations.Beta;
@@ -56,12 +57,6 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                             | Column Family   | Column Qualifier                  | Visibility                                  | Value
  * =================================+=================+===================================+=============================================+=================================
- *  <dataset>\0_\05                 | DB              | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
- *  <dataset>\0<field>\0<term_type> | DB              | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets_with_a_given_field
- *  <dataset>\0<field>\0<term_type> | DT              | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms_for_a_given_field
- *  <dataset>\0<field>\0<term_type> | LU              | (empty)                           | ADM|<dataset>_LU                            | last_update_in_utc
- *  <dataset>\0<field>\0<term_type> | TT              | (empty)                           | ADM|<dataset>_TT                            | top_k_terms
- *  <dataset>\0<field>\0<term_type> | VIZ             | (empty)                           | ADM|<dataset>_VIZ                           | viz1\0viz2\0...
  *  <dataset>\0<mret>               | BCNT            | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
  *  <dataset>\0<mret>               | BIDX            | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_of_term_in_bucket
  *  <dataset>\0<term>               | FCNT            | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
@@ -388,29 +383,6 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * This method should be called once, at the end of the ingest process.
-   *
-   * If the {@link #beginIngest()} and {@link #endIngest(String)} methods are called too often, the
-   * estimators may be heavily skewed towards a subset of the data.
-   */
-  public void beginIngest() {
-    termStore_.beginIngest();
-  }
-
-  /**
-   * This method should be called once, at the end of the ingest process.
-   *
-   * If the {@link #beginIngest()} and {@link #endIngest(String)} methods are called too often, the
-   * estimators may be heavily skewed towards a subset of the data.
-   *
-   * @param dataset the dataset.
-   * @return true if the write operations succeeded, false otherwise.
-   */
-  public boolean endIngest(String dataset) {
-    return termStore_.endIngest(dataset);
-  }
-
-  /**
    * Persist a single JSON object.
    *
    * @param dataset dataset.
@@ -458,99 +430,6 @@ final public class DataStore implements AutoCloseable {
   public boolean reindex(String dataset, String docId, Map<String, Object> json) {
     return persistJson(dataset, docId, JsonCodec.asString(json), key -> true,
         StringCodec::defaultTokenizer, false);
-  }
-
-  /**
-   * Get the visibility labels available for a given {@code field} (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset.
-   * @param field field.
-   * @return visibility labels. No particular order should be expected from the returned iterator.
-   */
-  public View<FieldLabels> fieldVisibilityLabels(Authorizations authorizations, String dataset,
-      String field) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return termStore_.fieldVisibilityLabels(authorizations, dataset,
-        field == null ? null : Sets.newHashSet(field));
-  }
-
-  /**
-   * Get the date of last of a given {@code field} (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset.
-   * @param field field.
-   * @return last update as an UTC timestamp. No particular order should be expected from the
-   *         returned iterator.
-   */
-  public View<FieldLastUpdate> fieldLastUpdate(Authorizations authorizations, String dataset,
-      String field) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return termStore_.fieldLastUpdate(authorizations, dataset,
-        field == null ? null : Sets.newHashSet(field));
-  }
-
-  /**
-   * Get the number of distinct terms for a given {@code field} (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset.
-   * @param field field.
-   * @return cardinality estimation. No particular order should be expected from the returned
-   *         iterator.
-   */
-  public View<FieldDistinctTerms> fieldCardinalityEstimationForTerms(Authorizations authorizations,
-      String dataset, String field) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return termStore_.fieldCardinalityEstimationForTerms(authorizations, dataset,
-        field == null ? null : Sets.newHashSet(field));
-  }
-
-  /**
-   * Get the number of distinct buckets for a given {@code field} (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset.
-   * @param field field.
-   * @return cardinality estimation. No particular order should be expected from the returned
-   *         iterator.
-   */
-  public View<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(
-      Authorizations authorizations, String dataset, String field) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return termStore_.fieldCardinalityEstimationForBuckets(authorizations, dataset,
-        field == null ? null : Sets.newHashSet(field));
-  }
-
-  /**
-   * Get the number of distinct buckets for a given {@code field} (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset.
-   * @param field field.
-   * @return top terms. No particular order should be expected from the returned iterator.
-   */
-  public View<FieldTopTerms> fieldTopTerms(Authorizations authorizations, String dataset,
-      String field) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    return termStore_.fieldTopTerms(authorizations, dataset,
-        field == null ? null : Sets.newHashSet(field));
   }
 
   /**
@@ -902,45 +781,6 @@ final public class DataStore implements AutoCloseable {
   }
 
   /**
-   * Return misc. infos about a given list of datasets.
-   *
-   * @param authorizations authorizations.
-   * @param datasets a list of datasets.
-   * @return {@link DataStoreInfos}.
-   */
-  public DataStoreInfos infos(Authorizations authorizations, Set<String> datasets) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(datasets, "datasets should not be null");
-
-    DataStoreInfos infos = new DataStoreInfos(name());
-
-    datasets.forEach(dataset -> {
-
-      fieldCardinalityEstimationForTerms(authorizations, dataset, null).forEachRemaining(dt -> infos
-          .addCardinalityEstimationForTerms(dataset, dt.field(), dt.type(), dt.estimate()));
-
-      fieldCardinalityEstimationForBuckets(authorizations, dataset, null)
-          .forEachRemaining(db -> infos.addCardinalityEstimationForBuckets(dataset, db.field(),
-              db.type(), db.estimate()));
-
-      fieldTopTerms(authorizations, dataset, null).forEachRemaining(tt -> {
-        infos.addTopTermsNoFalsePositives(dataset, tt.field(), tt.type(),
-            tt.topTermsNoFalsePositives());
-        infos.addTopTermsNoFalseNegatives(dataset, tt.field(), tt.type(),
-            tt.topTermsNoFalseNegatives());
-      });
-
-      fieldVisibilityLabels(authorizations, dataset, null).forEachRemaining(
-          l -> infos.addVisibilityLabels(dataset, l.field(), l.type(), l.termLabels()));
-
-      fieldLastUpdate(authorizations, dataset, null).forEachRemaining(
-          lu -> infos.addLastUpdate(dataset, lu.field(), lu.type(), lu.lastUpdate()));
-    });
-    return infos;
-  }
-
-  /**
    * Persist a single JSON object.
    *
    * @param dataset the dataset.
@@ -1045,17 +885,11 @@ final public class DataStore implements AutoCloseable {
     boolean isOk = true;
 
     for (Map.Entry<String, Multiset<Object>> field : fields.entrySet()) {
-
-      incrementBucketCount(dataset, field.getKey());
-
       for (Multiset.Entry<Object> term : field.getValue().entrySet()) {
         isOk =
             isOk && persistTerm(dataset, docId, field.getKey(), term.getElement(), term.getCount());
       }
     }
-
-    incrementBucketCount(dataset);
-
     return isOk;
   }
 
@@ -1071,18 +905,6 @@ final public class DataStore implements AutoCloseable {
 
   private boolean persistHash(String dataset, String docId, String field, Object value) {
     return hashProcessor_ == null || hashProcessor_.write(dataset, docId, field, value);
-  }
-
-  private void incrementBucketCount(String dataset) {
-    if (termProcessor_ != null) {
-      termProcessor_.incrementBucketCount(dataset);
-    }
-  }
-
-  private void incrementBucketCount(String dataset, String field) {
-    if (termProcessor_ != null) {
-      termProcessor_.incrementBucketCount(dataset, field);
-    }
   }
 
   private View<String> readHash(ScannerBase scanner, String dataset, String field, String hash) {

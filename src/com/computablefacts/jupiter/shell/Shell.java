@@ -427,8 +427,6 @@ public class Shell {
         }
       }
 
-      ds.beginIngest();
-
       View.of(f, true).index().forEachRemaining((line, breaker) -> {
 
         String row = line.getValue();
@@ -465,11 +463,6 @@ public class Shell {
           logger_.error(LogFormatter.create(true).message(e).formatError());
         }
       });
-
-      if (!ds.endIngest(dataset)) {
-        logger_.error(LogFormatter.create(true)
-            .message("An error occurred while ending the ingestion process.").formatError());
-      }
     }
 
     stopwatch.stop();
@@ -527,8 +520,6 @@ public class Shell {
         return false;
       }
 
-      ds.beginIngest();
-
       View<Blob<Value>> iterator = ds.jsons(authorizations, dataset, null);
 
       while (iterator.hasNext()) {
@@ -555,11 +546,6 @@ public class Shell {
               .message("Re-indexation of " + document.docId() + " failed").formatError());
           break;
         }
-      }
-
-      if (!ds.endIngest(dataset)) {
-        logger_.error(LogFormatter.create(true)
-            .message("An error occurred while ending the ingestion process.").formatError());
       }
     }
 

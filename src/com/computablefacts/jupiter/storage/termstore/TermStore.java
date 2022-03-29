@@ -4,7 +4,6 @@ import static com.computablefacts.jupiter.storage.Constants.NB_QUERY_THREADS;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
@@ -30,9 +29,7 @@ import com.computablefacts.jupiter.filters.WildcardFilter;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
 
@@ -50,12 +47,6 @@ import com.google.errorprone.annotations.Var;
  * <pre>
  *  Row                             | Column Family   | Column Qualifier                  | Visibility                                  | Value
  * =================================+=================+===================================+=============================================+=================================
- *  <dataset>\0_\05                 | DB              | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets
- *  <dataset>\0<field>\0<term_type> | DB              | (empty)                           | ADM|<dataset>_DB                            | #distinct_buckets_with_a_given_field
- *  <dataset>\0<field>\0<term_type> | DT              | (empty)                           | ADM|<dataset>_DT                            | #distinct_terms_for_a_given_field
- *  <dataset>\0<field>\0<term_type> | LU              | (empty)                           | ADM|<dataset>_LU                            | last_update_in_utc
- *  <dataset>\0<field>\0<term_type> | TT              | (empty)                           | ADM|<dataset>_TT                            | top_k_terms
- *  <dataset>\0<field>\0<term_type> | VIZ             | (empty)                           | ADM|<dataset>_VIZ                           | viz1\0viz2\0...
  *  <dataset>\0<mret>               | BCNT            | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
  *  <dataset>\0<mret>               | BIDX            | <bucket_id>\0<field>\0<term_type> | ADM|<dataset>_<field>|<dataset>_<bucket_id> | #occurrences_of_term_in_bucket
  *  <dataset>\0<term>               | FCNT            | <field>\0<term_type>              | ADM|<dataset>_<field>                       | #buckets_with_at_least_one_term_occurrence
@@ -69,11 +60,6 @@ import com.google.errorprone.annotations.Var;
 @CheckReturnValue
 final public class TermStore extends AbstractStorage {
 
-  public static final String DISTINCT_TERMS = "DT";
-  public static final String DISTINCT_BUCKETS = "DB";
-  public static final String TOP_TERMS = "TT";
-  public static final String VISIBILITY = "VIZ";
-  public static final String LAST_UPDATE = "LU";
   public static final String FORWARD_COUNT = "FCNT";
   public static final String FORWARD_INDEX = "FIDX";
   public static final String BACKWARD_COUNT = "BCNT";
@@ -85,12 +71,6 @@ final public class TermStore extends AbstractStorage {
   private static final int BUCKET_FIELD_FILTER_PRIORITY = 31;
 
   private static final Logger logger_ = LoggerFactory.getLogger(TermStore.class);
-
-  private Map<String, ThetaSketch> cardinalityEstimatorsForTerms_;
-  private Map<String, FieldDistinctBuckets> distinctBuckets_;
-  private Map<String, TopKSketch> topTerms_;
-  private Map<String, FieldLastUpdate> lastUpdate_;
-  private Map<String, FieldLabels> labels_;
 
   public TermStore(Configurations configurations, String name) {
     super(configurations, name);
@@ -210,8 +190,8 @@ final public class TermStore extends AbstractStorage {
       configurations().tableOperations().attachIterator(tableName(), setting);
 
       // Set locality groups
-      return addLocalityGroups(Sets.newHashSet(TOP_TERMS, DISTINCT_TERMS, DISTINCT_BUCKETS,
-          LAST_UPDATE, VISIBILITY, FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX));
+      return addLocalityGroups(
+          Sets.newHashSet(FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX));
 
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
@@ -231,8 +211,7 @@ final public class TermStore extends AbstractStorage {
       return false;
     }
 
-    Set<String> cfs = Sets.newHashSet(TOP_TERMS, DISTINCT_TERMS, DISTINCT_BUCKETS, LAST_UPDATE,
-        VISIBILITY, FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX);
+    Set<String> cfs = Sets.newHashSet(FORWARD_COUNT, FORWARD_INDEX, BACKWARD_COUNT, BACKWARD_INDEX);
 
     return addLocalityGroups(cfs);
   }
@@ -252,114 +231,6 @@ final public class TermStore extends AbstractStorage {
         begin.substring(0, begin.length() - 1) + (char) (begin.charAt(begin.length() - 1) + 1);
 
     return Tables.deleteRows(configurations().tableOperations(), tableName(), begin, end);
-  }
-
-  /**
-   * This method should be called once, at the beginning of the ingest process.
-   *
-   * If the {@link #beginIngest()} and {@link #endIngest(String)} methods are called too often, the
-   * estimators may be heavily skewed towards a subset of the data.
-   */
-  public void beginIngest() {
-    cardinalityEstimatorsForTerms_ = new HashMap<>();
-    distinctBuckets_ = new HashMap<>();
-    topTerms_ = new HashMap<>();
-    lastUpdate_ = new HashMap<>();
-    labels_ = new HashMap<>();
-  }
-
-  /**
-   * This method should be called once, at the end of the ingest process.
-   *
-   * If the {@link #beginIngest()} and {@link #endIngest(String)} methods are called too often, the
-   * estimators may be heavily skewed towards a subset of the data.
-   *
-   * @param dataset the dataset.
-   * @return true if the write operations succeeded, false otherwise.
-   */
-  @CanIgnoreReturnValue
-  public boolean endIngest(String dataset) {
-
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    try (BatchWriter writer = writer()) {
-      @Var
-      boolean isOk = true;
-
-      if (cardinalityEstimatorsForTerms_ != null) {
-        isOk =
-            cardinalityEstimatorsForTerms_
-                .entrySet().stream().allMatch(sketch -> add(writer, FieldDistinctTerms
-                    .newMutation(dataset, sketch.getKey(), sketch.getValue().toByteArray())))
-                && isOk;
-        cardinalityEstimatorsForTerms_ = null;
-      }
-      if (distinctBuckets_ != null) {
-        isOk = distinctBuckets_.entrySet().stream()
-            .allMatch(db -> add(writer,
-                FieldDistinctBuckets.newMutation(dataset, db.getKey(), db.getValue().estimate())))
-            && isOk;
-        distinctBuckets_ = null;
-      }
-      if (topTerms_ != null) {
-        isOk =
-            topTerms_
-                .entrySet().stream().allMatch(sketch -> add(writer, FieldTopTerms
-                    .newMutation(dataset, sketch.getKey(), sketch.getValue().toByteArray())))
-                && isOk;
-        topTerms_ = null;
-      }
-      if (labels_ != null) {
-        isOk =
-            labels_.values().stream()
-                .allMatch(fl -> add(writer,
-                    FieldLabels.newMutation(fl.dataset(), fl.field(), fl.type(), fl.labels())))
-                && isOk;
-        labels_ = null;
-      }
-      if (lastUpdate_ != null) {
-        isOk = lastUpdate_.values().stream().allMatch(
-            flu -> add(writer, FieldLastUpdate.newMutation(flu.dataset(), flu.field(), flu.type())))
-            && isOk;
-        lastUpdate_ = null;
-      }
-      return isOk;
-    } catch (MutationsRejectedException e) {
-      logger_.error(LogFormatter.create(true).message(e).formatError());
-    }
-    return false;
-  }
-
-  /**
-   * Update the number of distinct buckets.
-   *
-   * @param dataset the dataset.
-   */
-  public void incrementBucketCount(String dataset) {
-    incrementBucketCount(dataset, "_");
-  }
-
-  /**
-   * Update the number of distinct buckets containing a given field.
-   *
-   * @param dataset the dataset.
-   * @param field the field name.
-   */
-  public void incrementBucketCount(String dataset, String field) {
-
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(field, "field should not be null");
-
-    if (distinctBuckets_ == null) {
-      return;
-    }
-
-    String key = field + SEPARATOR_NUL + Term.TYPE_NA;
-
-    if (!distinctBuckets_.containsKey(key)) {
-      distinctBuckets_.put(key, new FieldDistinctBuckets(dataset, field, 0));
-    }
-    distinctBuckets_.get(key).update();
   }
 
   /**
@@ -414,51 +285,6 @@ final public class TermStore extends AbstractStorage {
       writeInForwardIndexOnly = true;
     }
 
-    // Compute the number of distinct terms
-    if (cardinalityEstimatorsForTerms_ != null) {
-
-      String key = field + SEPARATOR_NUL + newType;
-
-      if (!cardinalityEstimatorsForTerms_.containsKey(key)) {
-        cardinalityEstimatorsForTerms_.put(key, new ThetaSketch());
-      }
-      cardinalityEstimatorsForTerms_.get(key).offer(newTerm);
-    }
-
-    // Compute the top k terms
-    if (topTerms_ != null) {
-
-      String key = field + SEPARATOR_NUL + newType;
-
-      if (!topTerms_.containsKey(key)) {
-        topTerms_.put(key, new TopKSketch());
-      }
-      topTerms_.get(key).offer(term instanceof Number ? term.toString() : newTerm, nbOccurrences);
-    }
-
-    // Compute last update
-    if (lastUpdate_ != null) {
-
-      String key = field + SEPARATOR_NUL + newType;
-
-      if (!lastUpdate_.containsKey(key)) {
-        lastUpdate_.put(key, new FieldLastUpdate(dataset, field, newType, fieldSpecificLabels));
-      }
-      lastUpdate_.get(key).update();
-    }
-
-    // Compute visibility labels
-    if (labels_ != null) {
-
-      String key = field + SEPARATOR_NUL + newType;
-
-      if (!labels_.containsKey(key)) {
-        labels_.put(key, new FieldLabels(dataset, field, newType, fieldSpecificLabels));
-      } else {
-        labels_.get(key).update(fieldSpecificLabels);
-      }
-    }
-
     if (com.google.common.base.Strings.isNullOrEmpty(newTerm)) {
       logger_.warn(LogFormatter.create(true)
           .message(String.format(
@@ -484,186 +310,6 @@ final public class TermStore extends AbstractStorage {
           Sets.union(bucketSpecificLabels, fieldSpecificLabels));
     }
     return add(writer, mutations.values());
-  }
-
-  /**
-   * Get the visibility labels associated to each field (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset.
-   * @param fields fields (optional).
-   * @return visibility labels.
-   */
-  public View<FieldLabels> fieldVisibilityLabels(Authorizations authorizations, String dataset,
-      Set<String> fields) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    BatchScanner scanner =
-        batchScanner(compact(authorizations, dataset, VISIBILITY), NB_QUERY_THREADS);
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(VISIBILITY));
-
-    List<Range> ranges;
-
-    if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream()
-          .map(field -> Range.prefix(dataset + SEPARATOR_NUL + field + SEPARATOR_NUL))
-          .collect(Collectors.toList());
-    } else {
-      ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
-    }
-    if (!setRanges(scanner, ranges)) {
-      return View.of();
-    }
-    return new UnorderedView<>(scanner, s -> s.iterator())
-        .map(entry -> FieldLabels.fromKeyValue(entry.getKey(), entry.getValue()));
-  }
-
-  /**
-   * Get the date of last update associated to each field (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset.
-   * @param fields fields (optional).
-   * @return last update as an UTC timestamp.
-   */
-  public View<FieldLastUpdate> fieldLastUpdate(Authorizations authorizations, String dataset,
-      Set<String> fields) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    BatchScanner scanner =
-        batchScanner(compact(authorizations, dataset, LAST_UPDATE), NB_QUERY_THREADS);
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(LAST_UPDATE));
-
-    List<Range> ranges;
-
-    if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream()
-          .map(field -> Range.prefix(dataset + SEPARATOR_NUL + field + SEPARATOR_NUL))
-          .collect(Collectors.toList());
-    } else {
-      ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
-    }
-    if (!setRanges(scanner, ranges)) {
-      return View.of();
-    }
-    return new UnorderedView<>(scanner, s -> s.iterator())
-        .map(entry -> FieldLastUpdate.fromKeyValue(entry.getKey(), entry.getValue()));
-  }
-
-  /**
-   * Get the number of distinct terms in each field (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset.
-   * @param fields fields (optional).
-   * @return the number of distinct terms.
-   */
-  public View<FieldDistinctTerms> fieldCardinalityEstimationForTerms(Authorizations authorizations,
-      String dataset, Set<String> fields) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    BatchScanner scanner =
-        batchScanner(compact(authorizations, dataset, DISTINCT_TERMS), NB_QUERY_THREADS);
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(DISTINCT_TERMS));
-
-    List<Range> ranges;
-
-    if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream()
-          .map(field -> Range.prefix(dataset + SEPARATOR_NUL + field + SEPARATOR_NUL))
-          .collect(Collectors.toList());
-    } else {
-      ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
-    }
-    if (!setRanges(scanner, ranges)) {
-      return View.of();
-    }
-    return new UnorderedView<>(scanner, s -> s.iterator())
-        .map(entry -> FieldDistinctTerms.fromKeyValue(entry.getKey(), entry.getValue()));
-  }
-
-  /**
-   * Get the number of distinct buckets in each field (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset.
-   * @param fields fields (optional).
-   * @return the number of distinct buckets.
-   */
-  public View<FieldDistinctBuckets> fieldCardinalityEstimationForBuckets(
-      Authorizations authorizations, String dataset, Set<String> fields) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    BatchScanner scanner =
-        batchScanner(compact(authorizations, dataset, DISTINCT_BUCKETS), NB_QUERY_THREADS);
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(DISTINCT_BUCKETS));
-
-    List<Range> ranges;
-
-    if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream()
-          .map(field -> Range.prefix(dataset + SEPARATOR_NUL + field + SEPARATOR_NUL))
-          .collect(Collectors.toList());
-    } else {
-      ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
-    }
-    if (!setRanges(scanner, ranges)) {
-      return View.of();
-    }
-    return new UnorderedView<>(scanner, s -> s.iterator())
-        .map(entry -> FieldDistinctBuckets.fromKeyValue(entry.getKey(), entry.getValue()));
-  }
-
-  /**
-   * Get the most frequent terms in each field (unsorted).
-   *
-   * @param authorizations authorizations.
-   * @param dataset dataset.
-   * @param fields fields (optional).
-   * @return the number of distinct buckets.
-   */
-  public View<FieldTopTerms> fieldTopTerms(Authorizations authorizations, String dataset,
-      Set<String> fields) {
-
-    Preconditions.checkNotNull(authorizations, "authorizations should not be null");
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    BatchScanner scanner =
-        batchScanner(compact(authorizations, dataset, TOP_TERMS), NB_QUERY_THREADS);
-    scanner.clearColumns();
-    scanner.clearScanIterators();
-    scanner.fetchColumnFamily(new Text(TOP_TERMS));
-
-    List<Range> ranges;
-
-    if (fields != null && !fields.isEmpty()) {
-      ranges = fields.stream()
-          .map(field -> Range.prefix(dataset + SEPARATOR_NUL + field + SEPARATOR_NUL))
-          .collect(Collectors.toList());
-    } else {
-      ranges = Lists.newArrayList(Range.prefix(dataset + SEPARATOR_NUL));
-    }
-    if (!setRanges(scanner, ranges)) {
-      return View.of();
-    }
-    return new UnorderedView<>(scanner, s -> s.iterator())
-        .map(entry -> FieldTopTerms.fromKeyValue(entry.getKey(), entry.getValue()));
   }
 
   /**

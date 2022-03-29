@@ -1,7 +1,5 @@
 package com.computablefacts.jupiter.storage.termstore;
 
-import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -15,9 +13,7 @@ import com.computablefacts.jupiter.BloomFilters;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.MiniAccumuloClusterTest;
 import com.computablefacts.jupiter.MiniAccumuloClusterUtils;
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
 
@@ -33,30 +29,14 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     TermStore termStore = newTermStore(auths);
 
     try (BatchWriter writer = termStore.writer()) {
-
-      termStore.beginIngest();
-
       Assert.assertTrue(
           termStore.put(writer, dataset, bucketId, "first_name", "john", 1, labels, labels));
       Assert.assertTrue(
           termStore.put(writer, dataset, bucketId, "last_name", "doe", 1, labels, labels));
       Assert.assertTrue(termStore.put(writer, dataset, bucketId, "age", 37, 1, labels, labels));
-      Assert.assertTrue(termStore.endIngest(dataset));
     }
 
     // Check the index has been filled
-    @Var
-    List<FieldLabels> fieldLabels =
-        termStore.fieldVisibilityLabels(auths, dataset, Sets.newHashSet("first_name")).toList();
-
-    Assert.assertEquals(1, fieldLabels.size());
-
-    @Var
-    List<FieldLastUpdate> fieldLastUpdates =
-        termStore.fieldLastUpdate(auths, dataset, Sets.newHashSet("first_name")).toList();
-
-    Assert.assertEquals(1, fieldLastUpdates.size());
-
     @Var
     List<TermDistinctBuckets> termsCounts =
         termStore.termCardinalityEstimationForBuckets(auths, dataset, "john").toList();
@@ -72,16 +52,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(termStore.truncate());
 
     // Check the index is now empty
-    fieldLabels =
-        termStore.fieldVisibilityLabels(auths, dataset, Sets.newHashSet("first_name")).toList();
-
-    Assert.assertTrue(fieldLabels.isEmpty());
-
-    fieldLastUpdates =
-        termStore.fieldLastUpdate(auths, dataset, Sets.newHashSet("first_name")).toList();
-
-    Assert.assertTrue(fieldLastUpdates.isEmpty());
-
     termsCounts = termStore.termCardinalityEstimationForBuckets(auths, dataset, "john").toList();
 
     Assert.assertTrue(termsCounts.isEmpty());
@@ -101,40 +71,21 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     try (BatchWriter writer = termStore.writer()) {
 
-      termStore.beginIngest();
-
       Assert.assertTrue(
           termStore.put(writer, "dataset_1", bucketId, "first_name", "john", 1, labels, labels));
       Assert.assertTrue(
           termStore.put(writer, "dataset_1", bucketId, "last_name", "doe", 1, labels, labels));
       Assert.assertTrue(termStore.put(writer, "dataset_1", bucketId, "age", 37, 1, labels, labels));
 
-      Assert.assertTrue(termStore.endIngest("dataset_1"));
-      termStore.beginIngest();
-
       Assert.assertTrue(
           termStore.put(writer, "dataset_2", bucketId, "first_name", "john", 1, labels, labels));
       Assert.assertTrue(
           termStore.put(writer, "dataset_2", bucketId, "last_name", "doe", 1, labels, labels));
       Assert.assertTrue(termStore.put(writer, "dataset_2", bucketId, "age", 37, 1, labels, labels));
-
-      Assert.assertTrue(termStore.endIngest("dataset_2"));
     }
 
     // Check the index has been filled
     // Check first dataset
-    @Var
-    List<FieldLabels> fieldLabels =
-        termStore.fieldVisibilityLabels(auths, "dataset_1", Sets.newHashSet("first_name")).toList();
-
-    Assert.assertEquals(1, fieldLabels.size());
-
-    @Var
-    List<FieldLastUpdate> fieldLastUpdates =
-        termStore.fieldLastUpdate(auths, "dataset_1", Sets.newHashSet("first_name")).toList();
-
-    Assert.assertEquals(1, fieldLastUpdates.size());
-
     @Var
     List<TermDistinctBuckets> termsCounts =
         termStore.termCardinalityEstimationForBuckets(auths, "dataset_1", "john").toList();
@@ -147,16 +98,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals(1, terms.size());
 
     // Check second dataset
-    fieldLabels =
-        termStore.fieldVisibilityLabels(auths, "dataset_2", Sets.newHashSet("first_name")).toList();
-
-    Assert.assertEquals(1, fieldLabels.size());
-
-    fieldLastUpdates =
-        termStore.fieldLastUpdate(auths, "dataset_2", Sets.newHashSet("first_name")).toList();
-
-    Assert.assertEquals(1, fieldLastUpdates.size());
-
     termsCounts =
         termStore.termCardinalityEstimationForBuckets(auths, "dataset_2", "john").toList();
 
@@ -171,16 +112,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
 
     // Check the index has been updated
     // First dataset has been removed
-    fieldLabels =
-        termStore.fieldVisibilityLabels(auths, "dataset_1", Sets.newHashSet("first_name")).toList();
-
-    Assert.assertTrue(fieldLabels.isEmpty());
-
-    fieldLastUpdates =
-        termStore.fieldLastUpdate(auths, "dataset_1", Sets.newHashSet("first_name")).toList();
-
-    Assert.assertTrue(fieldLastUpdates.isEmpty());
-
     termsCounts =
         termStore.termCardinalityEstimationForBuckets(auths, "dataset_1", "john").toList();
 
@@ -191,16 +122,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(terms.isEmpty());
 
     // Second dataset is always present
-    fieldLabels =
-        termStore.fieldVisibilityLabels(auths, "dataset_2", Sets.newHashSet("first_name")).toList();
-
-    Assert.assertEquals(1, fieldLabels.size());
-
-    fieldLastUpdates =
-        termStore.fieldLastUpdate(auths, "dataset_2", Sets.newHashSet("first_name")).toList();
-
-    Assert.assertEquals(1, fieldLastUpdates.size());
-
     termsCounts =
         termStore.termCardinalityEstimationForBuckets(auths, "dataset_2", "john").toList();
 
@@ -721,238 +642,6 @@ public class TermStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("first_name", bucketsIds.get(0).field());
     Assert.assertEquals("jane", bucketsIds.get(0).term());
     Assert.assertEquals(1, bucketsIds.get(0).count());
-  }
-
-  @Test
-  public void testSketches() throws Exception {
-
-    String dataset = "terms";
-    Set<String> labels = Sets.newHashSet();
-    TermStore termStore = newTermStore(AUTH_ADM);
-
-    try (BatchWriter writer = termStore.writer()) {
-
-      termStore.beginIngest();
-
-      for (int i = 0; i < 5; i++) {
-
-        String bucketId = "a" + i;
-
-        Assert.assertTrue(
-            termStore.put(writer, dataset, bucketId, "first_name", "john", 1, labels, labels));
-
-        termStore.incrementBucketCount(dataset, "first_name");
-
-        Assert.assertTrue(
-            termStore.put(writer, dataset, bucketId, "last_name", "doe", 1, labels, labels));
-
-        termStore.incrementBucketCount(dataset, "last_name");
-
-        Assert.assertTrue(termStore.put(writer, dataset, bucketId, "age", 37, 1, labels, labels));
-
-        termStore.incrementBucketCount(dataset, "age");
-      }
-
-      Assert.assertTrue(termStore.endIngest(dataset));
-    }
-
-    // Check distinct terms
-    @Var
-    List<FieldDistinctTerms> distinctTerms =
-        termStore.fieldCardinalityEstimationForTerms(AUTH_ADM, dataset, null).toList();
-
-    Assert.assertEquals(3, distinctTerms.size());
-
-    Assert.assertEquals(dataset, distinctTerms.get(0).dataset());
-    Assert.assertEquals("age", distinctTerms.get(0).field());
-    Assert.assertEquals(Term.TYPE_NUMBER, distinctTerms.get(0).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(0).labels());
-    Assert.assertEquals(1.0, distinctTerms.get(0).estimate(), 0.0000001);
-
-    Assert.assertEquals(dataset, distinctTerms.get(1).dataset());
-    Assert.assertEquals("first_name", distinctTerms.get(1).field());
-    Assert.assertEquals(Term.TYPE_STRING, distinctTerms.get(1).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(1).labels());
-    Assert.assertEquals(1.0, distinctTerms.get(1).estimate(), 0.0000001);
-
-    Assert.assertEquals(dataset, distinctTerms.get(2).dataset());
-    Assert.assertEquals("last_name", distinctTerms.get(2).field());
-    Assert.assertEquals(Term.TYPE_STRING, distinctTerms.get(2).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(2).labels());
-    Assert.assertEquals(1.0, distinctTerms.get(2).estimate(), 0.0000001);
-
-    // Check distinct buckets
-    @Var
-    List<FieldDistinctBuckets> distinctBuckets =
-        termStore.fieldCardinalityEstimationForBuckets(AUTH_ADM, dataset, null).toList();
-
-    Assert.assertEquals(3, distinctBuckets.size());
-
-    Assert.assertEquals(dataset, distinctBuckets.get(0).dataset());
-    Assert.assertEquals("age", distinctBuckets.get(0).field());
-    Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(0).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(0).labels());
-    Assert.assertEquals(5, distinctBuckets.get(0).estimate());
-
-    Assert.assertEquals(dataset, distinctBuckets.get(1).dataset());
-    Assert.assertEquals("first_name", distinctBuckets.get(1).field());
-    Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(1).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(1).labels());
-    Assert.assertEquals(5, distinctBuckets.get(1).estimate());
-
-    Assert.assertEquals(dataset, distinctBuckets.get(2).dataset());
-    Assert.assertEquals("last_name", distinctBuckets.get(2).field());
-    Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(2).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(2).labels());
-    Assert.assertEquals(5, distinctBuckets.get(2).estimate());
-
-    // Test top terms
-    @Var
-    List<FieldTopTerms> topTerms = termStore.fieldTopTerms(AUTH_ADM, dataset, null).toList();
-
-    Assert.assertEquals(3, topTerms.size());
-
-    @Var
-    Multiset<String> multiset = HashMultiset.create();
-    multiset.add("37", 5);
-
-    Assert.assertEquals(dataset, topTerms.get(0).dataset());
-    Assert.assertEquals("age", topTerms.get(0).field());
-    Assert.assertEquals(Term.TYPE_NUMBER, topTerms.get(0).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(0).labels());
-    Assert.assertEquals(multiset, topTerms.get(0).topTermsNoFalsePositives());
-    Assert.assertEquals(multiset, topTerms.get(0).topTermsNoFalseNegatives());
-
-    multiset.clear();
-    multiset.add("john", 5);
-
-    Assert.assertEquals(dataset, topTerms.get(1).dataset());
-    Assert.assertEquals("first_name", topTerms.get(1).field());
-    Assert.assertEquals(Term.TYPE_STRING, topTerms.get(1).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(1).labels());
-    Assert.assertEquals(multiset, topTerms.get(1).topTermsNoFalsePositives());
-    Assert.assertEquals(multiset, topTerms.get(1).topTermsNoFalseNegatives());
-
-    multiset.clear();
-    multiset.add("doe", 5);
-
-    Assert.assertEquals(dataset, topTerms.get(2).dataset());
-    Assert.assertEquals("last_name", topTerms.get(2).field());
-    Assert.assertEquals(Term.TYPE_STRING, topTerms.get(2).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(2).labels());
-    Assert.assertEquals(multiset, topTerms.get(2).topTermsNoFalsePositives());
-    Assert.assertEquals(multiset, topTerms.get(2).topTermsNoFalseNegatives());
-
-    // Add more entries to the store and ensure distinct counts and top terms are updated
-    try (BatchWriter writer = termStore.writer()) {
-
-      termStore.beginIngest();
-
-      for (int i = 0; i < 5; i++) {
-
-        String bucketId = "b" + i;
-
-        Assert.assertTrue(
-            termStore.put(writer, dataset, bucketId, "first_name", "jane", 1, labels, labels));
-
-        termStore.incrementBucketCount(dataset, "first_name");
-
-        Assert.assertTrue(
-            termStore.put(writer, dataset, bucketId, "last_name", "doe", 1, labels, labels));
-
-        termStore.incrementBucketCount(dataset, "last_name");
-
-        Assert.assertTrue(termStore.put(writer, dataset, bucketId, "age", 27, 1, labels, labels));
-
-        termStore.incrementBucketCount(dataset, "age");
-      }
-
-      Assert.assertTrue(termStore.endIngest(dataset));
-    }
-
-    // Check distinct terms
-    distinctTerms = termStore.fieldCardinalityEstimationForTerms(AUTH_ADM, dataset, null).toList();
-
-    Assert.assertEquals(3, distinctTerms.size());
-
-    Assert.assertEquals(dataset, distinctTerms.get(0).dataset());
-    Assert.assertEquals("age", distinctTerms.get(0).field());
-    Assert.assertEquals(Term.TYPE_NUMBER, distinctTerms.get(0).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(0).labels());
-    Assert.assertEquals(2.0, distinctTerms.get(0).estimate(), 0.0000001);
-
-    Assert.assertEquals(dataset, distinctTerms.get(1).dataset());
-    Assert.assertEquals("first_name", distinctTerms.get(1).field());
-    Assert.assertEquals(Term.TYPE_STRING, distinctTerms.get(1).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(1).labels());
-    Assert.assertEquals(2.0, distinctTerms.get(1).estimate(), 0.0000001);
-
-    Assert.assertEquals(dataset, distinctTerms.get(2).dataset());
-    Assert.assertEquals("last_name", distinctTerms.get(2).field());
-    Assert.assertEquals(Term.TYPE_STRING, distinctTerms.get(2).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DT"), distinctTerms.get(2).labels());
-    Assert.assertEquals(1.0, distinctTerms.get(2).estimate(), 0.0000001);
-
-    // Check distinct buckets
-    distinctBuckets =
-        termStore.fieldCardinalityEstimationForBuckets(AUTH_ADM, dataset, null).toList();
-
-    Assert.assertEquals(3, distinctBuckets.size());
-
-    Assert.assertEquals(dataset, distinctBuckets.get(0).dataset());
-    Assert.assertEquals("age", distinctBuckets.get(0).field());
-    Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(0).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(0).labels());
-    Assert.assertEquals(10, distinctBuckets.get(0).estimate());
-
-    Assert.assertEquals(dataset, distinctBuckets.get(1).dataset());
-    Assert.assertEquals("first_name", distinctBuckets.get(1).field());
-    Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(1).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(1).labels());
-    Assert.assertEquals(10, distinctBuckets.get(1).estimate());
-
-    Assert.assertEquals(dataset, distinctBuckets.get(2).dataset());
-    Assert.assertEquals("last_name", distinctBuckets.get(2).field());
-    Assert.assertEquals(Term.TYPE_NA, distinctBuckets.get(2).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_DB"), distinctBuckets.get(2).labels());
-    Assert.assertEquals(10, distinctBuckets.get(2).estimate());
-
-    // Check top terms
-    topTerms = termStore.fieldTopTerms(AUTH_ADM, dataset, null).toList();
-
-    Assert.assertEquals(3, topTerms.size());
-
-    multiset = HashMultiset.create();
-    multiset.add("37", 5);
-    multiset.add("27", 5);
-
-    Assert.assertEquals(dataset, topTerms.get(0).dataset());
-    Assert.assertEquals("age", topTerms.get(0).field());
-    Assert.assertEquals(Term.TYPE_NUMBER, topTerms.get(0).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(0).labels());
-    Assert.assertEquals(multiset, topTerms.get(0).topTermsNoFalsePositives());
-    Assert.assertEquals(multiset, topTerms.get(0).topTermsNoFalseNegatives());
-
-    multiset.clear();
-    multiset.add("john", 5);
-    multiset.add("jane", 5);
-
-    Assert.assertEquals(dataset, topTerms.get(1).dataset());
-    Assert.assertEquals("first_name", topTerms.get(1).field());
-    Assert.assertEquals(Term.TYPE_STRING, topTerms.get(1).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(1).labels());
-    Assert.assertEquals(multiset, topTerms.get(1).topTermsNoFalsePositives());
-    Assert.assertEquals(multiset, topTerms.get(1).topTermsNoFalseNegatives());
-
-    multiset.clear();
-    multiset.add("doe", 10);
-
-    Assert.assertEquals(dataset, topTerms.get(2).dataset());
-    Assert.assertEquals("last_name", topTerms.get(2).field());
-    Assert.assertEquals(Term.TYPE_STRING, topTerms.get(2).type());
-    Assert.assertEquals(Sets.newHashSet("ADM", "TERMS_TT"), topTerms.get(2).labels());
-    Assert.assertEquals(multiset, topTerms.get(2).topTermsNoFalsePositives());
-    Assert.assertEquals(multiset, topTerms.get(2).topTermsNoFalseNegatives());
   }
 
   @Test

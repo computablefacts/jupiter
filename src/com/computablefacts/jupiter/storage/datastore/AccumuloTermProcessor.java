@@ -49,23 +49,6 @@ public final class AccumuloTermProcessor extends AbstractTermProcessor {
   }
 
   @Override
-  public void incrementBucketCount(String dataset) {
-
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-
-    termStore_.incrementBucketCount(dataset);
-  }
-
-  @Override
-  public void incrementBucketCount(String dataset, String field) {
-
-    Preconditions.checkNotNull(dataset, "dataset should not be null");
-    Preconditions.checkNotNull(field, "field should not be null");
-
-    termStore_.incrementBucketCount(dataset, field);
-  }
-
-  @Override
   public boolean write(String dataset, String docId, String field, Object term,
       int nbOccurrencesInDoc) {
 
