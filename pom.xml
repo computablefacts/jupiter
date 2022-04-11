@@ -39,8 +39,7 @@
     </developers>
 
     <properties>
-        <asterix.version>0.7</asterix.version>
-        <logfmt.version>0.14</logfmt.version>
+        <asterix.version>0.8</asterix.version>
         <datasketches.version>2.0.0</datasketches.version>
         <guava.version>29.0-jre</guava.version>
         <accumulo.version>1.10.1</accumulo.version>
@@ -71,11 +70,6 @@
             <groupId>com.computablefacts</groupId>
             <artifactId>asterix</artifactId>
             <version>${asterix.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.computablefacts</groupId>
-            <artifactId>logfmt</artifactId>
-            <version>${logfmt.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.datasketches</groupId>
