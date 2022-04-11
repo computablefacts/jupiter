@@ -40,7 +40,6 @@
 
     <properties>
         <asterix.version>0.8</asterix.version>
-        <datasketches.version>2.0.0</datasketches.version>
         <guava.version>29.0-jre</guava.version>
         <accumulo.version>1.10.1</accumulo.version>
         <zookeeper.version>3.4.14</zookeeper.version>
@@ -70,11 +69,6 @@
             <groupId>com.computablefacts</groupId>
             <artifactId>asterix</artifactId>
             <version>${asterix.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.datasketches</groupId>
-            <artifactId>datasketches-java</artifactId>
-            <version>${datasketches.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.accumulo</groupId>
