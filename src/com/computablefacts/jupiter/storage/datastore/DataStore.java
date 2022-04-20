@@ -804,6 +804,9 @@ final public class DataStore implements AutoCloseable {
         return false;
       }
     }
+    if (termProcessor_ == null && hashProcessor_ == null) {
+      return true;
+    }
 
     Map<String, Multiset<Object>> fields = new HashMap<>();
     Map<String, Object> newJson =
