@@ -1,10 +1,8 @@
 package com.computablefacts.jupiter;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 
 @CheckReturnValue
 public class MiniAccumuloClusterTest {

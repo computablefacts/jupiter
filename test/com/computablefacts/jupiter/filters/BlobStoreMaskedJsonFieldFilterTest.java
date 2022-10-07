@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -69,8 +68,8 @@ public class BlobStoreMaskedJsonFieldFilterTest {
     Assert.assertTrue(jsons.contains("{\"name\":\"Robert Downey Jr.\",\"age\":73}"));
   }
 
-  private BlobStoreMaskedJsonFieldFilter iterator(String key1, String value1, String key2,
-      String value2) throws IOException {
+  private BlobStoreMaskedJsonFieldFilter iterator(String key1, String value1, String key2, String value2)
+      throws IOException {
 
     BlobStoreMaskedJsonFieldFilter iterator = new BlobStoreMaskedJsonFieldFilter();
     IteratorSetting setting = new IteratorSetting(1, BlobStoreMaskedJsonFieldFilter.class);
@@ -94,10 +93,8 @@ public class BlobStoreMaskedJsonFieldFilterTest {
 
     SortedMap<Key, Value> map = new TreeMap<>();
 
-    map.put(new Key("PERSONS\0T1", "JSO", "", 0),
-        new Value("{\"name\":\"Tom Cruise\",\"age\":56}"));
-    map.put(new Key("PERSONS\0T2", "JSO", "", 0),
-        new Value("{\"name\":\"Robert Downey Jr.\",\"age\":73}"));
+    map.put(new Key("PERSONS\0T1", "JSO", "", 0), new Value("{\"name\":\"Tom Cruise\",\"age\":56}"));
+    map.put(new Key("PERSONS\0T2", "JSO", "", 0), new Value("{\"name\":\"Robert Downey Jr.\",\"age\":73}"));
     map.put(new Key("PERSONS\0T3", "JSO", "", 0), new Value("{}"));
 
     return map;

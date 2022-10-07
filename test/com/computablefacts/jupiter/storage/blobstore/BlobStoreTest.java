@@ -1,20 +1,5 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
-import java.io.File;
-import java.security.SecureRandom;
-import java.time.Instant;
-import java.util.AbstractMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.math3.stat.inference.ChiSquareTest;
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.computablefacts.asterix.RandomString;
 import com.computablefacts.asterix.codecs.JsonCodec;
 import com.computablefacts.jupiter.Configurations;
@@ -25,14 +10,26 @@ import com.computablefacts.jupiter.storage.Constants;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
+import java.io.File;
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.util.AbstractMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.math3.stat.inference.ChiSquareTest;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class BlobStoreTest extends MiniAccumuloClusterTest {
 
   @Test
   public void testArrayShard() {
 
-    RandomString ticketsGenerator =
-        new RandomString(5, new SecureRandom(), RandomString.digits + RandomString.lower);
+    RandomString ticketsGenerator = new RandomString(5, new SecureRandom(), RandomString.digits + RandomString.lower);
 
     for (int i = 0; i < 1000 /* how many times the test should be run */; i++) {
 
@@ -43,8 +40,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       }
 
       for (int k = 0; k < 100 /* MAX_NUMBER_OF_SHARDS */; k++) {
-        String key =
-            ticketsGenerator.nextString() + Constants.SEPARATOR_PIPE + Instant.now().toString();
+        String key = ticketsGenerator.nextString() + Constants.SEPARATOR_PIPE + Instant.now().toString();
         String shard = BlobStore.arrayShard(key);
         table[1][Integer.parseInt(shard.substring("ARR".length()), 10)]++;
       }
@@ -82,8 +78,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertTrue(blobStore.removeDataset(dataset));
 
-    @Var
-    List<Blob<Value>> blobs = blobStore.files(auths, dataset, null, null).toList();
+    @Var List<Blob<Value>> blobs = blobStore.files(auths, dataset, null, null).toList();
 
     Assert.assertTrue(blobs.isEmpty());
 
@@ -110,8 +105,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.putFile(writer, dataset, bucketId, labels, file));
     }
 
-    List<Blob<Value>> blobs =
-        blobStore.filesSortedByKey(auths, dataset, Sets.newHashSet(bucketId), null).toList();
+    List<Blob<Value>> blobs = blobStore.filesSortedByKey(auths, dataset, Sets.newHashSet(bucketId), null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -132,8 +126,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.putString(writer, dataset, bucketId, labels, str));
     }
 
-    List<Blob<Value>> blobs =
-        blobStore.stringsSortedByKey(auths, dataset, Sets.newHashSet(bucketId), null).toList();
+    List<Blob<Value>> blobs = blobStore.stringsSortedByKey(auths, dataset, Sets.newHashSet(bucketId), null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -154,8 +147,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.putJson(writer, dataset, bucketId, labels, json));
     }
 
-    List<Blob<Value>> blobs =
-        blobStore.jsonsSortedByKey(auths, dataset, Sets.newHashSet(bucketId), null).toList();
+    List<Blob<Value>> blobs = blobStore.jsonsSortedByKey(auths, dataset, Sets.newHashSet(bucketId), null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -180,9 +172,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.putJson(writer, dataset, "3", labels, json));
     }
 
-    @Var
-    List<Blob<Value>> blobs =
-        blobStore.jsons(auths, dataset, Sets.newHashSet("1", "3"), null).toList();
+    @Var List<Blob<Value>> blobs = blobStore.jsons(auths, dataset, Sets.newHashSet("1", "3"), null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -217,8 +207,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.putJson(writer, dataset, "3", labels, json));
     }
 
-    @Var
-    List<Blob<Value>> blobs = blobStore.jsons(auths, dataset, null, null).toList();
+    @Var List<Blob<Value>> blobs = blobStore.jsons(auths, dataset, null, null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -252,8 +241,8 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.putJson(writer, dataset, key, labels, json));
     }
 
-    List<Blob<Value>> blobs = blobStore.jsons(new Authorizations("ADM", "BLOBS_RAW_DATA"), dataset,
-        null, Sets.newHashSet("Actors[*]¤name", "Actors[*]¤age")).toList();
+    List<Blob<Value>> blobs = blobStore.jsons(new Authorizations("ADM", "BLOBS_RAW_DATA"), dataset, null,
+        Sets.newHashSet("Actors[*]¤name", "Actors[*]¤age")).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -265,7 +254,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals(Sets.newHashSet("ADM", "BLOBS_RAW_DATA"), blob.labels());
     Assert.assertEquals(Lists.newArrayList(), blob.properties());
     Assert.assertEquals(JsonCodec.asObject(
-        "{\"Actors\":[{\"name\":\"Tom Cruise\",\"age\":56},{\"name\":\"Robert Downey Jr.\",\"age\":73}]}"),
+            "{\"Actors\":[{\"name\":\"Tom Cruise\",\"age\":56},{\"name\":\"Robert Downey Jr.\",\"age\":73}]}"),
         JsonCodec.asObject(blob.value().toString()));
   }
 
@@ -284,8 +273,8 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.putJson(writer, dataset, key, labels, json));
     }
 
-    List<Blob<Value>> blobs = blobStore
-        .jsons(new Authorizations("ADM", "BLOBS_ACTORS_NAME"), dataset, null, null).toList();
+    List<Blob<Value>> blobs = blobStore.jsons(new Authorizations("ADM", "BLOBS_ACTORS_NAME"), dataset, null, null)
+        .toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -297,7 +286,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals(Sets.newHashSet("ADM", "BLOBS_RAW_DATA"), blob.labels());
     Assert.assertEquals(Lists.newArrayList(), blob.properties());
     Assert.assertEquals(JsonCodec.asObject(
-        "{\"Actors\":[{\"photo\":\"MASKED_563c13a31f5931533db40a912a41b5d9\", \"weight\":\"MASKED_4103e8509cbdf6b3372222061bbe1da6\", \"Birthdate\":\"MASKED_d7646b9ba6826d72e61c7bcff956d8cc\", \"children\":[\"MASKED_0e7c75229e51ea2fe77dc9700584d7a9\", \"MASKED_117c53a952a95ad97ec56b47eb90e961\", \"MASKED_ee47baa57443c38425f3a5cadcdcdd53\"], \"wife\":\"MASKED_00000000000000000000000000000000\", \"hasChildren\":\"MASKED_5db32d6ecc1f5ef816ebe6268a3343c2\", \"name\":\"Tom Cruise\", \"age\":\"MASKED_0552cbaa70e872fd23b6bb12a808f8ec\", \"hasGreyHair\":\"MASKED_e495b7e5056dbfc4e854950696d4c3cc\", \"Born At\":\"MASKED_63091514f7bd5d66ca9712d54a348004\", \"uuid\":\"MASKED_279eb7ef59306bba9ea28f4d55bebc2a\"}, {\"Birthdate\":\"MASKED_2077f9af8388b86889a3cc8be63cfa90\", \"wife\":\"MASKED_b0c0dc7f2f6d36ab282f8b2a4a0fa5c7\", \"weight\":\"MASKED_0e13006e4837c9e38fa953851c92feec\", \"photo\":\"MASKED_2a6cddab26138fe42174505d416bfd6f\", \"Born At\":\"MASKED_a88ac179dc9144029a8292a75e1c298c\", \"children\":[\"MASKED_2fabdc904c6fa394ba1a3ae0331011eb\", \"MASKED_7d0caf4910b779d7ac1fce0af089939b\", \"MASKED_f8da0993fdca133f8a3cf6ee44e11087\"], \"hasChildren\":\"MASKED_5db32d6ecc1f5ef816ebe6268a3343c2\", \"hasGreyHair\":\"MASKED_e495b7e5056dbfc4e854950696d4c3cc\", \"age\":\"MASKED_3974c437d717863985a0b5618f289b46\", \"uuid\":\"MASKED_715931ea5ce0f15e1a0a2afad3ef4a52\", \"name\":\"Robert Downey Jr.\"}], \"uuid\":\"MASKED_717c7b8afebbfb7137f6f0f99beb2a94\"}"),
+            "{\"Actors\":[{\"photo\":\"MASKED_563c13a31f5931533db40a912a41b5d9\", \"weight\":\"MASKED_4103e8509cbdf6b3372222061bbe1da6\", \"Birthdate\":\"MASKED_d7646b9ba6826d72e61c7bcff956d8cc\", \"children\":[\"MASKED_0e7c75229e51ea2fe77dc9700584d7a9\", \"MASKED_117c53a952a95ad97ec56b47eb90e961\", \"MASKED_ee47baa57443c38425f3a5cadcdcdd53\"], \"wife\":\"MASKED_00000000000000000000000000000000\", \"hasChildren\":\"MASKED_5db32d6ecc1f5ef816ebe6268a3343c2\", \"name\":\"Tom Cruise\", \"age\":\"MASKED_0552cbaa70e872fd23b6bb12a808f8ec\", \"hasGreyHair\":\"MASKED_e495b7e5056dbfc4e854950696d4c3cc\", \"Born At\":\"MASKED_63091514f7bd5d66ca9712d54a348004\", \"uuid\":\"MASKED_279eb7ef59306bba9ea28f4d55bebc2a\"}, {\"Birthdate\":\"MASKED_2077f9af8388b86889a3cc8be63cfa90\", \"wife\":\"MASKED_b0c0dc7f2f6d36ab282f8b2a4a0fa5c7\", \"weight\":\"MASKED_0e13006e4837c9e38fa953851c92feec\", \"photo\":\"MASKED_2a6cddab26138fe42174505d416bfd6f\", \"Born At\":\"MASKED_a88ac179dc9144029a8292a75e1c298c\", \"children\":[\"MASKED_2fabdc904c6fa394ba1a3ae0331011eb\", \"MASKED_7d0caf4910b779d7ac1fce0af089939b\", \"MASKED_f8da0993fdca133f8a3cf6ee44e11087\"], \"hasChildren\":\"MASKED_5db32d6ecc1f5ef816ebe6268a3343c2\", \"hasGreyHair\":\"MASKED_e495b7e5056dbfc4e854950696d4c3cc\", \"age\":\"MASKED_3974c437d717863985a0b5618f289b46\", \"uuid\":\"MASKED_715931ea5ce0f15e1a0a2afad3ef4a52\", \"name\":\"Robert Downey Jr.\"}], \"uuid\":\"MASKED_717c7b8afebbfb7137f6f0f99beb2a94\"}"),
         JsonCodec.asObject(blob.value().toString()));
   }
 
@@ -316,8 +305,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(blobStore.putString(writer, dataset, key, labels, str));
     }
 
-    List<Blob<Value>> blobs =
-        blobStore.strings(new Authorizations("ADM"), dataset, null, null).toList();
+    List<Blob<Value>> blobs = blobStore.strings(new Authorizations("ADM"), dataset, null, null).toList();
 
     Assert.assertEquals(1, blobs.size());
 
@@ -348,18 +336,14 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
 
     Authorizations authorizations = new Authorizations("ADM", "BLOBS_ACTORS_NAME");
 
-    @Var
-    List<Blob<Value>> blobs = blobStore.jsons(authorizations, dataset, null, null,
-        Sets.newHashSet(new AbstractMap.SimpleEntry<>("Actors[*]¤weight",
-            "MASKED_4103e8509cbdf6b3372222061bbe1da6")))
+    @Var List<Blob<Value>> blobs = blobStore.jsons(authorizations, dataset, null, null,
+            Sets.newHashSet(new AbstractMap.SimpleEntry<>("Actors[*]¤weight", "MASKED_4103e8509cbdf6b3372222061bbe1da6")))
         .toList();
 
     Assert.assertEquals(1, blobs.size());
 
-    blobs = blobStore
-        .jsons(authorizations, dataset, null, null,
-            Sets.newHashSet(new AbstractMap.SimpleEntry<>("Actors[*]¤name", "Tom Cruise")))
-        .toList();
+    blobs = blobStore.jsons(authorizations, dataset, null, null,
+        Sets.newHashSet(new AbstractMap.SimpleEntry<>("Actors[*]¤name", "Tom Cruise"))).toList();
 
     Assert.assertEquals(1, blobs.size());
   }
@@ -389,7 +373,7 @@ public class BlobStoreTest extends MiniAccumuloClusterTest {
     Assert.assertEquals("1", blob.key());
     Assert.assertEquals(Sets.newHashSet("ADM", "BLOBS_RAW_FILE"), blob.labels());
     Assert.assertEquals(Lists.newArrayList(file.getName(), "10"), blob.properties());
-    Assert.assertEquals(new Value(new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), blob.value());
+    Assert.assertEquals(new Value(new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), blob.value());
   }
 
   private void checkString(Blob<Value> blob) {

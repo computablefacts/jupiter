@@ -1,15 +1,13 @@
 package com.computablefacts.jupiter;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.util.AbstractMap;
-
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 
 public class AuthAwareCacheTest {
 
@@ -30,30 +28,21 @@ public class AuthAwareCacheTest {
     Assert.assertEquals(ImmutableList.of(), cache.getIfPresent("test", "key4"));
 
     // Test viz vs auths
-    Assert.assertEquals(ImmutableList.of("value1"),
-        cache.getIfPresent("test", "key1", new Authorizations("AUTH1")));
-    Assert.assertEquals(ImmutableList.of("value2"),
-        cache.getIfPresent("test", "key1", new Authorizations("AUTH2")));
-    Assert.assertEquals(ImmutableList.of("value3"),
-        cache.getIfPresent("test", "key1", new Authorizations("AUTH3")));
+    Assert.assertEquals(ImmutableList.of("value1"), cache.getIfPresent("test", "key1", new Authorizations("AUTH1")));
+    Assert.assertEquals(ImmutableList.of("value2"), cache.getIfPresent("test", "key1", new Authorizations("AUTH2")));
+    Assert.assertEquals(ImmutableList.of("value3"), cache.getIfPresent("test", "key1", new Authorizations("AUTH3")));
     Assert.assertEquals(ImmutableList.of("value1", "value2", "value3"),
         cache.getIfPresent("test", "key1", new Authorizations("AUTH1", "AUTH2", "AUTH3")));
 
-    Assert.assertEquals(ImmutableList.of("value4"),
-        cache.getIfPresent("test", "key2", new Authorizations("AUTH1")));
-    Assert.assertEquals(ImmutableList.of("value4"),
-        cache.getIfPresent("test", "key2", new Authorizations("AUTH2")));
-    Assert.assertEquals(ImmutableList.of(),
-        cache.getIfPresent("test", "key2", new Authorizations("AUTH3")));
+    Assert.assertEquals(ImmutableList.of("value4"), cache.getIfPresent("test", "key2", new Authorizations("AUTH1")));
+    Assert.assertEquals(ImmutableList.of("value4"), cache.getIfPresent("test", "key2", new Authorizations("AUTH2")));
+    Assert.assertEquals(ImmutableList.of(), cache.getIfPresent("test", "key2", new Authorizations("AUTH3")));
     Assert.assertEquals(ImmutableList.of("value4"),
         cache.getIfPresent("test", "key2", new Authorizations("AUTH1", "AUTH2", "AUTH3")));
 
-    Assert.assertEquals(ImmutableList.of("value5"),
-        cache.getIfPresent("test", "key3", new Authorizations("AUTH1")));
-    Assert.assertEquals(ImmutableList.of("value5"),
-        cache.getIfPresent("test", "key3", new Authorizations("AUTH2")));
-    Assert.assertEquals(ImmutableList.of("value5"),
-        cache.getIfPresent("test", "key3", new Authorizations("AUTH3")));
+    Assert.assertEquals(ImmutableList.of("value5"), cache.getIfPresent("test", "key3", new Authorizations("AUTH1")));
+    Assert.assertEquals(ImmutableList.of("value5"), cache.getIfPresent("test", "key3", new Authorizations("AUTH2")));
+    Assert.assertEquals(ImmutableList.of("value5"), cache.getIfPresent("test", "key3", new Authorizations("AUTH3")));
     Assert.assertEquals(ImmutableList.of("value5"),
         cache.getIfPresent("test", "key3", new Authorizations("AUTH1", "AUTH2", "AUTH3")));
   }
@@ -73,33 +62,26 @@ public class AuthAwareCacheTest {
         cache.getAllPresent("test", Sets.newHashSet("key1", "key2", "key3")));
 
     // Test viz vs auths
-    Assert.assertEquals(
-        Sets.newHashSet(new AbstractMap.SimpleImmutableEntry<>("key1", "value1"),
-            new AbstractMap.SimpleImmutableEntry<>("key2", "value4"),
-            new AbstractMap.SimpleImmutableEntry<>("key3", "value5")),
-        Sets.newHashSet(cache.getAllPresent("test", Sets.newHashSet("key1", "key2", "key3"),
-            new Authorizations("AUTH1"))));
+    Assert.assertEquals(Sets.newHashSet(new AbstractMap.SimpleImmutableEntry<>("key1", "value1"),
+        new AbstractMap.SimpleImmutableEntry<>("key2", "value4"),
+        new AbstractMap.SimpleImmutableEntry<>("key3", "value5")), Sets.newHashSet(
+        cache.getAllPresent("test", Sets.newHashSet("key1", "key2", "key3"), new Authorizations("AUTH1"))));
 
-    Assert.assertEquals(
-        Sets.newHashSet(new AbstractMap.SimpleImmutableEntry<>("key1", "value2"),
-            new AbstractMap.SimpleImmutableEntry<>("key2", "value4"),
-            new AbstractMap.SimpleImmutableEntry<>("key3", "value5")),
-        Sets.newHashSet(cache.getAllPresent("test", Sets.newHashSet("key1", "key2", "key3"),
-            new Authorizations("AUTH2"))));
+    Assert.assertEquals(Sets.newHashSet(new AbstractMap.SimpleImmutableEntry<>("key1", "value2"),
+        new AbstractMap.SimpleImmutableEntry<>("key2", "value4"),
+        new AbstractMap.SimpleImmutableEntry<>("key3", "value5")), Sets.newHashSet(
+        cache.getAllPresent("test", Sets.newHashSet("key1", "key2", "key3"), new Authorizations("AUTH2"))));
 
-    Assert.assertEquals(
-        Sets.newHashSet(new AbstractMap.SimpleImmutableEntry<>("key1", "value3"),
-            new AbstractMap.SimpleImmutableEntry<>("key3", "value5")),
-        Sets.newHashSet(cache.getAllPresent("test", Sets.newHashSet("key1", "key2", "key3"),
-            new Authorizations("AUTH3"))));
+    Assert.assertEquals(Sets.newHashSet(new AbstractMap.SimpleImmutableEntry<>("key1", "value3"),
+        new AbstractMap.SimpleImmutableEntry<>("key3", "value5")), Sets.newHashSet(
+        cache.getAllPresent("test", Sets.newHashSet("key1", "key2", "key3"), new Authorizations("AUTH3"))));
 
-    Assert.assertEquals(
-        Sets.newHashSet(new AbstractMap.SimpleImmutableEntry<>("key1", "value1"),
-            new AbstractMap.SimpleImmutableEntry<>("key1", "value2"),
-            new AbstractMap.SimpleImmutableEntry<>("key1", "value3"),
-            new AbstractMap.SimpleImmutableEntry<>("key2", "value4"),
-            new AbstractMap.SimpleImmutableEntry<>("key3", "value5")),
-        Sets.newHashSet(cache.getAllPresent("test", Sets.newHashSet("key1", "key2", "key3"),
+    Assert.assertEquals(Sets.newHashSet(new AbstractMap.SimpleImmutableEntry<>("key1", "value1"),
+        new AbstractMap.SimpleImmutableEntry<>("key1", "value2"),
+        new AbstractMap.SimpleImmutableEntry<>("key1", "value3"),
+        new AbstractMap.SimpleImmutableEntry<>("key2", "value4"),
+        new AbstractMap.SimpleImmutableEntry<>("key3", "value5")), Sets.newHashSet(
+        cache.getAllPresent("test", Sets.newHashSet("key1", "key2", "key3"),
             new Authorizations("AUTH1", "AUTH2", "AUTH3"))));
   }
 
@@ -124,8 +106,7 @@ public class AuthAwareCacheTest {
     Assert.assertEquals(ImmutableList.of(), l3);
 
     ImmutableList<String> l4 = cache.get("test", "key2",
-        () -> new AbstractMap.SimpleImmutableEntry<>(new ColumnVisibility("AUTH1|AUTH2"),
-            "value4"));
+        () -> new AbstractMap.SimpleImmutableEntry<>(new ColumnVisibility("AUTH1|AUTH2"), "value4"));
 
     Assert.assertEquals(ImmutableList.of(), l4);
 
@@ -141,30 +122,21 @@ public class AuthAwareCacheTest {
     Assert.assertEquals(ImmutableList.of(), cache.getIfPresent("test", "key4"));
 
     // Test viz vs auths
-    Assert.assertEquals(ImmutableList.of("value1"),
-        cache.getIfPresent("test", "key1", new Authorizations("AUTH1")));
-    Assert.assertEquals(ImmutableList.of("value2"),
-        cache.getIfPresent("test", "key1", new Authorizations("AUTH2")));
-    Assert.assertEquals(ImmutableList.of("value3"),
-        cache.getIfPresent("test", "key1", new Authorizations("AUTH3")));
+    Assert.assertEquals(ImmutableList.of("value1"), cache.getIfPresent("test", "key1", new Authorizations("AUTH1")));
+    Assert.assertEquals(ImmutableList.of("value2"), cache.getIfPresent("test", "key1", new Authorizations("AUTH2")));
+    Assert.assertEquals(ImmutableList.of("value3"), cache.getIfPresent("test", "key1", new Authorizations("AUTH3")));
     Assert.assertEquals(ImmutableList.of("value1", "value2", "value3"),
         cache.getIfPresent("test", "key1", new Authorizations("AUTH1", "AUTH2", "AUTH3")));
 
-    Assert.assertEquals(ImmutableList.of("value4"),
-        cache.getIfPresent("test", "key2", new Authorizations("AUTH1")));
-    Assert.assertEquals(ImmutableList.of("value4"),
-        cache.getIfPresent("test", "key2", new Authorizations("AUTH2")));
-    Assert.assertEquals(ImmutableList.of(),
-        cache.getIfPresent("test", "key2", new Authorizations("AUTH3")));
+    Assert.assertEquals(ImmutableList.of("value4"), cache.getIfPresent("test", "key2", new Authorizations("AUTH1")));
+    Assert.assertEquals(ImmutableList.of("value4"), cache.getIfPresent("test", "key2", new Authorizations("AUTH2")));
+    Assert.assertEquals(ImmutableList.of(), cache.getIfPresent("test", "key2", new Authorizations("AUTH3")));
     Assert.assertEquals(ImmutableList.of("value4"),
         cache.getIfPresent("test", "key2", new Authorizations("AUTH1", "AUTH2", "AUTH3")));
 
-    Assert.assertEquals(ImmutableList.of("value5"),
-        cache.getIfPresent("test", "key3", new Authorizations("AUTH1")));
-    Assert.assertEquals(ImmutableList.of("value5"),
-        cache.getIfPresent("test", "key3", new Authorizations("AUTH2")));
-    Assert.assertEquals(ImmutableList.of("value5"),
-        cache.getIfPresent("test", "key3", new Authorizations("AUTH3")));
+    Assert.assertEquals(ImmutableList.of("value5"), cache.getIfPresent("test", "key3", new Authorizations("AUTH1")));
+    Assert.assertEquals(ImmutableList.of("value5"), cache.getIfPresent("test", "key3", new Authorizations("AUTH2")));
+    Assert.assertEquals(ImmutableList.of("value5"), cache.getIfPresent("test", "key3", new Authorizations("AUTH3")));
     Assert.assertEquals(ImmutableList.of("value5"),
         cache.getIfPresent("test", "key3", new Authorizations("AUTH1", "AUTH2", "AUTH3")));
   }
@@ -190,8 +162,7 @@ public class AuthAwareCacheTest {
     Assert.assertEquals(ImmutableList.of("value3"), l3);
 
     ImmutableList<String> l4 = cache.get("test", "key2", new Authorizations("AUTH1", "AUTH2"),
-        () -> new AbstractMap.SimpleImmutableEntry<>(new ColumnVisibility("AUTH1|AUTH2"),
-            "value4"));
+        () -> new AbstractMap.SimpleImmutableEntry<>(new ColumnVisibility("AUTH1|AUTH2"), "value4"));
 
     Assert.assertEquals(ImmutableList.of("value4"), l4);
 
@@ -207,30 +178,21 @@ public class AuthAwareCacheTest {
     Assert.assertEquals(ImmutableList.of(), cache.getIfPresent("test", "key4"));
 
     // Test viz vs auths
-    Assert.assertEquals(ImmutableList.of("value1"),
-        cache.getIfPresent("test", "key1", new Authorizations("AUTH1")));
-    Assert.assertEquals(ImmutableList.of("value2"),
-        cache.getIfPresent("test", "key1", new Authorizations("AUTH2")));
-    Assert.assertEquals(ImmutableList.of("value3"),
-        cache.getIfPresent("test", "key1", new Authorizations("AUTH3")));
+    Assert.assertEquals(ImmutableList.of("value1"), cache.getIfPresent("test", "key1", new Authorizations("AUTH1")));
+    Assert.assertEquals(ImmutableList.of("value2"), cache.getIfPresent("test", "key1", new Authorizations("AUTH2")));
+    Assert.assertEquals(ImmutableList.of("value3"), cache.getIfPresent("test", "key1", new Authorizations("AUTH3")));
     Assert.assertEquals(ImmutableList.of("value1", "value2", "value3"),
         cache.getIfPresent("test", "key1", new Authorizations("AUTH1", "AUTH2", "AUTH3")));
 
-    Assert.assertEquals(ImmutableList.of("value4"),
-        cache.getIfPresent("test", "key2", new Authorizations("AUTH1")));
-    Assert.assertEquals(ImmutableList.of("value4"),
-        cache.getIfPresent("test", "key2", new Authorizations("AUTH2")));
-    Assert.assertEquals(ImmutableList.of(),
-        cache.getIfPresent("test", "key2", new Authorizations("AUTH3")));
+    Assert.assertEquals(ImmutableList.of("value4"), cache.getIfPresent("test", "key2", new Authorizations("AUTH1")));
+    Assert.assertEquals(ImmutableList.of("value4"), cache.getIfPresent("test", "key2", new Authorizations("AUTH2")));
+    Assert.assertEquals(ImmutableList.of(), cache.getIfPresent("test", "key2", new Authorizations("AUTH3")));
     Assert.assertEquals(ImmutableList.of("value4"),
         cache.getIfPresent("test", "key2", new Authorizations("AUTH1", "AUTH2", "AUTH3")));
 
-    Assert.assertEquals(ImmutableList.of("value5"),
-        cache.getIfPresent("test", "key3", new Authorizations("AUTH1")));
-    Assert.assertEquals(ImmutableList.of("value5"),
-        cache.getIfPresent("test", "key3", new Authorizations("AUTH2")));
-    Assert.assertEquals(ImmutableList.of("value5"),
-        cache.getIfPresent("test", "key3", new Authorizations("AUTH3")));
+    Assert.assertEquals(ImmutableList.of("value5"), cache.getIfPresent("test", "key3", new Authorizations("AUTH1")));
+    Assert.assertEquals(ImmutableList.of("value5"), cache.getIfPresent("test", "key3", new Authorizations("AUTH2")));
+    Assert.assertEquals(ImmutableList.of("value5"), cache.getIfPresent("test", "key3", new Authorizations("AUTH3")));
     Assert.assertEquals(ImmutableList.of("value5"),
         cache.getIfPresent("test", "key3", new Authorizations("AUTH1", "AUTH2", "AUTH3")));
   }

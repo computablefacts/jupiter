@@ -3,10 +3,9 @@ package com.computablefacts.jupiter.queries;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import com.google.errorprone.annotations.Var;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.errorprone.annotations.Var;
 
 public class QueryBuilderTest {
 
@@ -29,13 +28,11 @@ public class QueryBuilderTest {
 
     assertEquals(InternalNode.eConjunctionTypes.And, node2.conjunction());
 
-    Assert.assertEquals(TerminalNode.eTermForms.Inflectional,
-        ((TerminalNode) node2.child1()).form());
+    Assert.assertEquals(TerminalNode.eTermForms.Inflectional, ((TerminalNode) node2.child1()).form());
     assertEquals("", ((TerminalNode) node2.child1()).key());
     assertEquals("john", ((TerminalNode) node2.child1()).value());
 
-    Assert.assertEquals(TerminalNode.eTermForms.Inflectional,
-        ((TerminalNode) node2.child2()).form());
+    Assert.assertEquals(TerminalNode.eTermForms.Inflectional, ((TerminalNode) node2.child2()).form());
     assertEquals("", ((TerminalNode) node2.child2()).key());
     assertEquals("doe", ((TerminalNode) node2.child2()).value());
 
@@ -72,13 +69,11 @@ public class QueryBuilderTest {
 
     assertEquals(InternalNode.eConjunctionTypes.And, node2.conjunction());
 
-    Assert.assertEquals(TerminalNode.eTermForms.Inflectional,
-        ((TerminalNode) node2.child1()).form());
+    Assert.assertEquals(TerminalNode.eTermForms.Inflectional, ((TerminalNode) node2.child1()).form());
     assertEquals("name", ((TerminalNode) node2.child1()).key());
     assertEquals("john", ((TerminalNode) node2.child1()).value());
 
-    Assert.assertEquals(TerminalNode.eTermForms.Inflectional,
-        ((TerminalNode) node2.child2()).form());
+    Assert.assertEquals(TerminalNode.eTermForms.Inflectional, ((TerminalNode) node2.child2()).form());
     assertEquals("", ((TerminalNode) node2.child2()).key());
     assertEquals("doe", ((TerminalNode) node2.child2()).value());
 
@@ -176,8 +171,7 @@ public class QueryBuilderTest {
     assertEquals("", ((TerminalNode) node3.child1()).key());
     assertEquals("john", ((TerminalNode) node3.child1()).value());
 
-    Assert.assertEquals(TerminalNode.eTermForms.Inflectional,
-        ((TerminalNode) node3.child2()).form());
+    Assert.assertEquals(TerminalNode.eTermForms.Inflectional, ((TerminalNode) node3.child2()).form());
     assertEquals("", ((TerminalNode) node3.child2()).key());
     assertEquals("doe", ((TerminalNode) node3.child2()).value());
 
@@ -216,8 +210,7 @@ public class QueryBuilderTest {
     assertEquals("name", ((TerminalNode) node3.child1()).key());
     assertEquals("john", ((TerminalNode) node3.child1()).value());
 
-    Assert.assertEquals(TerminalNode.eTermForms.Inflectional,
-        ((TerminalNode) node3.child2()).form());
+    Assert.assertEquals(TerminalNode.eTermForms.Inflectional, ((TerminalNode) node3.child2()).form());
     assertEquals("", ((TerminalNode) node3.child2()).key());
     assertEquals("doe", ((TerminalNode) node3.child2()).value());
 
@@ -234,18 +227,15 @@ public class QueryBuilderTest {
   @Test
   public void testNotAndNotFixUp() {
     assertNull(QueryBuilder.build("NOT username:andré AND NOT name:andré"));
-    assertNull(
-        QueryBuilder.build("NOT username:andré AND NOT (firstname:andré OR lastname:andré)"));
-    assertNull(
-        QueryBuilder.build("NOT username:andré AND NOT (firstname:andré AND lastname:andré)"));
+    assertNull(QueryBuilder.build("NOT username:andré AND NOT (firstname:andré OR lastname:andré)"));
+    assertNull(QueryBuilder.build("NOT username:andré AND NOT (firstname:andré AND lastname:andré)"));
   }
 
   @Test
   public void testNotOrNotFixUp() {
     assertNull(QueryBuilder.build("NOT username:andré OR NOT name:andré"));
     assertNull(QueryBuilder.build("NOT username:andré OR NOT (firstname:andré OR lastname:andré)"));
-    assertNull(
-        QueryBuilder.build("NOT username:andré OR NOT (firstname:andré AND lastname:andré)"));
+    assertNull(QueryBuilder.build("NOT username:andré OR NOT (firstname:andré AND lastname:andré)"));
   }
 
   @Test
@@ -266,14 +256,12 @@ public class QueryBuilderTest {
   public void testAndNotFixUp() {
     assertEquals("(name:andré And Not(username:andré))",
         QueryBuilder.build("name:andré NOT username:andré").toString());
-    assertEquals("(name:andré And Not(username:andré))",
-        QueryBuilder.build("name:andré - username:andré").toString());
+    assertEquals("(name:andré And Not(username:andré))", QueryBuilder.build("name:andré - username:andré").toString());
   }
 
   @Test
   public void testAndImplicit() {
-    assertEquals("(firstname:john And lastname:doe)",
-        QueryBuilder.build("firstname:john lastname:doe").toString());
+    assertEquals("(firstname:john And lastname:doe)", QueryBuilder.build("firstname:john lastname:doe").toString());
     assertEquals("(firstname:\"j?hn\" And lastname:\"d?e\")",
         QueryBuilder.build("firstname:\"j?hn\" lastname:\"d?e\"").toString());
   }
@@ -281,8 +269,7 @@ public class QueryBuilderTest {
   @Test
   public void testAndExplicit() {
 
-    assertEquals("(firstname:john And lastname:doe)",
-        QueryBuilder.build("firstname:john AND lastname:doe").toString());
+    assertEquals("(firstname:john And lastname:doe)", QueryBuilder.build("firstname:john AND lastname:doe").toString());
     assertEquals("(firstname:john And lastname:\"doe\")",
         QueryBuilder.build("firstname:john + lastname:doe").toString());
 
@@ -294,8 +281,7 @@ public class QueryBuilderTest {
 
   @Test
   public void testOr() {
-    assertEquals("(firstname:john Or lastname:doe)",
-        QueryBuilder.build("firstname:john OR lastname:doe").toString());
+    assertEquals("(firstname:john Or lastname:doe)", QueryBuilder.build("firstname:john OR lastname:doe").toString());
     assertEquals("(firstname:\"j?hn\" Or lastname:\"d?e\")",
         QueryBuilder.build("firstname:\"j?hn\" OR lastname:\"d?e\"").toString());
   }
@@ -333,10 +319,8 @@ public class QueryBuilderTest {
   @Test
   public void testParseBooleanQueryNoNegationNoGroup() {
 
-    @Var
-    AbstractNode actual = QueryBuilder.build("A AND B AND C AND D");
-    @Var
-    String expected = "(((A And B) And C) And D)";
+    @Var AbstractNode actual = QueryBuilder.build("A AND B AND C AND D");
+    @Var String expected = "(((A And B) And C) And D)";
 
     Assert.assertEquals(expected, actual.toString());
 
@@ -359,10 +343,8 @@ public class QueryBuilderTest {
   @Test
   public void testParseBooleanQueryNoNegationOneSmallGroup() {
 
-    @Var
-    AbstractNode actual = QueryBuilder.build("A AND (B AND C) AND D");
-    @Var
-    String expected = "((A And (B And C)) And D)";
+    @Var AbstractNode actual = QueryBuilder.build("A AND (B AND C) AND D");
+    @Var String expected = "((A And (B And C)) And D)";
 
     Assert.assertEquals(expected, actual.toString());
 
@@ -385,10 +367,8 @@ public class QueryBuilderTest {
   @Test
   public void testParseBooleanQueryNoNegationOneLargeGroup() {
 
-    @Var
-    AbstractNode actual = QueryBuilder.build("A AND (B AND C AND D)");
-    @Var
-    String expected = "(A And ((B And C) And D))";
+    @Var AbstractNode actual = QueryBuilder.build("A AND (B AND C AND D)");
+    @Var String expected = "(A And ((B And C) And D))";
 
     Assert.assertEquals(expected, actual.toString());
 
@@ -411,10 +391,8 @@ public class QueryBuilderTest {
   @Test
   public void testParseBooleanQueryOneNegatedSmallGroup() {
 
-    @Var
-    AbstractNode actual = QueryBuilder.build("A AND NOT(B AND C) AND D");
-    @Var
-    String expected = "((A And Not(B And C)) And D)";
+    @Var AbstractNode actual = QueryBuilder.build("A AND NOT(B AND C) AND D");
+    @Var String expected = "((A And Not(B And C)) And D)";
 
     Assert.assertEquals(expected, actual.toString());
 
@@ -437,10 +415,8 @@ public class QueryBuilderTest {
   @Test
   public void testParseBooleanQueryOneNegatedLargeGroup() {
 
-    @Var
-    AbstractNode actual = QueryBuilder.build("A AND NOT(B AND C AND D)");
-    @Var
-    String expected = "(A And Not((B And C) And D))";
+    @Var AbstractNode actual = QueryBuilder.build("A AND NOT(B AND C AND D)");
+    @Var String expected = "(A And Not((B And C) And D))";
 
     Assert.assertEquals(expected, actual.toString());
 
@@ -463,10 +439,8 @@ public class QueryBuilderTest {
   @Test
   public void testParseBooleanQueryTwoSmallGroupsOneNegated() {
 
-    @Var
-    AbstractNode actual = QueryBuilder.build("NOT(A AND B) AND (C AND D)");
-    @Var
-    String expected = "((C And D) And Not(A And B))";
+    @Var AbstractNode actual = QueryBuilder.build("NOT(A AND B) AND (C AND D)");
+    @Var String expected = "((C And D) And Not(A And B))";
 
     Assert.assertEquals(expected, actual.toString());
 
@@ -489,10 +463,8 @@ public class QueryBuilderTest {
   @Test
   public void testParseBooleanQueryDoubleNegation() {
 
-    @Var
-    AbstractNode actual = QueryBuilder.build("A AND NOT(B AND NOT(C) AND D)");
-    @Var
-    String expected = "(A And ((C Or Not(B)) Or Not(D)))";
+    @Var AbstractNode actual = QueryBuilder.build("A AND NOT(B AND NOT(C) AND D)");
+    @Var String expected = "(A And ((C Or Not(B)) Or Not(D)))";
 
     Assert.assertEquals(expected, actual.toString());
 
@@ -515,10 +487,8 @@ public class QueryBuilderTest {
   @Test
   public void testParseBooleanQueryTripleNegation() {
 
-    @Var
-    AbstractNode actual = QueryBuilder.build("NOT(A AND NOT(B AND NOT(C) AND D))");
-    @Var
-    String expected = "(((B And Not(C)) And D) Or Not(A))";
+    @Var AbstractNode actual = QueryBuilder.build("NOT(A AND NOT(B AND NOT(C) AND D))");
+    @Var String expected = "(((B And Not(C)) And D) Or Not(A))";
 
     Assert.assertEquals(expected, actual.toString());
 
@@ -566,10 +536,8 @@ public class QueryBuilderTest {
   @Test
   public void testParseRangeWithPredicate() {
 
-    @Var
-    AbstractNode actual = QueryBuilder.build("age:[1 TO 10.5]");
-    @Var
-    String expected = "age:[1 TO 10.5]";
+    @Var AbstractNode actual = QueryBuilder.build("age:[1 TO 10.5]");
+    @Var String expected = "age:[1 TO 10.5]";
 
     Assert.assertEquals(expected, actual.toString());
 
@@ -603,10 +571,8 @@ public class QueryBuilderTest {
   @Test
   public void testParseRangeWithoutPredicate() {
 
-    @Var
-    AbstractNode actual = QueryBuilder.build("[1 TO 10.5]");
-    @Var
-    String expected = "[1 TO 10.5]";
+    @Var AbstractNode actual = QueryBuilder.build("[1 TO 10.5]");
+    @Var String expected = "[1 TO 10.5]";
 
     Assert.assertEquals(expected, actual.toString());
 

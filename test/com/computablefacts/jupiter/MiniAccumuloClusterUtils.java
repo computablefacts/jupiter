@@ -2,6 +2,10 @@ package com.computablefacts.jupiter;
 
 import static org.apache.accumulo.minicluster.MemoryUnit.MEGABYTE;
 
+import com.computablefacts.jupiter.storage.Constants;
+import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,7 +13,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.stream.Stream;
-
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -18,18 +21,14 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.commons.io.FileUtils;
 
-import com.computablefacts.jupiter.storage.Constants;
-import com.google.common.base.Preconditions;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import com.google.errorprone.annotations.CheckReturnValue;
-
 @CheckReturnValue
 final public class MiniAccumuloClusterUtils {
 
   public static final String MAC_PASSWORD = "secret";
   public static final String MAC_USER = "root";
 
-  private MiniAccumuloClusterUtils() {}
+  private MiniAccumuloClusterUtils() {
+  }
 
   public static boolean isWindows() {
     return System.getProperty("os.name").startsWith("Windows");
@@ -39,8 +38,7 @@ final public class MiniAccumuloClusterUtils {
 
     Preconditions.checkNotNull(accumulo, "accumulo should not be null");
 
-    return newConfiguration(accumulo, MiniAccumuloClusterUtils.MAC_USER,
-        MiniAccumuloClusterUtils.MAC_PASSWORD);
+    return newConfiguration(accumulo, MiniAccumuloClusterUtils.MAC_USER, MiniAccumuloClusterUtils.MAC_PASSWORD);
   }
 
   public static Configurations newConfiguration(MiniAccumuloCluster accumulo, String username) {
@@ -51,51 +49,45 @@ final public class MiniAccumuloClusterUtils {
     return newConfiguration(accumulo, username, username);
   }
 
-  public static Configurations newConfiguration(MiniAccumuloCluster accumulo, String username,
-      String password) {
+  public static Configurations newConfiguration(MiniAccumuloCluster accumulo, String username, String password) {
 
     Preconditions.checkNotNull(accumulo, "accumulo should not be null");
     Preconditions.checkNotNull(username, "username should not be null");
     Preconditions.checkNotNull(password, "password should not be null");
 
-    return new Configurations(accumulo.getInstanceName(), accumulo.getZooKeepers(), username,
-        password);
+    return new Configurations(accumulo.getInstanceName(), accumulo.getZooKeepers(), username, password);
   }
 
   @CanIgnoreReturnValue
-  public static MiniAccumuloCluster newUser(MiniAccumuloCluster accumulo, String user)
-      throws Exception {
+  public static MiniAccumuloCluster newUser(MiniAccumuloCluster accumulo, String user) throws Exception {
 
     Preconditions.checkNotNull(accumulo, "accumulo should not be null");
 
-    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations().createLocalUser(user,
-        new PasswordToken(user));
+    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations().createLocalUser(user, new PasswordToken(user));
 
     return accumulo;
   }
 
   @CanIgnoreReturnValue
-  public static MiniAccumuloCluster setUserAuths(MiniAccumuloCluster accumulo, Authorizations auths)
-      throws Exception {
+  public static MiniAccumuloCluster setUserAuths(MiniAccumuloCluster accumulo, Authorizations auths) throws Exception {
     return setUserAuths(accumulo, MAC_USER, auths);
   }
 
   @CanIgnoreReturnValue
-  public static MiniAccumuloCluster setUserAuths(MiniAccumuloCluster accumulo, String username,
-      Authorizations auths) throws Exception {
+  public static MiniAccumuloCluster setUserAuths(MiniAccumuloCluster accumulo, String username, Authorizations auths)
+      throws Exception {
 
     Preconditions.checkNotNull(accumulo, "accumulo should not be null");
     Preconditions.checkNotNull(username, "username should not be null");
 
-    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations()
-        .changeUserAuthorizations(username, auths);
+    accumulo.getConnector(MAC_USER, MAC_PASSWORD).securityOperations().changeUserAuthorizations(username, auths);
 
     return accumulo;
   }
 
   @CanIgnoreReturnValue
-  public static MiniAccumuloCluster setUserTablePermissions(MiniAccumuloCluster accumulo,
-      String username, String table) throws Exception {
+  public static MiniAccumuloCluster setUserTablePermissions(MiniAccumuloCluster accumulo, String username, String table)
+      throws Exception {
 
     Preconditions.checkNotNull(accumulo, "accumulo should not be null");
     Preconditions.checkNotNull(username, "username should not be null");
@@ -110,8 +102,8 @@ final public class MiniAccumuloClusterUtils {
   }
 
   @CanIgnoreReturnValue
-  public static MiniAccumuloCluster setUserSystemPermissions(MiniAccumuloCluster accumulo,
-      String username) throws Exception {
+  public static MiniAccumuloCluster setUserSystemPermissions(MiniAccumuloCluster accumulo, String username)
+      throws Exception {
 
     Preconditions.checkNotNull(accumulo, "accumulo should not be null");
     Preconditions.checkNotNull(username, "username should not be null");
@@ -153,8 +145,7 @@ final public class MiniAccumuloClusterUtils {
         binDir.mkdirs();
       }
 
-      try (
-          Stream<Path> stream = Files.walk(Paths.get("C:\\a_bin\\winutils-master\\hadoop-2.8.3"))) {
+      try (Stream<Path> stream = Files.walk(Paths.get("C:\\a_bin\\winutils-master\\hadoop-2.8.3"))) {
         stream.forEach(file -> {
           try {
             Files.copy(file, Paths.get(macDir.getAbsolutePath() + "/bin/" + file.getFileName()),

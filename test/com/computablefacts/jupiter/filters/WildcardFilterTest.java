@@ -1,11 +1,12 @@
 package com.computablefacts.jupiter.filters;
 
+import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.Var;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -13,9 +14,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
-import com.google.errorprone.annotations.Var;
 
 public class WildcardFilterTest {
 
@@ -88,8 +86,7 @@ public class WildcardFilterTest {
 
     WildcardFilter iterator = iteratorRow("????_1");
 
-    @Var
-    int nbMatch = 0;
+    @Var int nbMatch = 0;
 
     while (iterator.hasTop()) {
       String cf = iterator.getTopKey().getColumnFamily().toString();
@@ -106,8 +103,7 @@ public class WildcardFilterTest {
 
     WildcardFilter iterator = iteratorCf("*_1");
 
-    @Var
-    int nbMatch = 0;
+    @Var int nbMatch = 0;
 
     while (iterator.hasTop()) {
       String row = iterator.getTopKey().getRow().toString();
@@ -124,8 +120,7 @@ public class WildcardFilterTest {
 
     WildcardFilter iterator = iteratorCq("*_1\0FIELD_?");
 
-    @Var
-    int nbMatch = 0;
+    @Var int nbMatch = 0;
 
     while (iterator.hasTop()) {
       String row = iterator.getTopKey().getRow().toString();
@@ -144,8 +139,7 @@ public class WildcardFilterTest {
 
     WildcardFilter iterator = iteratorValue("1");
 
-    @Var
-    int nbMatch = 0;
+    @Var int nbMatch = 0;
 
     while (iterator.hasTop()) {
       String row = iterator.getTopKey().getRow().toString();
@@ -164,8 +158,7 @@ public class WildcardFilterTest {
 
     WildcardFilter iterator = iteratorCq(Sets.newHashSet("DOCID_1*", "*FIELD_1"), false);
 
-    @Var
-    int nbMatch = 0;
+    @Var int nbMatch = 0;
 
     while (iterator.hasTop()) {
       String row = iterator.getTopKey().getRow().toString();
@@ -184,10 +177,8 @@ public class WildcardFilterTest {
 
     WildcardFilter iterator = iteratorCq(Sets.newHashSet("DOCID_1*", "*FIELD_1"), true);
 
-    @Var
-    int nbMatchDocId1 = 0;
-    @Var
-    int nbMatchField1 = 0;
+    @Var int nbMatchDocId1 = 0;
+    @Var int nbMatchField1 = 0;
 
     while (iterator.hasTop()) {
 

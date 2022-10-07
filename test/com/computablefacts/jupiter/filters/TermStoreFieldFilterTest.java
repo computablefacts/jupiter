@@ -1,5 +1,7 @@
 package com.computablefacts.jupiter.filters;
 
+import com.computablefacts.jupiter.storage.termstore.Term;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -7,7 +9,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -15,9 +16,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.computablefacts.jupiter.storage.termstore.Term;
-import com.google.common.collect.Sets;
 
 public class TermStoreFieldFilterTest {
 
@@ -48,25 +46,21 @@ public class TermStoreFieldFilterTest {
       iterator.next();
     }
 
-    Assert.assertEquals(1,
-        list.stream().filter(e -> e.getColumnFamily().toString().equals("DATASET_1")
-            && e.getColumnQualifier().toString().endsWith("FIELD_1")).count());
+    Assert.assertEquals(1, list.stream().filter(
+        e -> e.getColumnFamily().toString().equals("DATASET_1") && e.getColumnQualifier().toString()
+            .endsWith("FIELD_1")).count());
 
-    Assert.assertEquals(1,
-        list.stream()
-            .filter(e -> e.getColumnFamily().toString().equals("DATASET_2")
-                && e.getColumnQualifier().toString().endsWith("FIELD_1\0" + Term.TYPE_NUMBER))
-            .count());
+    Assert.assertEquals(1, list.stream().filter(
+        e -> e.getColumnFamily().toString().equals("DATASET_2") && e.getColumnQualifier().toString()
+            .endsWith("FIELD_1\0" + Term.TYPE_NUMBER)).count());
 
-    Assert.assertEquals(1,
-        list.stream().filter(e -> e.getColumnFamily().toString().equals("DATASET_1")
-            && e.getColumnQualifier().toString().endsWith("FIELD_2")).count());
+    Assert.assertEquals(1, list.stream().filter(
+        e -> e.getColumnFamily().toString().equals("DATASET_1") && e.getColumnQualifier().toString()
+            .endsWith("FIELD_2")).count());
 
-    Assert.assertEquals(1,
-        list.stream()
-            .filter(e -> e.getColumnFamily().toString().equals("DATASET_2")
-                && e.getColumnQualifier().toString().endsWith("FIELD_2\0" + Term.TYPE_NUMBER))
-            .count());
+    Assert.assertEquals(1, list.stream().filter(
+        e -> e.getColumnFamily().toString().equals("DATASET_2") && e.getColumnQualifier().toString()
+            .endsWith("FIELD_2\0" + Term.TYPE_NUMBER)).count());
   }
 
   private TermStoreFieldFilter iterator(Set<String> fieldsToKeep) throws IOException {

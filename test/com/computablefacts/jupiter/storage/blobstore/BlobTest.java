@@ -1,13 +1,20 @@
 package com.computablefacts.jupiter.storage.blobstore;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
-import static com.computablefacts.jupiter.storage.blobstore.BlobStore.*;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_ARRAY;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_FILE;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_JSON;
+import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_STRING;
 
+import com.beust.jcommander.internal.Lists;
+import com.computablefacts.asterix.codecs.JsonCodec;
+import com.computablefacts.jupiter.Data;
+import com.google.common.collect.Sets;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
-
+import nl.jqno.equalsverifier.EqualsVerifier;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -16,37 +23,26 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.beust.jcommander.internal.Lists;
-import com.computablefacts.asterix.codecs.JsonCodec;
-import com.computablefacts.jupiter.Data;
-import com.google.common.collect.Sets;
-
-import nl.jqno.equalsverifier.EqualsVerifier;
-
 public class BlobTest {
 
   @Test(expected = NullPointerException.class)
   public void testNullDataset() {
-    Blob<String> blob =
-        new Blob<>(null, "key", Sets.newHashSet(), TYPE_STRING, "value", Lists.newArrayList());
+    Blob<String> blob = new Blob<>(null, "key", Sets.newHashSet(), TYPE_STRING, "value", Lists.newArrayList());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullKey() {
-    Blob<String> blob =
-        new Blob<>("dataset", null, Sets.newHashSet(), TYPE_STRING, "value", Lists.newArrayList());
+    Blob<String> blob = new Blob<>("dataset", null, Sets.newHashSet(), TYPE_STRING, "value", Lists.newArrayList());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullLabels() {
-    Blob<String> blob =
-        new Blob<>("dataset", "key", null, TYPE_STRING, "value", Lists.newArrayList());
+    Blob<String> blob = new Blob<>("dataset", "key", null, TYPE_STRING, "value", Lists.newArrayList());
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullType() {
-    Blob<String> blob =
-        new Blob<>("dataset", "key", Sets.newHashSet(), null, "value", Lists.newArrayList());
+    Blob<String> blob = new Blob<>("dataset", "key", Sets.newHashSet(), null, "value", Lists.newArrayList());
   }
 
   @Test(expected = NullPointerException.class)
@@ -56,8 +52,7 @@ public class BlobTest {
 
   @Test(expected = NullPointerException.class)
   public void testNullValue() {
-    Blob<String> blob =
-        new Blob<>("dataset", "key", Sets.newHashSet(), TYPE_STRING, null, Lists.newArrayList());
+    Blob<String> blob = new Blob<>("dataset", "key", Sets.newHashSet(), TYPE_STRING, null, Lists.newArrayList());
   }
 
   @Test
@@ -100,8 +95,7 @@ public class BlobTest {
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual =
-        Blob.fromJson("my_dataset", uuid, Sets.newHashSet(), JsonCodec.asString(json));
+    Mutation actual = Blob.fromJson("my_dataset", uuid, Sets.newHashSet(), JsonCodec.asString(json));
 
     Assert.assertEquals(expected, actual);
   }

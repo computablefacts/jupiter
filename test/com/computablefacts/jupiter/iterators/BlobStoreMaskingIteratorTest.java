@@ -2,11 +2,13 @@ package com.computablefacts.jupiter.iterators;
 
 import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_JSON;
 
+import com.computablefacts.asterix.codecs.JsonCodec;
+import com.computablefacts.jupiter.storage.Constants;
+import com.google.errorprone.annotations.Var;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -16,10 +18,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.computablefacts.asterix.codecs.JsonCodec;
-import com.computablefacts.jupiter.storage.Constants;
-import com.google.errorprone.annotations.Var;
 
 public class BlobStoreMaskingIteratorTest {
 
@@ -38,10 +36,8 @@ public class BlobStoreMaskingIteratorTest {
 
     BlobStoreMaskingIterator iterator = iterator(new Authorizations());
 
-    @Var
-    int countDataset1 = 0;
-    @Var
-    int countDataset2 = 0;
+    @Var int countDataset1 = 0;
+    @Var int countDataset2 = 0;
 
     while (iterator.hasTop()) {
 
@@ -50,13 +46,13 @@ public class BlobStoreMaskingIteratorTest {
 
       if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(JsonCodec.asObject(
-            "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\", \"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\", \"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+                "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\", \"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\", \"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             JsonCodec.asObject(value));
         countDataset1++;
       }
       if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(JsonCodec.asObject(
-            "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\", \"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\", \"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+                "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\", \"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\", \"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             JsonCodec.asObject(value));
         countDataset2++;
       }
@@ -73,10 +69,8 @@ public class BlobStoreMaskingIteratorTest {
 
     BlobStoreMaskingIterator iterator = iterator(new Authorizations(Constants.STRING_ADM));
 
-    @Var
-    int countDataset1 = 0;
-    @Var
-    int countDataset2 = 0;
+    @Var int countDataset1 = 0;
+    @Var int countDataset2 = 0;
 
     while (iterator.hasTop()) {
 
@@ -85,13 +79,13 @@ public class BlobStoreMaskingIteratorTest {
 
       if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(JsonCodec.asObject(
-            "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+                "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             JsonCodec.asObject(value));
         countDataset1++;
       }
       if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(JsonCodec.asObject(
-            "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+                "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             JsonCodec.asObject(value));
         countDataset2++;
       }
@@ -108,10 +102,8 @@ public class BlobStoreMaskingIteratorTest {
 
     BlobStoreMaskingIterator iterator = iterator(new Authorizations("DATASET_1_RAW_DATA"));
 
-    @Var
-    int countDataset1 = 0;
-    @Var
-    int countDataset2 = 0;
+    @Var int countDataset1 = 0;
+    @Var int countDataset2 = 0;
 
     while (iterator.hasTop()) {
 
@@ -139,13 +131,11 @@ public class BlobStoreMaskingIteratorTest {
   @Test
   public void testTwoMatchingAuthorizations1() throws Exception {
 
-    BlobStoreMaskingIterator iterator =
-        iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_AGE", "DATASET_1_CITY"));
+    BlobStoreMaskingIterator iterator = iterator(
+        new Authorizations(Constants.STRING_ADM, "DATASET_1_AGE", "DATASET_1_CITY"));
 
-    @Var
-    int countDataset1 = 0;
-    @Var
-    int countDataset2 = 0;
+    @Var int countDataset1 = 0;
+    @Var int countDataset2 = 0;
 
     while (iterator.hasTop()) {
 
@@ -154,13 +144,13 @@ public class BlobStoreMaskingIteratorTest {
 
       if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(JsonCodec.asObject(
-            "{\"city\":\"New York\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":31}"),
+                "{\"city\":\"New York\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":31}"),
             JsonCodec.asObject(value));
         countDataset1++;
       }
       if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(JsonCodec.asObject(
-            "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+                "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             JsonCodec.asObject(value));
         countDataset2++;
       }
@@ -175,13 +165,11 @@ public class BlobStoreMaskingIteratorTest {
   @Test
   public void testTwoMatchingAuthorizations2() throws Exception {
 
-    BlobStoreMaskingIterator iterator =
-        iterator(new Authorizations(Constants.STRING_ADM, "DATASET_1_AGE", "DATASET_2_CITY"));
+    BlobStoreMaskingIterator iterator = iterator(
+        new Authorizations(Constants.STRING_ADM, "DATASET_1_AGE", "DATASET_2_CITY"));
 
-    @Var
-    int countDataset1 = 0;
-    @Var
-    int countDataset2 = 0;
+    @Var int countDataset1 = 0;
+    @Var int countDataset2 = 0;
 
     while (iterator.hasTop()) {
 
@@ -190,13 +178,13 @@ public class BlobStoreMaskingIteratorTest {
 
       if (row.startsWith("DATASET_1")) {
         Assert.assertEquals(JsonCodec.asObject(
-            "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":31}"),
+                "{\"city\":\"MASKED_78f718e55e6cbab759b3f23e689ba96f\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":31}"),
             JsonCodec.asObject(value));
         countDataset1++;
       }
       if (row.startsWith("DATASET_2")) {
         Assert.assertEquals(JsonCodec.asObject(
-            "{\"city\":\"New York\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
+                "{\"city\":\"New York\",\"name\":\"MASKED_58a8d7d6cfe7a6c919ae22551a37be8f\",\"age\":\"MASKED_eba47ab112ed4342e5ea8848e9262dea\"}"),
             JsonCodec.asObject(value));
         countDataset2++;
       }
@@ -226,19 +214,19 @@ public class BlobStoreMaskingIteratorTest {
 
     SortedMap<Key, Value> map = new TreeMap<>();
 
-    map.put(new Key("DATASET_1\0KEY_1", TYPE_JSON, "",
-        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
-    map.put(new Key("DATASET_1\0KEY_2", TYPE_JSON, "",
-        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
-    map.put(new Key("DATASET_1\0KEY_3", TYPE_JSON, "",
-        new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("DATASET_1\0KEY_1", TYPE_JSON, "", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("DATASET_1\0KEY_2", TYPE_JSON, "", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("DATASET_1\0KEY_3", TYPE_JSON, "", new ColumnVisibility("ADM|DATASET_1_RAW_DATA"), 0),
+        new Value(json()));
 
-    map.put(new Key("DATASET_2\0KEY_1", TYPE_JSON, "",
-        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
-    map.put(new Key("DATASET_2\0KEY_2", TYPE_JSON, "",
-        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
-    map.put(new Key("DATASET_2\0KEY_3", TYPE_JSON, "",
-        new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0), new Value(json()));
+    map.put(new Key("DATASET_2\0KEY_1", TYPE_JSON, "", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("DATASET_2\0KEY_2", TYPE_JSON, "", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+        new Value(json()));
+    map.put(new Key("DATASET_2\0KEY_3", TYPE_JSON, "", new ColumnVisibility("ADM|DATASET_2_RAW_DATA"), 0),
+        new Value(json()));
 
     return map;
   }

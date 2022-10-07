@@ -1,12 +1,12 @@
 package com.computablefacts.jupiter.filters;
 
+import com.google.errorprone.annotations.Var;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -14,8 +14,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.errorprone.annotations.Var;
 
 public class AgeOffPeriodFilterTest {
 
@@ -35,10 +33,8 @@ public class AgeOffPeriodFilterTest {
 
     AgeOffPeriodFilter iterator = iterator(5, "DAYS");
 
-    @Var
-    int nbMatchDataset1 = 0;
-    @Var
-    int nbMatchDataset2 = 0;
+    @Var int nbMatchDataset1 = 0;
+    @Var int nbMatchDataset2 = 0;
 
     while (iterator.hasTop()) {
 
@@ -63,10 +59,8 @@ public class AgeOffPeriodFilterTest {
 
     AgeOffPeriodFilter iterator = iterator(5, "HOURS");
 
-    @Var
-    int nbMatchDataset1 = 0;
-    @Var
-    int nbMatchDataset2 = 0;
+    @Var int nbMatchDataset1 = 0;
+    @Var int nbMatchDataset2 = 0;
 
     while (iterator.hasTop()) {
 
@@ -91,10 +85,8 @@ public class AgeOffPeriodFilterTest {
 
     AgeOffPeriodFilter iterator = iterator(24 * 60, "MINUTES");
 
-    @Var
-    int nbMatchDataset1 = 0;
-    @Var
-    int nbMatchDataset2 = 0;
+    @Var int nbMatchDataset1 = 0;
+    @Var int nbMatchDataset2 = 0;
 
     while (iterator.hasTop()) {
 
@@ -119,10 +111,8 @@ public class AgeOffPeriodFilterTest {
 
     AgeOffPeriodFilter iterator = iterator(0, "SECONDS");
 
-    @Var
-    int nbMatchDataset1 = 0;
-    @Var
-    int nbMatchDataset2 = 0;
+    @Var int nbMatchDataset1 = 0;
+    @Var int nbMatchDataset2 = 0;
 
     while (iterator.hasTop()) {
 
@@ -164,19 +154,25 @@ public class AgeOffPeriodFilterTest {
 
     SortedMap<Key, Value> map = new TreeMap<>();
 
-    map.put(new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_1",
-        dateMinus10Days.toInstant(ZoneOffset.UTC).toEpochMilli()), new Value("1"));
-    map.put(new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_2",
-        dateMinus10Days.toInstant(ZoneOffset.UTC).toEpochMilli()), new Value("1"));
-    map.put(new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_3",
-        dateMinus10Hours.toInstant(ZoneOffset.UTC).toEpochMilli()), new Value("1"));
+    map.put(
+        new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_1", dateMinus10Days.toInstant(ZoneOffset.UTC).toEpochMilli()),
+        new Value("1"));
+    map.put(
+        new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_2", dateMinus10Days.toInstant(ZoneOffset.UTC).toEpochMilli()),
+        new Value("1"));
+    map.put(
+        new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_3", dateMinus10Hours.toInstant(ZoneOffset.UTC).toEpochMilli()),
+        new Value("1"));
 
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_1",
-        dateMinus10Hours.toInstant(ZoneOffset.UTC).toEpochMilli()), new Value("2"));
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_2",
-        dateMinus10Hours.toInstant(ZoneOffset.UTC).toEpochMilli()), new Value("2"));
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_3",
-        dateMinus10Days.toInstant(ZoneOffset.UTC).toEpochMilli()), new Value("2"));
+    map.put(
+        new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_1", dateMinus10Hours.toInstant(ZoneOffset.UTC).toEpochMilli()),
+        new Value("2"));
+    map.put(
+        new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_2", dateMinus10Hours.toInstant(ZoneOffset.UTC).toEpochMilli()),
+        new Value("2"));
+    map.put(
+        new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_3", dateMinus10Days.toInstant(ZoneOffset.UTC).toEpochMilli()),
+        new Value("2"));
 
     return map;
   }

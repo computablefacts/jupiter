@@ -1,7 +1,8 @@
 package com.computablefacts.jupiter.storage.termstore;
 
+import com.google.common.collect.Sets;
 import java.nio.charset.StandardCharsets;
-
+import nl.jqno.equalsverifier.EqualsVerifier;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -9,10 +10,6 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
-
-import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class TermTest {
 
@@ -28,14 +25,12 @@ public class TermTest {
 
   @Test(expected = NullPointerException.class)
   public void testNullField() {
-    Term term =
-        new Term("dataset", "bucketId", null, Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
+    Term term = new Term("dataset", "bucketId", null, Term.TYPE_STRING, "term", Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
   public void testNullTerm() {
-    Term term =
-        new Term("dataset", "bucketId", "field", Term.TYPE_UNKNOWN, null, Sets.newHashSet(), 0);
+    Term term = new Term("dataset", "bucketId", "field", Term.TYPE_UNKNOWN, null, Sets.newHashSet(), 0);
   }
 
   @Test(expected = NullPointerException.class)
@@ -60,8 +55,8 @@ public class TermTest {
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual = Term.newForwardMutation("my_dataset", "123456", "first_name",
-        Term.TYPE_STRING, "john", 11, Sets.newHashSet());
+    Mutation actual = Term.newForwardMutation("my_dataset", "123456", "first_name", Term.TYPE_STRING, "john", 11,
+        Sets.newHashSet());
 
     Assert.assertEquals(expected, actual);
   }
@@ -78,8 +73,8 @@ public class TermTest {
     Mutation expected = new Mutation(row);
     expected.put(new Text(cf), new Text(cq), new ColumnVisibility(cv), new Value(val));
 
-    Mutation actual = Term.newBackwardMutation("my_dataset", "123456", "first_name",
-        Term.TYPE_STRING, "john", 11, Sets.newHashSet());
+    Mutation actual = Term.newBackwardMutation("my_dataset", "123456", "first_name", Term.TYPE_STRING, "john", 11,
+        Sets.newHashSet());
 
     Assert.assertEquals(expected, actual);
   }

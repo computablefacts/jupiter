@@ -1,5 +1,9 @@
 package com.computablefacts.jupiter.filters;
 
+import com.computablefacts.jupiter.BloomFilters;
+import com.computablefacts.jupiter.storage.termstore.Term;
+import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.Var;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -7,7 +11,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -15,11 +18,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.computablefacts.jupiter.BloomFilters;
-import com.computablefacts.jupiter.storage.termstore.Term;
-import com.google.common.collect.Sets;
-import com.google.errorprone.annotations.Var;
 
 public class TermStoreBucketFieldFilterTest {
 
@@ -61,8 +59,7 @@ public class TermStoreBucketFieldFilterTest {
 
     TermStoreBucketFieldFilter iterator = iterator(bfs, null);
 
-    @Var
-    int nbMatch = 0;
+    @Var int nbMatch = 0;
 
     while (iterator.hasTop()) {
       String row = iterator.getTopKey().getRow().toString();
@@ -88,25 +85,21 @@ public class TermStoreBucketFieldFilterTest {
       iterator.next();
     }
 
-    Assert.assertEquals(1,
-        list.stream().filter(e -> e.getColumnFamily().toString().equals("DATASET_1")
-            && e.getColumnQualifier().toString().endsWith("FIELD_1")).count());
+    Assert.assertEquals(1, list.stream().filter(
+        e -> e.getColumnFamily().toString().equals("DATASET_1") && e.getColumnQualifier().toString()
+            .endsWith("FIELD_1")).count());
 
-    Assert.assertEquals(1,
-        list.stream()
-            .filter(e -> e.getColumnFamily().toString().equals("DATASET_2")
-                && e.getColumnQualifier().toString().endsWith("FIELD_1\0" + Term.TYPE_NUMBER))
-            .count());
+    Assert.assertEquals(1, list.stream().filter(
+        e -> e.getColumnFamily().toString().equals("DATASET_2") && e.getColumnQualifier().toString()
+            .endsWith("FIELD_1\0" + Term.TYPE_NUMBER)).count());
 
-    Assert.assertEquals(1,
-        list.stream().filter(e -> e.getColumnFamily().toString().equals("DATASET_1")
-            && e.getColumnQualifier().toString().endsWith("FIELD_2")).count());
+    Assert.assertEquals(1, list.stream().filter(
+        e -> e.getColumnFamily().toString().equals("DATASET_1") && e.getColumnQualifier().toString()
+            .endsWith("FIELD_2")).count());
 
-    Assert.assertEquals(1,
-        list.stream()
-            .filter(e -> e.getColumnFamily().toString().equals("DATASET_2")
-                && e.getColumnQualifier().toString().endsWith("FIELD_2\0" + Term.TYPE_NUMBER))
-            .count());
+    Assert.assertEquals(1, list.stream().filter(
+        e -> e.getColumnFamily().toString().equals("DATASET_2") && e.getColumnQualifier().toString()
+            .endsWith("FIELD_2\0" + Term.TYPE_NUMBER)).count());
   }
 
   @Test
@@ -117,8 +110,7 @@ public class TermStoreBucketFieldFilterTest {
 
     TermStoreBucketFieldFilter iterator = iterator(bfs, Sets.newHashSet("FIELD_1", "FIELD_2"));
 
-    @Var
-    int nbMatch = 0;
+    @Var int nbMatch = 0;
 
     while (iterator.hasTop()) {
       String row = iterator.getTopKey().getRow().toString();
@@ -132,8 +124,8 @@ public class TermStoreBucketFieldFilterTest {
     Assert.assertEquals(2, nbMatch);
   }
 
-  private TermStoreBucketFieldFilter iterator(BloomFilters<String> docsToKeep,
-      Set<String> fieldsToKeep) throws IOException {
+  private TermStoreBucketFieldFilter iterator(BloomFilters<String> docsToKeep, Set<String> fieldsToKeep)
+      throws IOException {
 
     TermStoreBucketFieldFilter iterator = new TermStoreBucketFieldFilter();
     IteratorSetting setting = new IteratorSetting(1, TermStoreBucketFieldFilter.class);
@@ -156,12 +148,9 @@ public class TermStoreBucketFieldFilterTest {
     map.put(new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_2", 0), new Value("1"));
     map.put(new Key("TERM_1", "DATASET_1", "DOCID_1\0FIELD_3", 0), new Value("1"));
 
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_1\0" + Term.TYPE_NUMBER, 0),
-        new Value("2"));
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_2\0" + Term.TYPE_NUMBER, 0),
-        new Value("2"));
-    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_3\0" + Term.TYPE_NUMBER, 0),
-        new Value("2"));
+    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_1\0" + Term.TYPE_NUMBER, 0), new Value("2"));
+    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_2\0" + Term.TYPE_NUMBER, 0), new Value("2"));
+    map.put(new Key("TERM_2", "DATASET_2", "DOCID_2\0FIELD_3\0" + Term.TYPE_NUMBER, 0), new Value("2"));
 
     return map;
   }

@@ -3,19 +3,6 @@ package com.computablefacts.jupiter.storage.datastore;
 import static com.computablefacts.jupiter.storage.Constants.AUTH_ADM;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.computablefacts.asterix.codecs.StringCodec;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Data;
@@ -26,6 +13,17 @@ import com.computablefacts.jupiter.queries.QueryBuilder;
 import com.computablefacts.jupiter.storage.termstore.Term;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Var;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class DataStoreTest extends MiniAccumuloClusterTest {
 
@@ -54,8 +52,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.flush();
     AbstractNode query = QueryBuilder.build("doe");
 
-    @Var
-    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    @Var List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals("row_1", docsIds.get(0));
@@ -87,8 +84,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.flush();
     AbstractNode query = QueryBuilder.build("doe");
 
-    @Var
-    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    @Var List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals("row_1", docsIds.get(0));
@@ -126,8 +122,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     AbstractNode query = QueryBuilder.build("joh? AND doe");
 
-    @Var
-    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    @Var List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals("row_1", docsIds.get(0));
@@ -153,8 +148,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     AbstractNode query = QueryBuilder.build("doe AND NOT jan?");
 
-    @Var
-    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    @Var List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals("row_1", docsIds.get(0));
@@ -180,8 +174,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
-    @Var
-    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    @Var List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals("row_1", docsIds.get(0));
@@ -196,8 +189,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
   public void testRowLevelAuthorizations() throws Exception {
 
     String username = nextUsername();
-    DataStore dataStore =
-        newDataStore(new Authorizations("ADM", "DATASET_1_ROW_1", "DATASET_1_ROW_2"), username);
+    DataStore dataStore = newDataStore(new Authorizations("ADM", "DATASET_1_ROW_1", "DATASET_1_ROW_2"), username);
 
     Assert.assertTrue(dataStore.persist("dataset_1", "row_1", Data.json2(1)));
     Assert.assertTrue(dataStore.persist("dataset_1", "row_2", Data.json3(1)));
@@ -209,9 +201,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
-    @Var
-    List<String> docsIds =
-        query.execute(dataStore, new Authorizations("DATASET_1_ROW_1"), "dataset_1").toList();
+    @Var List<String> docsIds = query.execute(dataStore, new Authorizations("DATASET_1_ROW_1"), "dataset_1").toList();
 
     Assert.assertEquals(1, docsIds.size());
     Assert.assertEquals("row_1", docsIds.get(0));
@@ -236,8 +226,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    @Var
-    AbstractNode query = QueryBuilder.build("joh* OR jan*");
+    @Var AbstractNode query = QueryBuilder.build("joh* OR jan*");
 
     Assert.assertEquals(2, query.cardinality(dataStore, AUTH_ADM, "dataset_1"));
 
@@ -276,8 +265,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    @Var
-    AbstractNode query = QueryBuilder.build("age:[* TO 20]");
+    @Var AbstractNode query = QueryBuilder.build("age:[* TO 20]");
 
     Assert.assertEquals(2, query.cardinality(dataStore, AUTH_ADM, "dataset_1"));
 
@@ -309,11 +297,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    @Var
-    AbstractNode query = QueryBuilder.build("age:[* TO 20]");
+    @Var AbstractNode query = QueryBuilder.build("age:[* TO 20]");
 
-    @Var
-    List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
+    @Var List<String> docsIds = query.execute(dataStore, AUTH_ADM, "dataset_1").toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertEquals("row_1", docsIds.get(0));
@@ -358,9 +344,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    @Var
-    List<String> docsIds =
-        dataStore.matchValue(AUTH_ADM, "dataset_1", "Actors[*]¤name", "Tom Cruise").toList();
+    @Var List<String> docsIds = dataStore.matchValue(AUTH_ADM, "dataset_1", "Actors[*]¤name", "Tom Cruise").toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
@@ -405,40 +389,35 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    @Var
-    List<String> docsIds = dataStore
-        .matchHash(AUTH_ADM, "dataset_1", "Actors[*]¤name", "8f8a04ea49585975fcf1e452b988e085")
+    @Var List<String> docsIds = dataStore.matchHash(AUTH_ADM, "dataset_1", "Actors[*]¤name",
+        "8f8a04ea49585975fcf1e452b988e085").toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+
+    docsIds = dataStore.matchHash(AUTH_ADM, "dataset_1", "Actors[*]¤weight", "4103e8509cbdf6b3372222061bbe1da6")
         .toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds = dataStore
-        .matchHash(AUTH_ADM, "dataset_1", "Actors[*]¤weight", "4103e8509cbdf6b3372222061bbe1da6")
+    docsIds = dataStore.matchHash(AUTH_ADM, "dataset_1", "Actors[*]¤age", "3974c437d717863985a0b5618f289b46").toList();
+
+    Assert.assertEquals(2, docsIds.size());
+    Assert.assertTrue(docsIds.contains("row_1"));
+    Assert.assertTrue(docsIds.contains("row_2"));
+
+    docsIds = dataStore.matchHash(AUTH_ADM, "dataset_1", "Actors[*]¤hasGreyHair", "e495b7e5056dbfc4e854950696d4c3cc")
         .toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds = dataStore
-        .matchHash(AUTH_ADM, "dataset_1", "Actors[*]¤age", "3974c437d717863985a0b5618f289b46")
+    docsIds = dataStore.matchHash(AUTH_ADM, "dataset_1", "Actors[*]¤hasChildren", "5db32d6ecc1f5ef816ebe6268a3343c2")
         .toList();
-
-    Assert.assertEquals(2, docsIds.size());
-    Assert.assertTrue(docsIds.contains("row_1"));
-    Assert.assertTrue(docsIds.contains("row_2"));
-
-    docsIds = dataStore.matchHash(AUTH_ADM, "dataset_1", "Actors[*]¤hasGreyHair",
-        "e495b7e5056dbfc4e854950696d4c3cc").toList();
-
-    Assert.assertEquals(2, docsIds.size());
-    Assert.assertTrue(docsIds.contains("row_1"));
-    Assert.assertTrue(docsIds.contains("row_2"));
-
-    docsIds = dataStore.matchHash(AUTH_ADM, "dataset_1", "Actors[*]¤hasChildren",
-        "5db32d6ecc1f5ef816ebe6268a3343c2").toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
@@ -459,37 +438,32 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    @Var
-    List<String> docsIds = dataStore
-        .matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤name", "Tom Cruise").toList();
+    @Var List<String> docsIds = dataStore.matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤name", "Tom Cruise")
+        .toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds =
-        dataStore.matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤weight", 67.5).toList();
+    docsIds = dataStore.matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤weight", 67.5).toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds =
-        dataStore.matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤age", 73).toList();
+    docsIds = dataStore.matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤age", 73).toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds = dataStore
-        .matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤hasGreyHair", false).toList();
+    docsIds = dataStore.matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤hasGreyHair", false).toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
     Assert.assertTrue(docsIds.contains("row_2"));
 
-    docsIds = dataStore
-        .matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤hasChildren", true).toList();
+    docsIds = dataStore.matchValueSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤hasChildren", true).toList();
 
     Assert.assertEquals(2, docsIds.size());
     Assert.assertTrue(docsIds.contains("row_1"));
@@ -510,8 +484,7 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     Assert.assertTrue(dataStore.revokeWritePermissionOnBlobStore(username));
     Assert.assertTrue(dataStore.revokeWritePermissionOnTermStore(username));
 
-    @Var
-    List<String> docsIds = dataStore.matchHashSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤name",
+    @Var List<String> docsIds = dataStore.matchHashSortedByDocId(AUTH_ADM, "dataset_1", "Actors[*]¤name",
         "8f8a04ea49585975fcf1e452b988e085").toList();
 
     Assert.assertEquals(2, docsIds.size());
@@ -565,11 +538,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(1, blobs.size());
 
-      List<String> items = blobs.stream()
-          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
-              + t.getValue().toString())
+      List<String> items = blobs.stream().map(
+              t -> t.getKey().getRow().toString() + SEPARATOR_PIPE + t.getKey().getColumnFamily().toString()
+                  + SEPARATOR_PIPE + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE + t.getValue().toString())
           .collect(Collectors.toList());
 
       // Raw data
@@ -584,17 +555,14 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(19, terms.size());
 
-      List<String> items = terms.stream()
-          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
-              + t.getValue().toString())
+      List<String> items = terms.stream().map(
+              t -> t.getKey().getRow().toString() + SEPARATOR_PIPE + t.getKey().getColumnFamily().toString()
+                  + SEPARATOR_PIPE + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE + t.getValue().toString())
           .collect(Collectors.toList());
 
       // Check all terms but the ones in the LU, DT and TT column families
       Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FCNT|birthdate\0003|1"));
-      Assert.assertTrue(
-          items.contains("dataset_1\0002004-04-01T00:00:00Z|FIDX|row_1\000birthdate\0003|1"));
+      Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FIDX|row_1\000birthdate\0003|1"));
       Assert.assertTrue(items.contains("dataset_1\000?1*|FCNT|id\0002|1"));
       Assert.assertTrue(items.contains("dataset_1\000?1*|FIDX|row_1\000id\0002|1"));
       Assert.assertTrue(items.contains("dataset_1\000??217*|FCNT|age\0002|1"));
@@ -609,16 +577,11 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(items.contains("dataset_1\000nhoj|BIDX|row_1\000first_name\0001|1"));
 
       // Check hashes
-      Assert.assertTrue(
-          items.contains("dataset_1\0004b5c86196dd52c0cf2673d2d0a569431|H|row_1\000last_name|"));
-      Assert.assertTrue(
-          items.contains("dataset_1\0006174693c483abae057d822c6cc4c67b9|H|row_1\000age|"));
-      Assert.assertTrue(
-          items.contains("dataset_1\000717c7b8afebbfb7137f6f0f99beb2a94|H|row_1\000id|"));
-      Assert.assertTrue(
-          items.contains("dataset_1\00088fecf016203005fdbeb018c1376c333|H|row_1\000first_name|"));
-      Assert.assertTrue(
-          items.contains("dataset_1\0008c979aa1006083b505eadf7fdbbd786c|H|row_1\000birthdate|"));
+      Assert.assertTrue(items.contains("dataset_1\0004b5c86196dd52c0cf2673d2d0a569431|H|row_1\000last_name|"));
+      Assert.assertTrue(items.contains("dataset_1\0006174693c483abae057d822c6cc4c67b9|H|row_1\000age|"));
+      Assert.assertTrue(items.contains("dataset_1\000717c7b8afebbfb7137f6f0f99beb2a94|H|row_1\000id|"));
+      Assert.assertTrue(items.contains("dataset_1\00088fecf016203005fdbeb018c1376c333|H|row_1\000first_name|"));
+      Assert.assertTrue(items.contains("dataset_1\0008c979aa1006083b505eadf7fdbbd786c|H|row_1\000birthdate|"));
     }
 
     // Remove all terms
@@ -636,11 +599,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(1, blobs.size());
 
-      List<String> items = blobs.stream()
-          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
-              + t.getValue().toString())
+      List<String> items = blobs.stream().map(
+              t -> t.getKey().getRow().toString() + SEPARATOR_PIPE + t.getKey().getColumnFamily().toString()
+                  + SEPARATOR_PIPE + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE + t.getValue().toString())
           .collect(Collectors.toList());
 
       // Raw data
@@ -655,17 +616,14 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(19, terms.size());
 
-      List<String> items = terms.stream()
-          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
-              + t.getValue().toString())
+      List<String> items = terms.stream().map(
+              t -> t.getKey().getRow().toString() + SEPARATOR_PIPE + t.getKey().getColumnFamily().toString()
+                  + SEPARATOR_PIPE + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE + t.getValue().toString())
           .collect(Collectors.toList());
 
       // Check all items but the ones in the LU, DT and TT column families
       Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FCNT|birthdate\0003|1"));
-      Assert.assertTrue(
-          items.contains("dataset_1\0002004-04-01T00:00:00Z|FIDX|row_1\000birthdate\0003|1"));
+      Assert.assertTrue(items.contains("dataset_1\0002004-04-01T00:00:00Z|FIDX|row_1\000birthdate\0003|1"));
       Assert.assertTrue(items.contains("dataset_1\000?1*|FCNT|id\0002|1"));
       Assert.assertTrue(items.contains("dataset_1\000?1*|FIDX|row_1\000id\0002|1"));
       Assert.assertTrue(items.contains("dataset_1\000??217*|FCNT|age\0002|1"));
@@ -680,16 +638,11 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(items.contains("dataset_1\000nhoj|BIDX|row_1\000first_name\0001|1"));
 
       // Check hashes
-      Assert.assertTrue(
-          items.contains("dataset_1\0004b5c86196dd52c0cf2673d2d0a569431|H|row_1\000last_name|"));
-      Assert.assertTrue(
-          items.contains("dataset_1\0006174693c483abae057d822c6cc4c67b9|H|row_1\000age|"));
-      Assert.assertTrue(
-          items.contains("dataset_1\000717c7b8afebbfb7137f6f0f99beb2a94|H|row_1\000id|"));
-      Assert.assertTrue(
-          items.contains("dataset_1\00088fecf016203005fdbeb018c1376c333|H|row_1\000first_name|"));
-      Assert.assertTrue(
-          items.contains("dataset_1\0008c979aa1006083b505eadf7fdbbd786c|H|row_1\000birthdate|"));
+      Assert.assertTrue(items.contains("dataset_1\0004b5c86196dd52c0cf2673d2d0a569431|H|row_1\000last_name|"));
+      Assert.assertTrue(items.contains("dataset_1\0006174693c483abae057d822c6cc4c67b9|H|row_1\000age|"));
+      Assert.assertTrue(items.contains("dataset_1\000717c7b8afebbfb7137f6f0f99beb2a94|H|row_1\000id|"));
+      Assert.assertTrue(items.contains("dataset_1\00088fecf016203005fdbeb018c1376c333|H|row_1\000first_name|"));
+      Assert.assertTrue(items.contains("dataset_1\0008c979aa1006083b505eadf7fdbbd786c|H|row_1\000birthdate|"));
     }
   }
 
@@ -712,11 +665,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(1, blobs.size());
 
-      List<String> items = blobs.stream()
-          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
-              + t.getValue().toString())
+      List<String> items = blobs.stream().map(
+              t -> t.getKey().getRow().toString() + SEPARATOR_PIPE + t.getKey().getColumnFamily().toString()
+                  + SEPARATOR_PIPE + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE + t.getValue().toString())
           .collect(Collectors.toList());
 
       // Raw data
@@ -732,11 +683,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(26, terms.size());
 
-      List<String> items = terms.stream()
-          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
-              + t.getValue().toString())
+      List<String> items = terms.stream().map(
+              t -> t.getKey().getRow().toString() + SEPARATOR_PIPE + t.getKey().getColumnFamily().toString()
+                  + SEPARATOR_PIPE + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE + t.getValue().toString())
           .collect(Collectors.toList());
 
       // Check id
@@ -755,18 +704,12 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(items.contains("dataset\00099|FIDX|row_1\000score_2\0001|1"));
 
       // Check hashes
-      Assert.assertTrue(
-          items.contains("dataset\0004b5c86196dd52c0cf2673d2d0a569431|H|row_1\000nom|"));
-      Assert.assertTrue(
-          items.contains("dataset\000705b98fa2fcabec353bc2af216a19c6c|H|row_1\000score_3|"));
-      Assert
-          .assertTrue(items.contains("dataset\000717c7b8afebbfb7137f6f0f99beb2a94|H|row_1\000id|"));
-      Assert.assertTrue(
-          items.contains("dataset\00088fecf016203005fdbeb018c1376c333|H|row_1\000prénom|"));
-      Assert.assertTrue(
-          items.contains("dataset\00099dc3020f1177845ed45f8b7651e0721|H|row_1\000score_2|"));
-      Assert.assertTrue(
-          items.contains("dataset\0009cd4452654e1932a5ba9bb7513af30e2|H|row_1\000score_1|"));
+      Assert.assertTrue(items.contains("dataset\0004b5c86196dd52c0cf2673d2d0a569431|H|row_1\000nom|"));
+      Assert.assertTrue(items.contains("dataset\000705b98fa2fcabec353bc2af216a19c6c|H|row_1\000score_3|"));
+      Assert.assertTrue(items.contains("dataset\000717c7b8afebbfb7137f6f0f99beb2a94|H|row_1\000id|"));
+      Assert.assertTrue(items.contains("dataset\00088fecf016203005fdbeb018c1376c333|H|row_1\000prénom|"));
+      Assert.assertTrue(items.contains("dataset\00099dc3020f1177845ed45f8b7651e0721|H|row_1\000score_2|"));
+      Assert.assertTrue(items.contains("dataset\0009cd4452654e1932a5ba9bb7513af30e2|H|row_1\000score_1|"));
     }
   }
 
@@ -789,11 +732,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(1, blobs.size());
 
-      List<String> items = blobs.stream()
-          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
-              + t.getValue().toString())
+      List<String> items = blobs.stream().map(
+              t -> t.getKey().getRow().toString() + SEPARATOR_PIPE + t.getKey().getColumnFamily().toString()
+                  + SEPARATOR_PIPE + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE + t.getValue().toString())
           .collect(Collectors.toList());
 
       // Raw data
@@ -809,11 +750,9 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(56, terms.size());
 
-      List<String> items = terms.stream()
-          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
-              + t.getValue().toString())
+      List<String> items = terms.stream().map(
+              t -> t.getKey().getRow().toString() + SEPARATOR_PIPE + t.getKey().getColumnFamily().toString()
+                  + SEPARATOR_PIPE + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE + t.getValue().toString())
           .collect(Collectors.toList());
 
       // Check id
@@ -833,26 +772,16 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
       Assert.assertTrue(items.contains("dataset\000?0*|FIDX|row_1\000nb_connexions\0002|1"));
 
       // Check hashes
-      Assert.assertTrue(
-          items.contains("dataset\0003411263c2a61d88640486814343c1dcd|H|row_1\000adresse|"));
-      Assert
-          .assertTrue(items.contains("dataset\000365ccfea623eaebf17f36c5a0cdc4ddc|H|row_1\000id|"));
-      Assert.assertTrue(
-          items.contains("dataset\0004b5c86196dd52c0cf2673d2d0a569431|H|row_1\000nom|"));
-      Assert.assertTrue(
-          items.contains("dataset\00080a346d5bedec92a095e873ce5e98d3a|H|row_1\000nb_connexions|"));
-      Assert.assertTrue(
-          items.contains("dataset\00088fecf016203005fdbeb018c1376c333|H|row_1\000prénom|"));
-      Assert.assertTrue(
-          items.contains("dataset\000a408d3633275bd7d9d07fe871f1a4f35|H|row_1\000age|"));
-      Assert.assertTrue(
-          items.contains("dataset\000ab5cb0f09d544f320228314c636ed29a|H|row_1\000sexe|"));
-      Assert.assertTrue(
-          items.contains("dataset\000af6196f63905efa61c2d1376b8482eae|H|row_1\000code_postal|"));
-      Assert.assertTrue(
-          items.contains("dataset\000f0790ca2c49879179504e93e9e1868de|H|row_1\000ville|"));
-      Assert.assertTrue(
-          items.contains("dataset\000f795e514e5b3f452b5a047a574c445e3|H|row_1\000rue|"));
+      Assert.assertTrue(items.contains("dataset\0003411263c2a61d88640486814343c1dcd|H|row_1\000adresse|"));
+      Assert.assertTrue(items.contains("dataset\000365ccfea623eaebf17f36c5a0cdc4ddc|H|row_1\000id|"));
+      Assert.assertTrue(items.contains("dataset\0004b5c86196dd52c0cf2673d2d0a569431|H|row_1\000nom|"));
+      Assert.assertTrue(items.contains("dataset\00080a346d5bedec92a095e873ce5e98d3a|H|row_1\000nb_connexions|"));
+      Assert.assertTrue(items.contains("dataset\00088fecf016203005fdbeb018c1376c333|H|row_1\000prénom|"));
+      Assert.assertTrue(items.contains("dataset\000a408d3633275bd7d9d07fe871f1a4f35|H|row_1\000age|"));
+      Assert.assertTrue(items.contains("dataset\000ab5cb0f09d544f320228314c636ed29a|H|row_1\000sexe|"));
+      Assert.assertTrue(items.contains("dataset\000af6196f63905efa61c2d1376b8482eae|H|row_1\000code_postal|"));
+      Assert.assertTrue(items.contains("dataset\000f0790ca2c49879179504e93e9e1868de|H|row_1\000ville|"));
+      Assert.assertTrue(items.contains("dataset\000f795e514e5b3f452b5a047a574c445e3|H|row_1\000rue|"));
     }
   }
 
@@ -884,21 +813,17 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
       Assert.assertEquals(21, terms.size());
 
-      List<String> items = terms.stream()
-          .map(t -> t.getKey().getRow().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnFamily().toString() + SEPARATOR_PIPE
-              + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE
-              + t.getValue().toString())
+      List<String> items = terms.stream().map(
+              t -> t.getKey().getRow().toString() + SEPARATOR_PIPE + t.getKey().getColumnFamily().toString()
+                  + SEPARATOR_PIPE + t.getKey().getColumnQualifier().toString() + SEPARATOR_PIPE + t.getValue().toString())
           .collect(Collectors.toList());
 
       // Check hashes
-      Assert.assertTrue(
-          items.contains("dataset\0008995d3edb756b461812cdb3501a74032|H|row_1\000path|"));
+      Assert.assertTrue(items.contains("dataset\0008995d3edb756b461812cdb3501a74032|H|row_1\000path|"));
     }
 
     // Check queries
-    @Var
-    Set<Term> terms = dataStore.termStore().terms(auths, "dataset", "myfile").toSet();
+    @Var Set<Term> terms = dataStore.termStore().terms(auths, "dataset", "myfile").toSet();
 
     Assert.assertEquals(1, terms.size());
 
@@ -906,22 +831,18 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
 
     Assert.assertEquals(1, terms.size());
 
-    terms = dataStore.termStore().terms(auths, "dataset", Sets.newHashSet("path"), "myfile", null)
-        .toSet();
+    terms = dataStore.termStore().terms(auths, "dataset", Sets.newHashSet("path"), "myfile", null).toSet();
 
     Assert.assertEquals(1, terms.size());
 
-    terms =
-        dataStore.termStore().terms(auths, "dataset", Sets.newHashSet("path"), "csv", null).toSet();
+    terms = dataStore.termStore().terms(auths, "dataset", Sets.newHashSet("path"), "csv", null).toSet();
 
     Assert.assertEquals(1, terms.size());
 
     // Query
-    @Var
-    AbstractNode node = QueryBuilder.build("myfile.csv");
+    @Var AbstractNode node = QueryBuilder.build("myfile.csv");
 
-    @Var
-    Set<String> docsIds = node.execute(dataStore, auths, "dataset").toSet();
+    @Var Set<String> docsIds = node.execute(dataStore, auths, "dataset").toSet();
 
     Assert.assertEquals(1, docsIds.size());
 
@@ -956,18 +877,15 @@ public class DataStoreTest extends MiniAccumuloClusterTest {
     dataStore.flush();
 
     // Query
-    @Var
-    AbstractNode node = QueryBuilder.build("path:\"myfile.csv\"");
+    @Var AbstractNode node = QueryBuilder.build("path:\"myfile.csv\"");
 
-    @Var
-    Set<String> docsIds = node.execute(dataStore, auths, "dataset").toSet();
+    @Var Set<String> docsIds = node.execute(dataStore, auths, "dataset").toSet();
 
     Assert.assertEquals(0, docsIds.size());
 
     node = QueryBuilder.build("path:\"myfile.csv\"");
 
-    docsIds =
-        node.execute(dataStore, auths, "dataset", null, StringCodec::defaultTokenizer).toSet();
+    docsIds = node.execute(dataStore, auths, "dataset", null, StringCodec::defaultTokenizer).toSet();
 
     Assert.assertEquals(1, docsIds.size());
   }
