@@ -1,5 +1,9 @@
 package com.computablefacts.jupiter;
 
+import com.computablefacts.logfmt.LogFormatter;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -7,7 +11,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -26,32 +29,26 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.logfmt.LogFormatter;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.errorprone.annotations.CheckReturnValue;
-
 @CheckReturnValue
 final public class Tables {
 
   private static final Logger logger_ = LoggerFactory.getLogger(Tables.class);
 
-  private Tables() {}
+  private Tables() {
+  }
 
   public static SortedSet<String> all(TableOperations tableOperations) {
     return Preconditions.checkNotNull(tableOperations, "tableOperations should not be null").list();
   }
 
   public static boolean exists(TableOperations tableOperations, String tableName) {
-    return Preconditions.checkNotNull(tableOperations, "tableOperations should not be null")
-        .exists(tableName);
+    return Preconditions.checkNotNull(tableOperations, "tableOperations should not be null").exists(tableName);
   }
 
   public static boolean create(TableOperations tableOperations, String tableName) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
 
     try {
       if (!exists(tableOperations, tableName)) {
@@ -67,8 +64,7 @@ final public class Tables {
   public static boolean delete(TableOperations tableOperations, String tableName) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
 
     try {
       if (exists(tableOperations, tableName)) {
@@ -93,8 +89,7 @@ final public class Tables {
         return true;
       }
       return false;
-    } catch (TableNotFoundException | TableExistsException | AccumuloSecurityException
-        | AccumuloException e) {
+    } catch (TableNotFoundException | TableExistsException | AccumuloSecurityException | AccumuloException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
@@ -112,19 +107,16 @@ final public class Tables {
         return true;
       }
       return false;
-    } catch (TableNotFoundException | TableExistsException | AccumuloSecurityException
-        | AccumuloException e) {
+    } catch (TableNotFoundException | TableExistsException | AccumuloSecurityException | AccumuloException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return false;
   }
 
-  public static boolean split(TableOperations tableOperations, String tableName,
-      SortedSet<Text> partitionKeys) {
+  public static boolean split(TableOperations tableOperations, String tableName, SortedSet<Text> partitionKeys) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
     Preconditions.checkNotNull(partitionKeys, "partitionKeys should not be null");
 
     try {
@@ -141,8 +133,7 @@ final public class Tables {
   public static SortedSet<Text> splits(TableOperations tableOperations, String tableName) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
 
     try {
       if (exists(tableOperations, tableName)) {
@@ -154,12 +145,10 @@ final public class Tables {
     return new TreeSet<>();
   }
 
-  public static boolean bloomFilter(TableOperations tableOperations, String tableName,
-      boolean enable) {
+  public static boolean bloomFilter(TableOperations tableOperations, String tableName, boolean enable) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
 
     try {
       tableOperations.setProperty(tableName, "table.bloom.enabled", enable ? "true" : "false");
@@ -170,12 +159,10 @@ final public class Tables {
     return false;
   }
 
-  public static boolean dataBlockCache(TableOperations tableOperations, String tableName,
-      boolean enable) {
+  public static boolean dataBlockCache(TableOperations tableOperations, String tableName, boolean enable) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
 
     try {
       tableOperations.setProperty(tableName, "table.cache.block.enable", enable ? "true" : "false");
@@ -186,12 +173,10 @@ final public class Tables {
     return false;
   }
 
-  public static boolean dataIndexCache(TableOperations tableOperations, String tableName,
-      boolean enable) {
+  public static boolean dataIndexCache(TableOperations tableOperations, String tableName, boolean enable) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
 
     try {
       tableOperations.setProperty(tableName, "table.cache.index.enable", enable ? "true" : "false");
@@ -206,8 +191,7 @@ final public class Tables {
       Map<String, Set<Text>> groups, boolean compact) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
     Preconditions.checkArgument(groups != null && !groups.isEmpty());
 
     try {
@@ -222,12 +206,10 @@ final public class Tables {
     return false;
   }
 
-  public static Map<String, Set<Text>> getLocalityGroups(TableOperations tableOperations,
-      String tableName) {
+  public static Map<String, Set<Text>> getLocalityGroups(TableOperations tableOperations, String tableName) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
 
     try {
       return tableOperations.getLocalityGroups(tableName);
@@ -240,8 +222,7 @@ final public class Tables {
   public static boolean deleteAllRows(TableOperations tableOperations, String tableName) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
 
     try {
       tableOperations.deleteRows(tableName, null, null);
@@ -252,12 +233,10 @@ final public class Tables {
     return false;
   }
 
-  public static boolean deleteRowsFrom(TableOperations tableOperations, String tableName,
-      String from) {
+  public static boolean deleteRowsFrom(TableOperations tableOperations, String tableName, String from) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
     Preconditions.checkNotNull(from, "from should not be null");
 
     try {
@@ -272,8 +251,7 @@ final public class Tables {
   public static boolean deleteRowsTo(TableOperations tableOperations, String tableName, String to) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
     Preconditions.checkNotNull(to, "to should not be null");
 
     try {
@@ -285,22 +263,17 @@ final public class Tables {
     return false;
   }
 
-  public static boolean deleteRows(TableOperations tableOperations, String tableName, String from,
-      String to) {
+  public static boolean deleteRows(TableOperations tableOperations, String tableName, String from, String to) {
 
     Preconditions.checkNotNull(tableOperations, "tableOperations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
     Preconditions.checkNotNull(from, "from should not be null");
     Preconditions.checkNotNull(to, "to should not be null");
 
     try {
-      tableOperations.deleteRows(tableName,
-          new Text(from.equals(to)
-              ? from.substring(0, from.length() - 1)
-                  + Character.toString((char) (from.charAt(from.length() - 1) - 1))
-              : from),
-          new Text(to));
+      tableOperations.deleteRows(tableName, new Text(
+          from.equals(to) ? from.substring(0, from.length() - 1) + Character.toString(
+              (char) (from.charAt(from.length() - 1) - 1)) : from), new Text(to));
       return true;
     } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
@@ -318,8 +291,8 @@ final public class Tables {
     return batchWriterConfig;
   }
 
-  public static BatchWriterConfig batchWriterConfig(long maxMemoryInBytes, long maxLatencyInMs,
-      int maxWriteThreads, long timeoutInMs) {
+  public static BatchWriterConfig batchWriterConfig(long maxMemoryInBytes, long maxLatencyInMs, int maxWriteThreads,
+      long timeoutInMs) {
 
     BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
     batchWriterConfig.setMaxMemory(maxMemoryInBytes);
@@ -332,11 +305,9 @@ final public class Tables {
     return batchWriterConfig;
   }
 
-  public static Scanner scanner(Connector connector, String tableName,
-      Authorizations authorizations) {
+  public static Scanner scanner(Connector connector, String tableName, Authorizations authorizations) {
 
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
 
     try {
@@ -347,12 +318,11 @@ final public class Tables {
     return null;
   }
 
-  public static BatchScanner batchScanner(Connector connector, String tableName,
-      Authorizations authorizations, int nbQueryThreads) {
+  public static BatchScanner batchScanner(Connector connector, String tableName, Authorizations authorizations,
+      int nbQueryThreads) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkArgument(nbQueryThreads > 0, "nbQueryThreads should be > 0");
 
@@ -364,27 +334,24 @@ final public class Tables {
     return null;
   }
 
-  public static BatchDeleter batchDeleter(Connector connector, String tableName,
-      Authorizations authorizations, int nbQueryThreads, BatchWriterConfig batchWriterConfig) {
+  public static BatchDeleter batchDeleter(Connector connector, String tableName, Authorizations authorizations,
+      int nbQueryThreads, BatchWriterConfig batchWriterConfig) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkArgument(nbQueryThreads > 0, "nbQueryThreads should be > 0");
     Preconditions.checkNotNull(batchWriterConfig, "batchWriterConfig should not be null");
 
     try {
-      return connector.createBatchDeleter(tableName, authorizations, nbQueryThreads,
-          batchWriterConfig);
+      return connector.createBatchDeleter(tableName, authorizations, nbQueryThreads, batchWriterConfig);
     } catch (TableNotFoundException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return null;
   }
 
-  public static MultiTableBatchWriter multiTableBatchWriter(Connector connector,
-      BatchWriterConfig batchWriterConfig) {
+  public static MultiTableBatchWriter multiTableBatchWriter(Connector connector, BatchWriterConfig batchWriterConfig) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
     Preconditions.checkNotNull(batchWriterConfig, "batchWriterConfig should not be null");
@@ -392,12 +359,10 @@ final public class Tables {
     return connector.createMultiTableBatchWriter(batchWriterConfig);
   }
 
-  public static BatchWriter batchWriter(Connector connector, String tableName,
-      BatchWriterConfig batchWriterConfig) {
+  public static BatchWriter batchWriter(Connector connector, String tableName, BatchWriterConfig batchWriterConfig) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
     Preconditions.checkNotNull(batchWriterConfig, "batchWriterConfig should not be null");
 
     try {

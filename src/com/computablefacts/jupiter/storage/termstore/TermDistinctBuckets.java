@@ -5,22 +5,24 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_COUNT;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_COUNT;
 
+import com.computablefacts.asterix.Generated;
+import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
-
-import com.computablefacts.asterix.Generated;
-import com.google.common.base.*;
-import com.google.common.collect.Sets;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import com.google.errorprone.annotations.CheckReturnValue;
-import com.google.errorprone.annotations.Var;
 
 @CheckReturnValue
 final public class TermDistinctBuckets implements HasTerm {
@@ -32,8 +34,7 @@ final public class TermDistinctBuckets implements HasTerm {
   private final Set<String> labels_;
   private final long count_;
 
-  TermDistinctBuckets(String dataset, String field, int type, String term, Set<String> labels,
-      long count) {
+  TermDistinctBuckets(String dataset, String field, int type, String term, Set<String> labels, long count) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(field, "field should not be null");
@@ -48,27 +49,27 @@ final public class TermDistinctBuckets implements HasTerm {
     count_ = count;
   }
 
-  public static Mutation newForwardMutation(String dataset, String field, int type, String term,
-      int count, Set<String> labels) {
+  public static Mutation newForwardMutation(String dataset, String field, int type, String term, int count,
+      Set<String> labels) {
     return newForwardMutation(null, dataset, field, type, term, count, labels);
   }
 
-  public static Mutation newBackwardMutation(String dataset, String field, int type, String term,
-      int count, Set<String> labels) {
+  public static Mutation newBackwardMutation(String dataset, String field, int type, String term, int count,
+      Set<String> labels) {
     return newBackwardMutation(null, dataset, field, type, term, count, labels);
   }
 
   @CanIgnoreReturnValue
-  public static Mutation newForwardMutation(Map<Text, Mutation> mutations, String dataset,
-      String field, int type, String term, int count, Set<String> labels) {
+  public static Mutation newForwardMutation(Map<Text, Mutation> mutations, String dataset, String field, int type,
+      String term, int count, Set<String> labels) {
     return newMutation(mutations, FORWARD_COUNT, dataset, field, type, term, count, labels);
   }
 
   @CanIgnoreReturnValue
-  public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset,
-      String field, int type, String term, int count, Set<String> labels) {
-    return newMutation(mutations, BACKWARD_COUNT, dataset, field, type,
-        new StringBuilder(term).reverse().toString(), count, labels);
+  public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset, String field, int type,
+      String term, int count, Set<String> labels) {
+    return newMutation(mutations, BACKWARD_COUNT, dataset, field, type, new StringBuilder(term).reverse().toString(),
+        count, labels);
   }
 
   public static TermDistinctBuckets fromKeyValue(Key key, Value value) {
@@ -83,12 +84,10 @@ final public class TermDistinctBuckets implements HasTerm {
     String val = value.toString();
 
     // Extract dataset and term from ROW
-    @Var
-    int index = row.indexOf(SEPARATOR_NUL);
+    @Var int index = row.indexOf(SEPARATOR_NUL);
     String dataset = row.substring(0, index);
-    String term =
-        cf.equals(BACKWARD_COUNT) ? new StringBuilder(row.substring(index + 1)).reverse().toString()
-            : row.substring(index + 1);
+    String term = cf.equals(BACKWARD_COUNT) ? new StringBuilder(row.substring(index + 1)).reverse().toString()
+        : row.substring(index + 1);
 
     // Extract field from CQ
     index = cq.indexOf(SEPARATOR_NUL);
@@ -105,14 +104,13 @@ final public class TermDistinctBuckets implements HasTerm {
     }
 
     // Extract visibility labels from CV
-    Set<String> labels =
-        Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
+    Set<String> labels = Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
     return new TermDistinctBuckets(dataset, field, type, term, labels, Long.parseLong(val, 10));
   }
 
-  private static Mutation newMutation(Map<Text, Mutation> mutations, String mutationType,
-      String dataset, String field, int type, String term, int count, Set<String> labels) {
+  private static Mutation newMutation(Map<Text, Mutation> mutations, String mutationType, String dataset, String field,
+      int type, String term, int count, Set<String> labels) {
 
     Preconditions.checkNotNull(mutationType, "mutationType should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -149,9 +147,8 @@ final public class TermDistinctBuckets implements HasTerm {
   @Generated
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("field", field_)
-        .add("type", type_).add("term", term_).add("labels", labels_).add("count", count_)
-        .toString();
+    return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("field", field_).add("type", type_)
+        .add("term", term_).add("labels", labels_).add("count", count_).toString();
   }
 
   @Override
@@ -163,9 +160,9 @@ final public class TermDistinctBuckets implements HasTerm {
       return false;
     }
     TermDistinctBuckets term = (TermDistinctBuckets) obj;
-    return Objects.equal(dataset_, term.dataset_) && Objects.equal(field_, term.field_)
-        && Objects.equal(term_, term.term_) && Objects.equal(type_, term.type_)
-        && Objects.equal(labels_, term.labels_) && Objects.equal(count_, term.count_);
+    return Objects.equal(dataset_, term.dataset_) && Objects.equal(field_, term.field_) && Objects.equal(term_,
+        term.term_) && Objects.equal(type_, term.type_) && Objects.equal(labels_, term.labels_) && Objects.equal(count_,
+        term.count_);
   }
 
   @Override

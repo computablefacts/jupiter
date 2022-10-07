@@ -1,19 +1,18 @@
 package com.computablefacts.jupiter.queries;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import com.computablefacts.asterix.StringIterator;
 import com.computablefacts.asterix.WildcardMatcher;
 import com.google.common.base.Splitter;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * See http://www.blackbeltcoder.com/Articles/data/easy-full-text-search-queries for details.
- * 
+ * <p>
  * Clauses are grouped from left to right i.e. A && B || C &gt;=&lt; (A && B) || C
  */
 @CheckReturnValue
@@ -44,28 +43,20 @@ final public class QueryBuilder {
   /**
    * Parses a query segment and converts it to an expression tree.
    *
-   * @param query Query segment to convert.
+   * @param query              Query segment to convert.
    * @param defaultConjunction Implicit conjunction type.
    * @return Root node of expression tree.
    */
   public AbstractNode parse(String query, InternalNode.eConjunctionTypes defaultConjunction) {
 
-    @Var
-    String predicate = "";
-    @Var
-    TerminalNode.eTermForms form = TerminalNode.eTermForms.Inflectional;
-    @Var
-    boolean exclude = false;
-    @Var
-    InternalNode.eConjunctionTypes conjunction = defaultConjunction;
-    @Var
-    boolean resetState = true;
-    @Var
-    AbstractNode root = null;
-    @Var
-    AbstractNode node;
-    @Var
-    String object;
+    @Var String predicate = "";
+    @Var TerminalNode.eTermForms form = TerminalNode.eTermForms.Inflectional;
+    @Var boolean exclude = false;
+    @Var InternalNode.eConjunctionTypes conjunction = defaultConjunction;
+    @Var boolean resetState = true;
+    @Var AbstractNode root = null;
+    @Var AbstractNode node;
+    @Var String object;
 
     StringIterator iterator = new StringIterator(query);
 
@@ -81,8 +72,7 @@ final public class QueryBuilder {
 
       iterator.movePastWhitespace();
 
-      if (!iterator.isEndOfText()
-          && (keepPunctuationMarks_ || PUNCTUATION.indexOf(iterator.peek()) < 0)) {
+      if (!iterator.isEndOfText() && (keepPunctuationMarks_ || PUNCTUATION.indexOf(iterator.peek()) < 0)) {
 
         // Extract query term
         int start = iterator.position();
@@ -90,10 +80,8 @@ final public class QueryBuilder {
 
         List<Integer> arrays = new ArrayList<>();
 
-        while (!iterator.isEndOfText()
-            && (keepPunctuationMarks_ || PUNCTUATION.indexOf(iterator.peek()) < 0
-                || "[]".indexOf(iterator.peek()) >= 0 /* array index */)
-            && !Character.isWhitespace(iterator.peek())) {
+        while (!iterator.isEndOfText() && (keepPunctuationMarks_ || PUNCTUATION.indexOf(iterator.peek()) < 0
+            || "[]".indexOf(iterator.peek()) >= 0 /* array index */) && !Character.isWhitespace(iterator.peek())) {
 
           if (iterator.peek() == '[' || iterator.peek() == ']') {
             arrays.add(iterator.position());
@@ -133,8 +121,7 @@ final public class QueryBuilder {
           predicate = iterator.extract(start, iterator.position());
           resetState = true;
         } else {
-          root = addNode(root, iterator.extract(start, iterator.position()), predicate, form,
-              exclude, conjunction);
+          root = addNode(root, iterator.extract(start, iterator.position()), predicate, form, exclude, conjunction);
           resetState = true;
         }
         continue; // Skip iterator.moveAhead()
@@ -162,16 +149,16 @@ final public class QueryBuilder {
 
         if (WildcardMatcher.match(object, "*" + _TO_ + "*")) {
 
-          List<String> range =
-              Splitter.on(_TO_).trimResults().omitEmptyStrings().splitToList(object);
+          List<String> range = Splitter.on(_TO_).trimResults().omitEmptyStrings().splitToList(object);
 
           if (range.size() == 2) {
 
             String min = range.get(0);
             String max = range.get(1);
 
-            boolean isValid = ("*".equals(min) && !"*".equals(max))
-                || ("*".equals(max) && !"*".equals(min)) || (!"*".equals(min) && !"*".equals(max));
+            boolean isValid =
+                ("*".equals(min) && !"*".equals(max)) || ("*".equals(max) && !"*".equals(min)) || (!"*".equals(min)
+                    && !"*".equals(max));
 
             if (isValid) {
 
@@ -206,9 +193,8 @@ final public class QueryBuilder {
    * Fixes any portions of the expression tree that would produce an invalid query.
    *
    * <p>
-   * While our expression tree may be properly constructed, it may represent a query that is not
-   * supported by our backend. This method traverses the expression tree and corrects problem
-   * expressions as described below.
+   * While our expression tree may be properly constructed, it may represent a query that is not supported by our
+   * backend. This method traverses the expression tree and corrects problem expressions as described below.
    * </p>
    *
    * <ul>
@@ -220,7 +206,7 @@ final public class QueryBuilder {
    * <li>term1 OR NOT term2 : Expression discarded.</li>
    * </ul>
    *
-   * @param node Node to fix up.
+   * @param node   Node to fix up.
    * @param isRoot True if node is the tree's root node.
    * @return Root node of expression tree.
    */
@@ -301,9 +287,9 @@ final public class QueryBuilder {
   }
 
   /**
-   * Extracts a block of text delimited by double quotes. It is assumed the parser is positioned at
-   * the first quote. The quotes are not included in the returned string. On return, the parser is
-   * positioned at the closing quote or at the end of the text if the closing quote was not found.
+   * Extracts a block of text delimited by double quotes. It is assumed the parser is positioned at the first quote. The
+   * quotes are not included in the returned string. On return, the parser is positioned at the closing quote or at the
+   * end of the text if the closing quote was not found.
    *
    * @param iterator TextParser object.
    * @return The extracted text.
@@ -320,21 +306,20 @@ final public class QueryBuilder {
   }
 
   /**
-   * Extracts a block of text delimited by the specified open and close characters. It is assumed
-   * the parser is positioned at an occurrence of the open character. The open and closing
-   * characters are not included in the returned string. On return, the parser is positioned at the
-   * closing character or at the end of the text if the closing character was not found.
+   * Extracts a block of text delimited by the specified open and close characters. It is assumed the parser is
+   * positioned at an occurrence of the open character. The open and closing characters are not included in the returned
+   * string. On return, the parser is positioned at the closing character or at the end of the text if the closing
+   * character was not found.
    *
-   * @param iterator TextParser object.
-   * @param openChar Start-of-block delimiter.
+   * @param iterator  TextParser object.
+   * @param openChar  Start-of-block delimiter.
    * @param closeChar End-of-block delimiter.
    * @return The extracted text.
    */
   private String extractBlock(StringIterator iterator, char openChar, char closeChar) {
 
     // Track delimiter depth
-    @Var
-    int depth = 1;
+    @Var int depth = 1;
 
     // Extract characters between delimiters
     iterator.moveAhead();
@@ -369,13 +354,12 @@ final public class QueryBuilder {
   /**
    * Adds an expression node to the given tree.
    *
-   * @param root Root node of expression tree.
-   * @param node Node to add.
+   * @param root        Root node of expression tree.
+   * @param node        Node to add.
    * @param conjunction Conjunction used to join with other nodes.
    * @return The new root node.
    */
-  private AbstractNode addNode(@Var AbstractNode root, AbstractNode node,
-      InternalNode.eConjunctionTypes conjunction) {
+  private AbstractNode addNode(@Var AbstractNode root, AbstractNode node, InternalNode.eConjunctionTypes conjunction) {
     if (node != null) {
       if (root != null) {
         root = new InternalNode(conjunction, root, node);
@@ -389,16 +373,16 @@ final public class QueryBuilder {
   /**
    * Creates an expression node and adds it to the given tree.
    *
-   * @param root Root node of expression tree.
-   * @param object Term for this node.
-   * @param predicate Indicates dimension of this term.
-   * @param form Indicates form of this term.
-   * @param exclude Indicates if this is an excluded term.
+   * @param root        Root node of expression tree.
+   * @param object      Term for this node.
+   * @param predicate   Indicates dimension of this term.
+   * @param form        Indicates form of this term.
+   * @param exclude     Indicates if this is an excluded term.
    * @param conjunction Conjunction used to join with other nodes.
    * @return The new root node.
    */
-  private AbstractNode addNode(@Var AbstractNode root, String object, String predicate,
-      TerminalNode.eTermForms form, boolean exclude, InternalNode.eConjunctionTypes conjunction) {
+  private AbstractNode addNode(@Var AbstractNode root, String object, String predicate, TerminalNode.eTermForms form,
+      boolean exclude, InternalNode.eConjunctionTypes conjunction) {
     if (object != null && object.length() > 0 && !isStopWord(object)) {
       TerminalNode terminalNode = new TerminalNode(form, predicate, object);
       terminalNode.exclude(exclude);

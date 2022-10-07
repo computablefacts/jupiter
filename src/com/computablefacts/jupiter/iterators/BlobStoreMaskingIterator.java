@@ -1,20 +1,10 @@
 package com.computablefacts.jupiter.iterators;
 
 import static com.computablefacts.asterix.Document.ID_MAGIC_KEY;
-import static com.computablefacts.jupiter.storage.Constants.*;
-
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
+import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
+import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
+import static com.computablefacts.jupiter.storage.Constants.STRING_RAW_DATA;
 
 import com.computablefacts.asterix.Generated;
 import com.computablefacts.jupiter.storage.AbstractStorage;
@@ -27,6 +17,17 @@ import com.github.wnameless.json.unflattener.JsonUnflattener;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.VisibilityEvaluator;
 
 @CheckReturnValue
 public class BlobStoreMaskingIterator extends MaskingIterator {
@@ -34,7 +35,8 @@ public class BlobStoreMaskingIterator extends MaskingIterator {
   private ObjectMapper mapper_;
   private JacksonJsonCore jsonCore_;
 
-  public BlobStoreMaskingIterator() {}
+  public BlobStoreMaskingIterator() {
+  }
 
   @Generated
   @Override
@@ -98,13 +100,11 @@ public class BlobStoreMaskingIterator extends MaskingIterator {
 
       String row = key.getRow().toString();
       Set<String> auths = parsedAuths();
-      String vizDataset =
-          AbstractStorage.toVisibilityLabel(row.substring(0, row.indexOf(SEPARATOR_NUL)) + "_");
+      String vizDataset = AbstractStorage.toVisibilityLabel(row.substring(0, row.indexOf(SEPARATOR_NUL)) + "_");
       String vizRawData = vizDataset + STRING_RAW_DATA;
       VisibilityEvaluator userVizEvaluator = visibilityEvaluator(vizRawData);
 
-      if (auths.contains(vizRawData)
-          && matches(userVizEvaluator, key.getColumnVisibilityParsed())) {
+      if (auths.contains(vizRawData) && matches(userVizEvaluator, key.getColumnVisibilityParsed())) {
 
         // Here, the user has the <dataset>_RAW_DATA authorization : give him access to the full
         // JSON object
@@ -112,8 +112,8 @@ public class BlobStoreMaskingIterator extends MaskingIterator {
       } else {
 
         Map<String, Object> newJson = new HashMap<>();
-        Map<String, Object> json = new JsonFlattener(jsonCore_, value.toString())
-            .withSeparator(SEPARATOR_CURRENCY_SIGN).flattenAsMap();
+        Map<String, Object> json = new JsonFlattener(jsonCore_, value.toString()).withSeparator(SEPARATOR_CURRENCY_SIGN)
+            .flattenAsMap();
 
         // First, ensure the user has the right to visualize the returned fields
         for (String field : json.keySet()) {
@@ -124,8 +124,8 @@ public class BlobStoreMaskingIterator extends MaskingIterator {
 
           if (ID_MAGIC_KEY.equals(field)) {
             newJson.put(field, object);
-          } else if (AbstractStorage.toVisibilityLabels(path).stream()
-              .map(label -> vizDataset + label).noneMatch(auths::contains)) {
+          } else if (AbstractStorage.toVisibilityLabels(path).stream().map(label -> vizDataset + label)
+              .noneMatch(auths::contains)) {
             newJson.put(field, mask(salt(), object == null ? (String) object : object.toString()));
           } else {
             newJson.put(field, object);
@@ -133,8 +133,8 @@ public class BlobStoreMaskingIterator extends MaskingIterator {
         }
 
         // Then, rebuild a new JSON object
-        setTopValue(new Value(new JsonUnflattener(jsonCore_, newJson)
-            .withSeparator(SEPARATOR_CURRENCY_SIGN).unflatten().getBytes(StandardCharsets.UTF_8)));
+        setTopValue(new Value(new JsonUnflattener(jsonCore_, newJson).withSeparator(SEPARATOR_CURRENCY_SIGN).unflatten()
+            .getBytes(StandardCharsets.UTF_8)));
       }
     }
   }

@@ -1,9 +1,15 @@
 package com.computablefacts.jupiter;
 
+import com.computablefacts.logfmt.LogFormatter;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -16,20 +22,13 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.logfmt.LogFormatter;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
-import com.google.errorprone.annotations.CheckReturnValue;
-import com.google.errorprone.annotations.Var;
-
 @CheckReturnValue
 final public class Users {
 
   private static final Logger logger_ = LoggerFactory.getLogger(Users.class);
 
-  private Users() {}
+  private Users() {
+  }
 
   public static ColumnVisibility columnVisibility(String viz) {
     return Strings.isNullOrEmpty(viz) ? new ColumnVisibility() : new ColumnVisibility(viz);
@@ -54,8 +53,7 @@ final public class Users {
   public static boolean exists(Connector connector, String username) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
 
     return all(connector).contains(username);
   }
@@ -63,10 +61,8 @@ final public class Users {
   public static boolean create(Connector connector, String username, String password) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(password),
-        "password should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(password), "password should neither be null nor empty");
 
     SecurityOperations securityOperations = connector.securityOperations();
 
@@ -86,8 +82,7 @@ final public class Users {
   public static boolean delete(Connector connector, String username) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
 
     SecurityOperations securityOperations = connector.securityOperations();
 
@@ -115,15 +110,14 @@ final public class Users {
     if (Strings.isNullOrEmpty(authorizations)) {
       return Authorizations.EMPTY;
     }
-    return new Authorizations(Iterables.toArray(
-        Splitter.on(',').trimResults().omitEmptyStrings().split(authorizations), String.class));
+    return new Authorizations(
+        Iterables.toArray(Splitter.on(',').trimResults().omitEmptyStrings().split(authorizations), String.class));
   }
 
   public static Authorizations getAuthorizations(Connector connector, String username) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
 
     SecurityOperations securityOperations = connector.securityOperations();
 
@@ -137,12 +131,10 @@ final public class Users {
     return null;
   }
 
-  public static boolean setAuthorizations(Connector connector, String username,
-      Set<String> authorizations) {
+  public static boolean setAuthorizations(Connector connector, String username, Set<String> authorizations) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
 
     SecurityOperations securityOperations = connector.securityOperations();
@@ -152,8 +144,8 @@ final public class Users {
         if (authorizations.isEmpty()) {
           securityOperations.changeUserAuthorizations(username, Authorizations.EMPTY);
         } else {
-          Authorizations userAuthorizations =
-              new Authorizations(authorizations.toArray(new String[authorizations.size()]));
+          Authorizations userAuthorizations = new Authorizations(
+              authorizations.toArray(new String[authorizations.size()]));
           securityOperations.changeUserAuthorizations(username, userAuthorizations);
         }
         return true;
@@ -178,10 +170,8 @@ final public class Users {
       TablePermission permission) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(table),
-        "table should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(table), "table should neither be null nor empty");
     Preconditions.checkNotNull(permission, "permission should not be null");
 
     SecurityOperations securityOperations = connector.securityOperations();
@@ -197,12 +187,10 @@ final public class Users {
     return false;
   }
 
-  public static boolean grantPermission(Connector connector, String username,
-      SystemPermission permission) {
+  public static boolean grantPermission(Connector connector, String username, SystemPermission permission) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
     Preconditions.checkNotNull(permission, "permission should not be null");
 
     SecurityOperations securityOperations = connector.securityOperations();
@@ -232,8 +220,7 @@ final public class Users {
       TablePermission permission) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(table),
-        "table should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(table), "table should neither be null nor empty");
     Preconditions.checkNotNull(permission, "permission should not be null");
 
     SecurityOperations securityOperations = connector.securityOperations();
@@ -251,8 +238,7 @@ final public class Users {
     return false;
   }
 
-  public static boolean revokePermission(Connector connector, String username,
-      SystemPermission permission) {
+  public static boolean revokePermission(Connector connector, String username, SystemPermission permission) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
     Preconditions.checkNotNull(permission, "permission should not be null");
@@ -272,14 +258,11 @@ final public class Users {
     return false;
   }
 
-  public static boolean hasPermission(Connector connector, String username, String table,
-      TablePermission permission) {
+  public static boolean hasPermission(Connector connector, String username, String table, TablePermission permission) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(table),
-        "table should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(table), "table should neither be null nor empty");
     Preconditions.checkNotNull(permission, "permission should not be null");
 
     SecurityOperations securityOperations = connector.securityOperations();
@@ -294,12 +277,10 @@ final public class Users {
     return false;
   }
 
-  public static boolean hasPermission(Connector connector, String username,
-      SystemPermission permission) {
+  public static boolean hasPermission(Connector connector, String username, SystemPermission permission) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
     Preconditions.checkNotNull(permission, "permission should not be null");
 
     SecurityOperations securityOperations = connector.securityOperations();
@@ -314,17 +295,13 @@ final public class Users {
     return false;
   }
 
-  public static boolean revokeAllTablePermissions(Connector connector, String username,
-      String table) {
+  public static boolean revokeAllTablePermissions(Connector connector, String username, String table) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(table),
-        "table should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(table), "table should neither be null nor empty");
 
-    @Var
-    boolean isOk = revokePermission(connector, username, table, TablePermission.READ);
+    @Var boolean isOk = revokePermission(connector, username, table, TablePermission.READ);
     isOk = isOk && revokePermission(connector, username, table, TablePermission.WRITE);
     isOk = isOk && revokePermission(connector, username, table, TablePermission.BULK_IMPORT);
     isOk = isOk && revokePermission(connector, username, table, TablePermission.ALTER_TABLE);
@@ -337,11 +314,9 @@ final public class Users {
   public static boolean revokeAllSystemPermissions(Connector connector, String username) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
 
-    @Var
-    boolean isOk = revokePermission(connector, username, SystemPermission.GRANT);
+    @Var boolean isOk = revokePermission(connector, username, SystemPermission.GRANT);
     isOk = isOk && revokePermission(connector, username, SystemPermission.CREATE_TABLE);
     isOk = isOk && revokePermission(connector, username, SystemPermission.DROP_TABLE);
     isOk = isOk && revokePermission(connector, username, SystemPermission.ALTER_TABLE);
@@ -360,8 +335,7 @@ final public class Users {
   public static Set<String> usersWithTablePermissions(Connector connector, String table) {
 
     Preconditions.checkNotNull(connector, "connector should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(table),
-        "table should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(table), "table should neither be null nor empty");
 
     return all(connector).stream().filter(user -> {
       if (hasPermission(connector, user, table, TablePermission.READ)) {

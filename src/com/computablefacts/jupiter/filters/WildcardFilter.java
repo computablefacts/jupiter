@@ -1,22 +1,20 @@
 package com.computablefacts.jupiter.filters;
 
+import com.computablefacts.asterix.Generated;
+import com.computablefacts.asterix.WildcardMatcher;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
-import com.computablefacts.asterix.Generated;
-import com.computablefacts.asterix.WildcardMatcher;
-import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
 public class WildcardFilter extends Filter {
@@ -79,8 +77,8 @@ public class WildcardFilter extends Filter {
       return false;
     }
     for (String option : options.keySet()) {
-      if (!option.startsWith(COLUMN_CRITERION) && !option.startsWith(WILDCARD_CRITERION)
-          && !option.equals(AND_CRITERION)) {
+      if (!option.startsWith(COLUMN_CRITERION) && !option.startsWith(WILDCARD_CRITERION) && !option.equals(
+          AND_CRITERION)) {
         return false;
       }
       if (option.startsWith(WILDCARD_CRITERION) && options.get(option) == null) {
@@ -91,14 +89,14 @@ public class WildcardFilter extends Filter {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options,
-      IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env)
+      throws IOException {
 
     super.init(source, options, env);
 
-    wildcards_
-        .addAll(options.keySet().stream().filter(option -> option.startsWith(WILDCARD_CRITERION))
-            .map(options::get).collect(Collectors.toList()));
+    wildcards_.addAll(
+        options.keySet().stream().filter(option -> option.startsWith(WILDCARD_CRITERION)).map(options::get)
+            .collect(Collectors.toList()));
     column_ = options.getOrDefault(COLUMN_CRITERION, "VALUE");
     and_ = Boolean.parseBoolean(options.getOrDefault(AND_CRITERION, "false"));
   }
@@ -113,8 +111,7 @@ public class WildcardFilter extends Filter {
     } else if ("CF".equals(column_)) {
       val = key == null || key.getColumnFamily() == null ? null : key.getColumnFamily().toString();
     } else if ("CQ".equals(column_)) {
-      val = key == null || key.getColumnQualifier() == null ? null
-          : key.getColumnQualifier().toString();
+      val = key == null || key.getColumnQualifier() == null ? null : key.getColumnQualifier().toString();
     } else { // VALUE
       val = value == null ? null : value.toString();
     }

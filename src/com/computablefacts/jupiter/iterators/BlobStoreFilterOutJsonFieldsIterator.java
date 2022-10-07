@@ -3,22 +3,6 @@ package com.computablefacts.jupiter.iterators;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_CURRENCY_SIGN;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
 import com.computablefacts.asterix.Generated;
 import com.computablefacts.asterix.WildcardMatcher;
 import com.computablefacts.jupiter.storage.blobstore.Blob;
@@ -31,10 +15,23 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.OptionDescriber;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 @CheckReturnValue
-public class BlobStoreFilterOutJsonFieldsIterator
-    implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
+public class BlobStoreFilterOutJsonFieldsIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
 
   private static final String FIELDS_CRITERION = "f";
 
@@ -46,7 +43,8 @@ public class BlobStoreFilterOutJsonFieldsIterator
   private ObjectMapper mapper_;
   private JacksonJsonCore jsonCore_;
 
-  public BlobStoreFilterOutJsonFieldsIterator() {}
+  public BlobStoreFilterOutJsonFieldsIterator() {
+  }
 
   public static void setFieldsToKeep(IteratorSetting setting, Set<String> fields) {
     if (fields != null) {
@@ -76,9 +74,8 @@ public class BlobStoreFilterOutJsonFieldsIterator
       IteratorEnvironment environment) {
     source_ = source;
     options_ = new HashMap<>(options);
-    keepFields_ = options.containsKey(FIELDS_CRITERION)
-        ? Sets.newHashSet(Splitter.on(SEPARATOR_NUL).split(options.get(FIELDS_CRITERION)))
-        : null;
+    keepFields_ = options.containsKey(FIELDS_CRITERION) ? Sets.newHashSet(
+        Splitter.on(SEPARATOR_NUL).split(options.get(FIELDS_CRITERION))) : null;
     mapper_ = new ObjectMapper();
     mapper_.configure(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature(), true);
     jsonCore_ = new JacksonJsonCore(mapper_);
@@ -101,8 +98,7 @@ public class BlobStoreFilterOutJsonFieldsIterator
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-      throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     source_.seek(range, columnFamilies, inclusive);
     next();
   }
@@ -140,15 +136,14 @@ public class BlobStoreFilterOutJsonFieldsIterator
       setTopValue(value);
     } else {
 
-      Map<String, Object> json = new JsonFlattener(jsonCore_, value.toString())
-          .withSeparator(SEPARATOR_CURRENCY_SIGN).flattenAsMap();
+      Map<String, Object> json = new JsonFlattener(jsonCore_, value.toString()).withSeparator(SEPARATOR_CURRENCY_SIGN)
+          .flattenAsMap();
 
       // First, remove all fields that have not been explicitly asked for
       json.keySet().removeIf(field -> !acceptField(field));
 
       // Then, rebuild a new JSON object
-      String newJson =
-          new JsonUnflattener(jsonCore_, json).withSeparator(SEPARATOR_CURRENCY_SIGN).unflatten();
+      String newJson = new JsonUnflattener(jsonCore_, json).withSeparator(SEPARATOR_CURRENCY_SIGN).unflatten();
 
       // Next, set the new JSON object as the new Accumulo Value
       setTopValue(new Value(newJson.getBytes(StandardCharsets.UTF_8)));

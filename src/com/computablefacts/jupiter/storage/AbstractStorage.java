@@ -1,20 +1,5 @@
 package com.computablefacts.jupiter.storage;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-import org.apache.accumulo.core.client.*;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.security.SecurityErrorCode;
-import org.apache.accumulo.core.data.ConstraintViolationSummary;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.computablefacts.asterix.Generated;
 import com.computablefacts.jupiter.Configurations;
 import com.computablefacts.jupiter.Tables;
@@ -28,6 +13,32 @@ import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.stream.Collectors;
+import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.client.security.SecurityErrorCode;
+import org.apache.accumulo.core.data.ConstraintViolationSummary;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @CheckReturnValue
 public abstract class AbstractStorage {
@@ -40,8 +51,7 @@ public abstract class AbstractStorage {
   public AbstractStorage(Configurations configurations, String tableName) {
 
     Preconditions.checkNotNull(configurations, "configurations should not be null");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName),
-        "tableName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName), "tableName should neither be null nor empty");
 
     configurations_ = configurations;
     tableName_ = tableName;
@@ -73,8 +83,7 @@ public abstract class AbstractStorage {
 
     Preconditions.checkNotNull(string, "string should not be null");
 
-    return string.replaceAll("\\[\\d+\\]|\\[\\*\\]", "").replaceAll("\\s+|[^a-zA-Z0-9_]", "_")
-        .trim().toUpperCase();
+    return string.replaceAll("\\[\\d+\\]|\\[\\*\\]", "").replaceAll("\\s+|[^a-zA-Z0-9_]", "_").trim().toUpperCase();
   }
 
   /**
@@ -109,12 +118,11 @@ public abstract class AbstractStorage {
    * Keep only authorizations starting with {@code <prefix>_} and/or ending with {@code _<suffix>}.
    *
    * @param authorizations authorizations.
-   * @param prefix prefix.
-   * @param suffix suffix.
+   * @param prefix         prefix.
+   * @param suffix         suffix.
    * @return authorizations, not null.
    */
-  public static Authorizations compact(Authorizations authorizations, String prefix,
-      String suffix) {
+  public static Authorizations compact(Authorizations authorizations, String prefix, String suffix) {
 
     if (authorizations == null) {
       return Authorizations.EMPTY;
@@ -126,12 +134,9 @@ public abstract class AbstractStorage {
     String authBegin = Strings.isNullOrEmpty(prefix) ? null : toVisibilityLabel(prefix + "_");
     String authEnd = Strings.isNullOrEmpty(suffix) ? null : toVisibilityLabel("_" + suffix);
 
-    Set<String> auths =
-        Splitter.on(',').trimResults().omitEmptyStrings().splitToStream(authorizations.toString())
-            .filter(auth -> Constants.STRING_ADM.equals(auth)
-                || ((authBegin == null || auth.startsWith(authBegin))
-                    && (authEnd == null || auth.endsWith(authEnd))))
-            .collect(Collectors.toSet());
+    Set<String> auths = Splitter.on(',').trimResults().omitEmptyStrings().splitToStream(authorizations.toString())
+        .filter(auth -> Constants.STRING_ADM.equals(auth) || ((authBegin == null || auth.startsWith(authBegin)) && (
+            authEnd == null || auth.endsWith(authEnd)))).collect(Collectors.toSet());
 
     return new Authorizations(Iterables.toArray(auths, String.class));
   }
@@ -140,7 +145,7 @@ public abstract class AbstractStorage {
    * Set a single range to a scanner.
    *
    * @param scanner scanner.
-   * @param range a single range.
+   * @param range   a single range.
    * @return true if the action succeeded, false otherwise.
    */
   public static boolean setRange(ScannerBase scanner, Range range) {
@@ -151,7 +156,7 @@ public abstract class AbstractStorage {
    * Set a collection of ranges to a scanner.
    *
    * @param scanner scanner.
-   * @param ranges a set of ranges.
+   * @param ranges  a set of ranges.
    * @return true if the action succeeded, false otherwise.
    */
   public static boolean setRanges(ScannerBase scanner, Collection<Range> ranges) {
@@ -165,9 +170,9 @@ public abstract class AbstractStorage {
       if (ranges.size() == 1) {
         ((Scanner) scanner).setRange((Range) ranges.toArray()[0]);
       } else {
-        logger_.error(LogFormatter.create(true)
-            .message("\"using a BatchScanner is mandatory : the number of ranges is > 1\"")
-            .formatError());
+        logger_.error(
+            LogFormatter.create(true).message("\"using a BatchScanner is mandatory : the number of ranges is > 1\"")
+                .formatError());
         return false;
       }
     } else {
@@ -198,21 +203,18 @@ public abstract class AbstractStorage {
 
       for (Map.Entry<TabletId, Set<SecurityErrorCode>> entry : securityErrors.entrySet()) {
         for (SecurityErrorCode err : entry.getValue()) {
-          logger_.error(LogFormatter.create(true).message("Permanent error: " + err.toString())
-              .formatError());
+          logger_.error(LogFormatter.create(true).message("Permanent error: " + err.toString()).formatError());
         }
       }
 
       List<ConstraintViolationSummary> constraintViolations = ex.getConstraintViolationSummaries();
 
       for (ConstraintViolationSummary cvs : constraintViolations) {
-        logger_.error(LogFormatter.create(true).message("Constraint violation: " + cvs.toString())
-            .formatError());
+        logger_.error(LogFormatter.create(true).message("Constraint violation: " + cvs.toString()).formatError());
       }
 
       if (!securityErrors.isEmpty() || !constraintViolations.isEmpty()) {
-        logger_.error(
-            LogFormatter.create(true).message("Have permanent errors. Exiting...").formatError());
+        logger_.error(LogFormatter.create(true).message("Have permanent errors. Exiting...").formatError());
         return false;
       }
 
@@ -220,15 +222,13 @@ public abstract class AbstractStorage {
       Collection<String> errorServers = ex.getErrorServers();
 
       for (String errorServer : errorServers) {
-        logger_.warn(
-            LogFormatter.create(true).message("Problem with server: " + errorServer).formatWarn());
+        logger_.warn(LogFormatter.create(true).message("Problem with server: " + errorServer).formatWarn());
       }
 
       int numUnknownExceptions = ex.getUnknownExceptions();
 
       if (numUnknownExceptions > 0) {
-        logger_.warn(LogFormatter.create(true)
-            .message(numUnknownExceptions + " unknown exceptions.").formatWarn());
+        logger_.warn(LogFormatter.create(true).message(numUnknownExceptions + " unknown exceptions.").formatWarn());
       }
       return true;
     } else if (exception instanceof TimedOutException) {
@@ -238,8 +238,8 @@ public abstract class AbstractStorage {
       Collection<String> errorServers = ex.getTimedOutSevers();
 
       for (String errorServer : errorServers) {
-        logger_.warn(LogFormatter.create(true)
-            .message("Problem with server: " + errorServer + " (timeout)").formatWarn());
+        logger_.warn(
+            LogFormatter.create(true).message("Problem with server: " + errorServer + " (timeout)").formatWarn());
       }
       return true;
     }
@@ -278,20 +278,16 @@ public abstract class AbstractStorage {
     Preconditions.checkNotNull(cfs, "cfs should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(
-          LogFormatter.create(true).add("table_name", tableName()).add("cfs", cfs).formatDebug());
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("cfs", cfs).formatDebug());
     }
 
     if (!cfs.isEmpty()) {
 
-      Map<String, Set<Text>> groups =
-          Tables.getLocalityGroups(configurations().tableOperations(), tableName());
+      Map<String, Set<Text>> groups = Tables.getLocalityGroups(configurations().tableOperations(), tableName());
 
-      cfs.stream().filter(cf -> !groups.containsKey(cf))
-          .forEach(cf -> groups.put(cf, Sets.newHashSet(new Text(cf))));
+      cfs.stream().filter(cf -> !groups.containsKey(cf)).forEach(cf -> groups.put(cf, Sets.newHashSet(new Text(cf))));
 
-      return Tables.setLocalityGroups(configurations().tableOperations(), tableName(), groups,
-          false);
+      return Tables.setLocalityGroups(configurations().tableOperations(), tableName(), groups, false);
     }
     return true;
   }
@@ -313,8 +309,7 @@ public abstract class AbstractStorage {
   /**
    * Initialize the storage layer.
    *
-   * @return true if the storage layer already exists or has been successfully initialized, false
-   *         otherwise.
+   * @return true if the storage layer already exists or has been successfully initialized, false otherwise.
    */
   public boolean create() {
 
@@ -324,8 +319,7 @@ public abstract class AbstractStorage {
 
     if (!isReady()) {
 
-      @Var
-      boolean isOk = Tables.create(configurations().tableOperations(), tableName());
+      @Var boolean isOk = Tables.create(configurations().tableOperations(), tableName());
       isOk = isOk && Tables.dataBlockCache(configurations().tableOperations(), tableName(), true);
       isOk = isOk && Tables.dataIndexCache(configurations().tableOperations(), tableName(), true);
 
@@ -337,8 +331,7 @@ public abstract class AbstractStorage {
   /**
    * Destroy the storage layer.
    *
-   * @return true if the storage layer does not exist or has been successfully destroyed, false
-   *         otherwise.
+   * @return true if the storage layer does not exist or has been successfully destroyed, false otherwise.
    */
   public boolean destroy() {
 
@@ -375,7 +368,7 @@ public abstract class AbstractStorage {
    * Remove a set of column families.
    *
    * @param deleter batch deleter.
-   * @param cfs the column families to remove.
+   * @param cfs     the column families to remove.
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean removeColumnFamilies(BatchDeleter deleter, Set<String> cfs) {
@@ -384,8 +377,7 @@ public abstract class AbstractStorage {
     Preconditions.checkNotNull(cfs, "cfs should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(
-          LogFormatter.create(true).add("table_name", tableName()).add("cfs", cfs).formatDebug());
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("cfs", cfs).formatDebug());
     }
 
     deleter.clearColumns();
@@ -408,7 +400,7 @@ public abstract class AbstractStorage {
    * Remove a set of ranges.
    *
    * @param deleter batch deleter.
-   * @param ranges the ranges to remove.
+   * @param ranges  the ranges to remove.
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean removeRanges(BatchDeleter deleter, Set<Range> ranges) {
@@ -417,8 +409,7 @@ public abstract class AbstractStorage {
     Preconditions.checkNotNull(ranges, "ranges should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("ranges", ranges)
-          .formatDebug());
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("ranges", ranges).formatDebug());
     }
 
     deleter.clearColumns();
@@ -438,11 +429,10 @@ public abstract class AbstractStorage {
    * Remove data.
    *
    * @param deleter batch deleter.
-   * @param row the row to delete. If null, delete all data in the [*, cf, cq] or [*, cf, *] ranges.
-   *        If the column family and column qualifier parameters are also null, remove all data.
-   * @param cf the column family to delete. If null, delete all data in the [row, *, *] range.
-   * @param cq the column qualifier to delete. If null, delete all data in the [row, *, *] or [row,
-   *        cf, *] ranges.
+   * @param row     the row to delete. If null, delete all data in the [*, cf, cq] or [*, cf, *] ranges. If the column
+   *                family and column qualifier parameters are also null, remove all data.
+   * @param cf      the column family to delete. If null, delete all data in the [row, *, *] range.
+   * @param cq      the column qualifier to delete. If null, delete all data in the [row, *, *] or [row, cf, *] ranges.
    * @return true if the operation succeeded, false otherwise.
    */
   public boolean remove(BatchDeleter deleter, String row, String cf, String cq) {
@@ -450,8 +440,8 @@ public abstract class AbstractStorage {
     Preconditions.checkNotNull(deleter, "deleter should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("row", row)
-          .add("cf", cf).add("cq", cq).formatDebug());
+      logger_.debug(LogFormatter.create(true).add("table_name", tableName()).add("row", row).add("cf", cf).add("cq", cq)
+          .formatDebug());
     }
 
     deleter.clearColumns();
@@ -475,7 +465,7 @@ public abstract class AbstractStorage {
   /**
    * Persist data.
    *
-   * @param writer batch writer.
+   * @param writer   batch writer.
    * @param mutation the mutation to write.
    * @return true if the operation succeeded, false otherwise.
    */
@@ -496,7 +486,7 @@ public abstract class AbstractStorage {
   /**
    * Persist data.
    *
-   * @param writer batch writer.
+   * @param writer    batch writer.
    * @param mutations the mutations to write.
    * @return true if the operation succeeded, false otherwise.
    */
@@ -523,22 +513,20 @@ public abstract class AbstractStorage {
     return Tables.batchWriter(configurations().connector(), tableName(), config);
   }
 
-  public BatchDeleter deleter(Authorizations authorizations, int nbQueryThreads,
-      BatchWriterConfig config) {
+  public BatchDeleter deleter(Authorizations authorizations, int nbQueryThreads, BatchWriterConfig config) {
 
     Preconditions.checkArgument(nbQueryThreads > 0, "nbQueryThreads should be > 0");
     Preconditions.checkNotNull(config, "config should not be null");
 
-    return Tables.batchDeleter(configurations().connector(), tableName(),
-        nullToEmpty(authorizations), nbQueryThreads, config);
+    return Tables.batchDeleter(configurations().connector(), tableName(), nullToEmpty(authorizations), nbQueryThreads,
+        config);
   }
 
   public BatchScanner batchScanner(Authorizations authorizations, int nbQueryThreads) {
 
     Preconditions.checkArgument(nbQueryThreads > 0, "nbQueryThreads should be > 0");
 
-    return Tables.batchScanner(configurations().connector(), tableName(),
-        nullToEmpty(authorizations), nbQueryThreads);
+    return Tables.batchScanner(configurations().connector(), tableName(), nullToEmpty(authorizations), nbQueryThreads);
   }
 
   public Scanner scanner(Authorizations authorizations) {

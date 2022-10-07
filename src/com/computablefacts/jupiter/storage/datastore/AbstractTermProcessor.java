@@ -13,13 +13,12 @@ public abstract class AbstractTermProcessor implements AutoCloseable {
   /**
    * Persist a single term.
    *
-   * @param dataset the dataset.
-   * @param docId the document identifier.
-   * @param field the field name.
-   * @param term the term to index.
+   * @param dataset            the dataset.
+   * @param docId              the document identifier.
+   * @param field              the field name.
+   * @param term               the term to index.
    * @param nbOccurrencesInDoc the number of occurrences of the term in the document.
    * @return true if the write operation succeeded, false otherwise.
    */
-  public abstract boolean write(String dataset, String docId, String field, Object term,
-      int nbOccurrencesInDoc);
+  public abstract boolean write(String dataset, String docId, String field, Object term, int nbOccurrencesInDoc);
 }

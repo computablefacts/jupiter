@@ -3,6 +3,11 @@ package com.computablefacts.jupiter.iterators;
 import static com.computablefacts.jupiter.storage.Constants.MURMUR3_128;
 import static com.computablefacts.jupiter.storage.Constants.STRING_MASKED;
 
+import com.computablefacts.jupiter.Users;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Sets;
+import com.google.common.hash.Hasher;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -10,7 +15,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -24,15 +28,8 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
 
-import com.computablefacts.jupiter.Users;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Sets;
-import com.google.common.hash.Hasher;
-import com.google.errorprone.annotations.CheckReturnValue;
-
 @CheckReturnValue
-public abstract class MaskingIterator
-    implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
+public abstract class MaskingIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
 
   private static final String AUTHS_CRITERION = "a";
   private static final String SALT_CRITERION = "s";
@@ -43,7 +40,8 @@ public abstract class MaskingIterator
   private Value topValue_;
   private Set<String> auths_;
 
-  public MaskingIterator() {}
+  public MaskingIterator() {
+  }
 
   public static void setAuthorizations(IteratorSetting setting, Authorizations authorizations) {
     if (authorizations != null) {
@@ -60,7 +58,7 @@ public abstract class MaskingIterator
   /**
    * Hash a given {@link String}.
    *
-   * @param salt salt.
+   * @param salt  salt.
    * @param value {@link String}.
    * @return hashed value.
    */
@@ -80,7 +78,7 @@ public abstract class MaskingIterator
   /**
    * Hash a given {@link Value}.
    *
-   * @param salt salt.
+   * @param salt  salt.
    * @param value {@link Value}.
    * @return hashed value.
    */
@@ -100,7 +98,7 @@ public abstract class MaskingIterator
   /**
    * Mask a given {@link String}.
    *
-   * @param salt salt.
+   * @param salt  salt.
    * @param value {@link String}.
    * @return hashed value.
    */
@@ -111,7 +109,7 @@ public abstract class MaskingIterator
   /**
    * Mask a given {@link Value}.
    *
-   * @param salt salt.
+   * @param salt  salt.
    * @param value {@link Value}.
    * @return hashed value.
    */
@@ -153,8 +151,7 @@ public abstract class MaskingIterator
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-      throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     source_.seek(range, columnFamilies, inclusive);
     next();
   }
@@ -192,10 +189,10 @@ public abstract class MaskingIterator
   protected abstract MaskingIterator create();
 
   /**
-   * Create a new (Key, Value) pair based on the current one. Must call setTopKey() and
-   * setTopValue(). Must preserve sort order.
+   * Create a new (Key, Value) pair based on the current one. Must call setTopKey() and setTopValue(). Must preserve
+   * sort order.
    *
-   * @param key current Key.
+   * @param key   current Key.
    * @param value current Value.
    */
   protected abstract void setTopKeyValue(Key key, Value value);
@@ -216,8 +213,7 @@ public abstract class MaskingIterator
    */
   protected Set<String> parsedAuths() {
     if (auths_ == null) {
-      auths_ = Sets.newHashSet(
-          Splitter.on(',').trimResults().omitEmptyStrings().split(options_.get(AUTHS_CRITERION)));
+      auths_ = Sets.newHashSet(Splitter.on(',').trimResults().omitEmptyStrings().split(options_.get(AUTHS_CRITERION)));
     }
     return new HashSet<>(auths_);
   }
@@ -255,9 +251,8 @@ public abstract class MaskingIterator
   /**
    * Check if the current row visibility labels match the provided auths.
    *
-   * @param visibilityEvaluator the user auths ready to be evaluated against the row visibility
-   *        labels.
-   * @param visibility the row visibility labels.
+   * @param visibilityEvaluator the user auths ready to be evaluated against the row visibility labels.
+   * @param visibility          the row visibility labels.
    * @return true if the row visibility labels match the provided auths, false otherwise.
    */
   protected boolean matches(VisibilityEvaluator visibilityEvaluator, ColumnVisibility visibility) {

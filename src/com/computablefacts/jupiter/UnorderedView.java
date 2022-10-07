@@ -1,12 +1,10 @@
 package com.computablefacts.jupiter;
 
-import java.util.Iterator;
-import java.util.function.Function;
-
-import org.apache.accumulo.core.client.BatchScanner;
-
 import com.computablefacts.asterix.View;
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.util.Iterator;
+import java.util.function.Function;
+import org.apache.accumulo.core.client.BatchScanner;
 
 @CheckReturnValue
 final public class UnorderedView<T> extends View<T> {

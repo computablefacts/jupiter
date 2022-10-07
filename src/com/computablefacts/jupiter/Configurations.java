@@ -1,5 +1,9 @@
 package com.computablefacts.jupiter;
 
+import com.computablefacts.logfmt.LogFormatter;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.errorprone.annotations.CheckReturnValue;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -9,11 +13,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.computablefacts.logfmt.LogFormatter;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
 final public class Configurations {
@@ -33,20 +32,16 @@ final public class Configurations {
    * Create a new configuration object.
    *
    * @param instanceName instance name.
-   * @param zooKeepers zookeepers.
-   * @param username username.
-   * @param password password.
+   * @param zooKeepers   zookeepers.
+   * @param username     username.
+   * @param password     password.
    */
   public Configurations(String instanceName, String zooKeepers, String username, String password) {
 
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(instanceName),
-        "instanceName should neither be null nor empty");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(zooKeepers),
-        "zooKeepers should neither be null nor empty");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(username),
-        "username should neither be null nor empty");
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(password),
-        "password should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(instanceName), "instanceName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(zooKeepers), "zooKeepers should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(username), "username should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(password), "password should neither be null nor empty");
 
     instanceName_ = instanceName;
     zooKeepers_ = zooKeepers;

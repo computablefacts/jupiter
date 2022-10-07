@@ -1,14 +1,9 @@
 package com.computablefacts.jupiter.queries;
 
-import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.*;
-
-import java.math.BigDecimal;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import org.apache.accumulo.core.security.Authorizations;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Inflectional;
+import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Literal;
+import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Range;
+import static com.computablefacts.jupiter.queries.TerminalNode.eTermForms.Thesaurus;
 
 import com.computablefacts.asterix.Span;
 import com.computablefacts.asterix.SpanSequence;
@@ -26,10 +21,22 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
+import java.math.BigDecimal;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.accumulo.core.security.Authorizations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Terminal (leaf) expression node class.
- *
+ * <p>
  * See http://www.blackbeltcoder.com/Articles/data/easy-full-text-search-queries for details.
  */
 @CheckReturnValue
@@ -112,23 +119,22 @@ final public class TerminalNode extends AbstractNode {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
-          .add("value", value_).formatDebug());
+      logger_.debug(
+          LogFormatter.create(true).add("dataset", dataset).add("key", key_).add("value", value_).formatDebug());
     }
 
     if (Range.equals(form_)) {
 
-      List<String> range =
-          Splitter.on(QueryBuilder._TO_).trimResults().omitEmptyStrings().splitToList(value_);
+      List<String> range = Splitter.on(QueryBuilder._TO_).trimResults().omitEmptyStrings().splitToList(value_);
 
       if (range.size() == 2) {
 
         String min = range.get(0);
         String max = range.get(1);
 
-        boolean isValid = ("*".equals(min) && StringCodec.isNumber(max))
-            || ("*".equals(max) && StringCodec.isNumber(min))
-            || (StringCodec.isNumber(min) && StringCodec.isNumber(max));
+        boolean isValid =
+            ("*".equals(min) && StringCodec.isNumber(max)) || ("*".equals(max) && StringCodec.isNumber(min)) || (
+                StringCodec.isNumber(min) && StringCodec.isNumber(max));
 
         if (isValid) {
 
@@ -137,8 +143,7 @@ final public class TerminalNode extends AbstractNode {
           String maxTerm = "*".equals(max) ? null : max;
 
           return dataStore.termCardinalityEstimationForBuckets(authorizations, dataset, fields(),
-              minTerm == null ? null : new BigDecimal(minTerm),
-              maxTerm == null ? null : new BigDecimal(maxTerm));
+              minTerm == null ? null : new BigDecimal(minTerm), maxTerm == null ? null : new BigDecimal(maxTerm));
         }
       }
       return 0; // Invalid range
@@ -169,9 +174,8 @@ final public class TerminalNode extends AbstractNode {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("key", key_)
-          .add("value", value_).add("has_docs_ids", expectedDocsIds != null)
-          .add("form", form_.toString()).formatDebug());
+      logger_.debug(LogFormatter.create(true).add("dataset", dataset).add("key", key_).add("value", value_)
+          .add("has_docs_ids", expectedDocsIds != null).add("form", form_.toString()).formatDebug());
     }
 
     if (Range.equals(form_)) {
@@ -202,8 +206,7 @@ final public class TerminalNode extends AbstractNode {
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
-    List<String> range =
-        Splitter.on(QueryBuilder._TO_).trimResults().omitEmptyStrings().splitToList(value_);
+    List<String> range = Splitter.on(QueryBuilder._TO_).trimResults().omitEmptyStrings().splitToList(value_);
 
     if (range.size() != 2) {
       return View.of(); // Invalid range
@@ -212,9 +215,9 @@ final public class TerminalNode extends AbstractNode {
     String min = range.get(0);
     String max = range.get(1);
 
-    boolean isValid = ("*".equals(min) && StringCodec.isNumber(max))
-        || ("*".equals(max) && StringCodec.isNumber(min))
-        || (StringCodec.isNumber(min) && StringCodec.isNumber(max));
+    boolean isValid =
+        ("*".equals(min) && StringCodec.isNumber(max)) || ("*".equals(max) && StringCodec.isNumber(min)) || (
+            StringCodec.isNumber(min) && StringCodec.isNumber(max));
 
     if (!isValid) {
       return View.of(); // Invalid range
@@ -224,13 +227,12 @@ final public class TerminalNode extends AbstractNode {
     String minTerm = "*".equals(min) ? null : min;
     String maxTerm = "*".equals(max) ? null : max;
 
-    return dataStore.docsIdsSorted(authorizations, dataset, fields(),
-        minTerm == null ? null : new BigDecimal(minTerm),
+    return dataStore.docsIdsSorted(authorizations, dataset, fields(), minTerm == null ? null : new BigDecimal(minTerm),
         maxTerm == null ? null : new BigDecimal(maxTerm), expectedDocsIds);
   }
 
-  private View<String> inflectional(DataStore dataStore, Authorizations authorizations,
-      String dataset, BloomFilters<String> expectedDocsIds, List<Map.Entry<String, Long>> terms) {
+  private View<String> inflectional(DataStore dataStore, Authorizations authorizations, String dataset,
+      BloomFilters<String> expectedDocsIds, List<Map.Entry<String, Long>> terms) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
@@ -242,13 +244,11 @@ final public class TerminalNode extends AbstractNode {
 
     for (Map.Entry<String, Long> term : terms) {
       docsIds.add(dataStore.docsIdsSorted(authorizations, dataset,
-          WildcardMatcher.compact(
-              WildcardMatcher.hasWildcards(term.getKey()) ? term.getKey() : term.getKey() + "*"),
+          WildcardMatcher.compact(WildcardMatcher.hasWildcards(term.getKey()) ? term.getKey() : term.getKey() + "*"),
           fields(), expectedDocsIds));
     }
     return docsIds.size() == 1 ? docsIds.get(0)
-        : docsIds.get(0).mergeSorted(docsIds.subList(1, docsIds.size() - 1), String::compareTo)
-            .dedupSorted();
+        : docsIds.get(0).mergeSorted(docsIds.subList(1, docsIds.size() - 1), String::compareTo).dedupSorted();
   }
 
   private View<String> literal(DataStore dataStore, Authorizations authorizations, String dataset,
@@ -265,13 +265,11 @@ final public class TerminalNode extends AbstractNode {
     // First, fill a Bloom filter with the UUIDs of the documents. Then, filter subsequent
     // terms using the Bloom filter created with the previous term. Thus, the number of documents
     // returned should be decreasing at each iteration.
-    @Var
-    BloomFilters<String> bfs = expectedDocsIds == null ? null : new BloomFilters<>(expectedDocsIds);
+    @Var BloomFilters<String> bfs = expectedDocsIds == null ? null : new BloomFilters<>(expectedDocsIds);
 
     for (int i = 0; i < terms.size() - 1; i++) {
 
-      Iterator<String> iter =
-          dataStore.docsIdsSorted(authorizations, dataset, terms.get(i).getKey(), fields(), bfs);
+      Iterator<String> iter = dataStore.docsIdsSorted(authorizations, dataset, terms.get(i).getKey(), fields(), bfs);
 
       if (!iter.hasNext()) {
         return View.of();
@@ -283,16 +281,15 @@ final public class TerminalNode extends AbstractNode {
         bfs.put(iter.next());
       }
     }
-    return dataStore.docsIdsSorted(authorizations, dataset, terms.get(terms.size() - 1).getKey(),
-        fields(), bfs);
+    return dataStore.docsIdsSorted(authorizations, dataset, terms.get(terms.size() - 1).getKey(), fields(), bfs);
   }
 
   private Set<String> fields() {
     return Strings.isNullOrEmpty(key_) ? null : Sets.newHashSet(key_);
   }
 
-  private List<Map.Entry<String, Long>> terms(DataStore dataStore, Authorizations authorizations,
-      String dataset, Function<String, SpanSequence> tokenizer) {
+  private List<Map.Entry<String, Long>> terms(DataStore dataStore, Authorizations authorizations, String dataset,
+      Function<String, SpanSequence> tokenizer) {
 
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
     Preconditions.checkNotNull(authorizations, "authorizations should not be null");
@@ -309,12 +306,10 @@ final public class TerminalNode extends AbstractNode {
 
     // Order terms by increasing number of matches
     return terms.stream()
-        .filter(term -> !(WildcardMatcher.startsWithWildcard(term)
-            && WildcardMatcher.endsWithWildcard(term)))
-        .map(term -> new AbstractMap.SimpleImmutableEntry<>(term,
-            dataStore.termCardinalityEstimationForBuckets(authorizations, dataset, fields(), term)))
-        .sorted(Comparator.comparingLong(AbstractMap.SimpleImmutableEntry::getValue))
-        .collect(Collectors.toList());
+        .filter(term -> !(WildcardMatcher.startsWithWildcard(term) && WildcardMatcher.endsWithWildcard(term))).map(
+            term -> new AbstractMap.SimpleImmutableEntry<>(term,
+                dataStore.termCardinalityEstimationForBuckets(authorizations, dataset, fields(), term)))
+        .sorted(Comparator.comparingLong(AbstractMap.SimpleImmutableEntry::getValue)).collect(Collectors.toList());
   }
 
   public enum eTermForms {

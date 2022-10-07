@@ -2,24 +2,22 @@ package com.computablefacts.jupiter.filters;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
 import com.computablefacts.asterix.Generated;
 import com.computablefacts.asterix.WildcardMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 @CheckReturnValue
 public class TermStoreFieldFilter extends Filter {
@@ -42,8 +40,7 @@ public class TermStoreFieldFilter extends Filter {
     options.put(FIELDS_CRITERION, "Fields patterns to keep.");
 
     return new IteratorOptions("TermStoreFieldFilter",
-        "TermStoreFieldFilter accepts or rejects each Key/Value pair based on fields filters.",
-        options, null);
+        "TermStoreFieldFilter accepts or rejects each Key/Value pair based on fields filters.", options, null);
   }
 
   @Override
@@ -58,14 +55,13 @@ public class TermStoreFieldFilter extends Filter {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options,
-      IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env)
+      throws IOException {
 
     super.init(source, options, env);
 
-    keepFields_ = options.containsKey(FIELDS_CRITERION)
-        ? Sets.newHashSet(Splitter.on(SEPARATOR_NUL).split(options.get(FIELDS_CRITERION)))
-        : null;
+    keepFields_ = options.containsKey(FIELDS_CRITERION) ? Sets.newHashSet(
+        Splitter.on(SEPARATOR_NUL).split(options.get(FIELDS_CRITERION))) : null;
   }
 
   @Override

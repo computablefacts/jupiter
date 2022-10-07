@@ -1,12 +1,10 @@
 package com.computablefacts.jupiter;
 
-import java.util.Iterator;
-import java.util.function.Function;
-
-import org.apache.accumulo.core.client.Scanner;
-
 import com.computablefacts.asterix.View;
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.util.Iterator;
+import java.util.function.Function;
+import org.apache.accumulo.core.client.Scanner;
 
 @CheckReturnValue
 final public class OrderedView<T> extends View<T> {

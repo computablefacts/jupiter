@@ -1,19 +1,17 @@
 package com.computablefacts.jupiter.filters;
 
+import com.computablefacts.asterix.Generated;
+import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
-import com.computablefacts.asterix.Generated;
-import com.google.errorprone.annotations.CheckReturnValue;
-import com.google.errorprone.annotations.Var;
 
 @CheckReturnValue
 public class AgeOffPeriodFilter extends Filter {
@@ -51,8 +49,7 @@ public class AgeOffPeriodFilter extends Filter {
     options.put(TTL_UNITS, "Units");
 
     return new IteratorOptions("AgeOffPeriodFilter",
-        "AgeOffPeriodFilter accepts or rejects each Key/Value pair based on its timestamp.",
-        options, null);
+        "AgeOffPeriodFilter accepts or rejects each Key/Value pair based on its timestamp.", options, null);
   }
 
   @Override
@@ -62,10 +59,8 @@ public class AgeOffPeriodFilter extends Filter {
       return false;
     }
 
-    @Var
-    boolean hasTtl = false;
-    @Var
-    boolean hasTtlUnits = false;
+    @Var boolean hasTtl = false;
+    @Var boolean hasTtlUnits = false;
 
     for (String option : options.keySet()) {
       if (option.equals(TTL) && options.get(option) != null) {
@@ -78,8 +73,8 @@ public class AgeOffPeriodFilter extends Filter {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options,
-      IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env)
+      throws IOException {
 
     super.init(source, options, env);
 
@@ -117,8 +112,8 @@ public class AgeOffPeriodFilter extends Filter {
     } else if (units.equals("MILLISECONDS")) {
       ttlUnitsFactor = 1;
     } else {
-      throw new IllegalArgumentException("TTL_UNITS=" + units
-          + " must be set to a valid value. (DAYS, HOURS, MINUTES, SECONDS or MILLISECONDS)");
+      throw new IllegalArgumentException(
+          "TTL_UNITS=" + units + " must be set to a valid value. (DAYS, HOURS, MINUTES, SECONDS or MILLISECONDS)");
     }
     return ttlUnitsFactor;
   }

@@ -1,16 +1,14 @@
 package com.computablefacts.jupiter;
 
-import java.util.BitSet;
-import java.util.Stack;
-
-import org.apache.commons.io.Charsets;
-
 import com.computablefacts.asterix.BloomFilter;
 import com.computablefacts.asterix.Generated;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
+import java.util.BitSet;
+import java.util.Stack;
+import org.apache.commons.io.Charsets;
 
 @CheckReturnValue
 final public class BloomFilters<T> {
@@ -18,19 +16,21 @@ final public class BloomFilters<T> {
   private final static double FALSE_POSITIVE_PROBABILITY_MIN = 0.1;
   private final static double FALSE_POSITIVE_PROBABILITY_MAX = 0.3;
   private final static int EXPECTED_NUMBER_OF_ELEMENTS = 1000000;
-  private final static int BITSET_SIZE = new BitSet(
-      (int) Math.ceil((int) Math.ceil(-(Math.log(FALSE_POSITIVE_PROBABILITY_MIN) / Math.log(2)))
-          / Math.log(2) * EXPECTED_NUMBER_OF_ELEMENTS)).size();
+  private final static int BITSET_SIZE = new BitSet((int) Math.ceil(
+      (int) Math.ceil(-(Math.log(FALSE_POSITIVE_PROBABILITY_MIN) / Math.log(2))) / Math.log(2)
+          * EXPECTED_NUMBER_OF_ELEMENTS)).size();
   private final static int BYTE_ARRAY_SIZE = BITSET_SIZE / 8;
   private final Stack<BloomFilter<T>> filters_ = new Stack<>();
 
-  public BloomFilters() {}
+  public BloomFilters() {
+  }
 
   public BloomFilters(BloomFilters<T> bloomFilters) {
     if (bloomFilters != null) {
       for (BloomFilter<T> bf : bloomFilters.filters_) {
-        filters_.push(new BloomFilter<>(FALSE_POSITIVE_PROBABILITY_MIN, EXPECTED_NUMBER_OF_ELEMENTS,
-            bf.actualNumberOfElements(), bf.bitSet()));
+        filters_.push(
+            new BloomFilter<>(FALSE_POSITIVE_PROBABILITY_MIN, EXPECTED_NUMBER_OF_ELEMENTS, bf.actualNumberOfElements(),
+                bf.bitSet()));
       }
     }
   }
@@ -55,8 +55,7 @@ final public class BloomFilters<T> {
       return null;
     }
 
-    @Var
-    int separator = bloomFilters.indexOf('¤');
+    @Var int separator = bloomFilters.indexOf('¤');
     if (separator < 0) {
       return null;
     }
@@ -74,11 +73,11 @@ final public class BloomFilters<T> {
       separator = bloomFilters.indexOf('¤');
 
       int actualNumberOfElements = Integer.parseInt(bloomFilters.substring(0, separator), 10);
-      BitSet bitSet =
-          deserializeBitSet(bloomFilters.substring(separator + 1, separator + 1 + BYTE_ARRAY_SIZE));
+      BitSet bitSet = deserializeBitSet(bloomFilters.substring(separator + 1, separator + 1 + BYTE_ARRAY_SIZE));
 
-      bfs.filters_.push(new BloomFilter<>(FALSE_POSITIVE_PROBABILITY_MIN,
-          EXPECTED_NUMBER_OF_ELEMENTS, actualNumberOfElements, bitSet));
+      bfs.filters_.push(
+          new BloomFilter<>(FALSE_POSITIVE_PROBABILITY_MIN, EXPECTED_NUMBER_OF_ELEMENTS, actualNumberOfElements,
+              bitSet));
 
       bloomFilters = bloomFilters.substring(separator + 1 + BYTE_ARRAY_SIZE);
     }
@@ -145,16 +144,15 @@ final public class BloomFilters<T> {
   /**
    * Puts an element into this {@link BloomFilters<T>}. Ensures that subsequent invocations of
    * {@link #mightContain(Object)} with the same element will always return {@code true}.
+   * <p>
+   * This method does not attempt to check if the element has previously been stored in one of the underlying Bloom
+   * filters before trying to insert it again.
    *
-   * This method does not attempt to check if the element has previously been stored in one of the
-   * underlying Bloom filters before trying to insert it again.
-   * 
    * @param object the element to store.
    */
   public void put(T object) {
     if (object != null) {
-      if (filters_.isEmpty()
-          || filters_.peek().falsePositiveProbability() >= FALSE_POSITIVE_PROBABILITY_MAX) {
+      if (filters_.isEmpty() || filters_.peek().falsePositiveProbability() >= FALSE_POSITIVE_PROBABILITY_MAX) {
         filters_.push(newBloomFilter());
       }
       filters_.peek().add(object);
@@ -162,12 +160,12 @@ final public class BloomFilters<T> {
   }
 
   /**
-   * Returns {@code true} if the element <i>might</i> have been put in this Bloom filter, {@code
-   * false} if this is <i>definitely</i> not the case.
+   * Returns {@code true} if the element <i>might</i> have been put in this Bloom filter, {@code false} if this is
+   * <i>definitely</i> not the case.
    *
    * @param obj the element to search for.
-   * @return Returns {@code true} if the element <i>might</i> have been put in this Bloom filter,
-   *         {@code false} if this is <i>definitely</i> not the case.
+   * @return Returns {@code true} if the element <i>might</i> have been put in this Bloom filter, {@code false} if this
+   * is <i>definitely</i> not the case.
    */
   public boolean mightContain(T obj) {
     return obj != null && filters_.stream().anyMatch(filter -> filter.contains(obj));
@@ -175,7 +173,7 @@ final public class BloomFilters<T> {
 
   /**
    * The rough space occupied by each bloom filter is about 600 kb.
-   * 
+   *
    * @return {@link BloomFilter<T>}
    */
   private BloomFilter<T> newBloomFilter() {

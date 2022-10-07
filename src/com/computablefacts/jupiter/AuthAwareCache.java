@@ -2,20 +2,6 @@ package com.computablefacts.jupiter;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
-import java.util.AbstractMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.accumulo.core.security.VisibilityParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.computablefacts.asterix.Generated;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
@@ -23,10 +9,21 @@ import com.google.common.cache.CacheStats;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
+import java.util.AbstractMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.VisibilityEvaluator;
+import org.apache.accumulo.core.security.VisibilityParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * An application cache that takes into account both the user authorizations and the data visibility
- * labels.
+ * An application cache that takes into account both the user authorizations and the data visibility labels.
  */
 @CheckReturnValue
 public final class AuthAwareCache {
@@ -61,17 +58,15 @@ public final class AuthAwareCache {
     Preconditions.checkNotNull(namespace, "namespace should not be null");
     Preconditions.checkNotNull(keys, "keys should not be null");
 
-    return ImmutableList.copyOf(cache_
-        .getAllPresent(keys.stream().map(k -> cacheKey(namespace, k)).collect(Collectors.toSet()))
-        .entrySet().stream()
-        .flatMap(entry -> entry.getValue().get(auths).stream()
-            .map(e -> new AbstractMap.SimpleImmutableEntry<>(
-                entry.getKey().substring(namespace.length() + 1 /* SEPARATOR_NUL */), (T) e)))
-        .collect(Collectors.toList()));
+    return ImmutableList.copyOf(
+        cache_.getAllPresent(keys.stream().map(k -> cacheKey(namespace, k)).collect(Collectors.toSet())).entrySet()
+            .stream().flatMap(entry -> entry.getValue().get(auths).stream().map(
+                e -> new AbstractMap.SimpleImmutableEntry<>(
+                    entry.getKey().substring(namespace.length() + 1 /* SEPARATOR_NUL */), (T) e)))
+            .collect(Collectors.toList()));
   }
 
-  public <T> ImmutableList<T> get(String namespace, String key,
-      Callable<Map.Entry<ColumnVisibility, T>> callable) {
+  public <T> ImmutableList<T> get(String namespace, String key, Callable<Map.Entry<ColumnVisibility, T>> callable) {
     return get(namespace, key, null, callable);
   }
 
@@ -83,8 +78,7 @@ public final class AuthAwareCache {
     Preconditions.checkNotNull(callable, "callable should not be null");
 
     try {
-      @Var
-      CacheEntry<T> cacheEntry = (CacheEntry<T>) cache_.getIfPresent(cacheKey(namespace, key));
+      @Var CacheEntry<T> cacheEntry = (CacheEntry<T>) cache_.getIfPresent(cacheKey(namespace, key));
       if (cacheEntry == null) {
         cacheEntry = (CacheEntry<T>) cache_.get(cacheKey(namespace, key), () -> {
           Map.Entry<ColumnVisibility, T> entry = callable.call();
@@ -110,8 +104,7 @@ public final class AuthAwareCache {
     Preconditions.checkNotNull(namespace, "namespace should not be null");
     Preconditions.checkNotNull(key, "key should not be null");
 
-    @Var
-    CacheEntry<T> cacheEntry = (CacheEntry<T>) cache_.getIfPresent(cacheKey(namespace, key));
+    @Var CacheEntry<T> cacheEntry = (CacheEntry<T>) cache_.getIfPresent(cacheKey(namespace, key));
     if (cacheEntry == null) {
       cacheEntry = new CacheEntry<>();
       cache_.put(cacheKey(namespace, key), cacheEntry);
@@ -128,15 +121,14 @@ public final class AuthAwareCache {
   public void logStats() {
     if (logger_.isInfoEnabled()) {
       CacheStats stats = cache_.stats();
-      logger_.info(LogFormatter.create(true).add("request_count", stats.requestCount())
-          .add("hit_count", stats.hitCount()).add("miss_count", stats.missCount())
-          .add("hit_rate", stats.hitRate()).add("miss_rate", stats.missRate())
-          .add("load_success_count", stats.loadSuccessCount())
-          .add("load_exception_count", stats.loadExceptionCount())
-          .add("load_exception_rate", stats.loadExceptionRate())
-          .add("total_load_time", stats.totalLoadTime())
-          .add("average_load_penalty", stats.averageLoadPenalty())
-          .add("eviction_count", stats.evictionCount()).formatInfo());
+      logger_.info(
+          LogFormatter.create(true).add("request_count", stats.requestCount()).add("hit_count", stats.hitCount())
+              .add("miss_count", stats.missCount()).add("hit_rate", stats.hitRate()).add("miss_rate", stats.missRate())
+              .add("load_success_count", stats.loadSuccessCount())
+              .add("load_exception_count", stats.loadExceptionCount())
+              .add("load_exception_rate", stats.loadExceptionRate()).add("total_load_time", stats.totalLoadTime())
+              .add("average_load_penalty", stats.averageLoadPenalty()).add("eviction_count", stats.evictionCount())
+              .formatInfo());
     }
   }
 
@@ -153,7 +145,8 @@ public final class AuthAwareCache {
 
     private final Map<ColumnVisibility, T> entries_ = new ConcurrentHashMap<>();
 
-    public CacheEntry() {}
+    public CacheEntry() {
+    }
 
     public void put(ColumnVisibility cv, T t) {
 
@@ -165,14 +158,14 @@ public final class AuthAwareCache {
     public ImmutableList<T> get(Authorizations auths) {
       if (auths == null) {
         VisibilityEvaluator ve = new VisibilityEvaluator(Authorizations.EMPTY);
-        return ImmutableList
-            .copyOf(entries_.entrySet().stream().filter(entry -> isVisible(ve, entry.getKey()))
-                .map(entry -> entry.getValue()).collect(Collectors.toList()));
+        return ImmutableList.copyOf(
+            entries_.entrySet().stream().filter(entry -> isVisible(ve, entry.getKey())).map(entry -> entry.getValue())
+                .collect(Collectors.toList()));
       }
       VisibilityEvaluator ve = new VisibilityEvaluator(auths);
-      return ImmutableList
-          .copyOf(entries_.entrySet().stream().filter(entry -> isVisible(ve, entry.getKey()))
-              .map(entry -> entry.getValue()).collect(Collectors.toList()));
+      return ImmutableList.copyOf(
+          entries_.entrySet().stream().filter(entry -> isVisible(ve, entry.getKey())).map(entry -> entry.getValue())
+              .collect(Collectors.toList()));
     }
 
     private boolean isVisible(VisibilityEvaluator ve, ColumnVisibility cv) {

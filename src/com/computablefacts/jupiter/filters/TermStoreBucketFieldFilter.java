@@ -2,18 +2,6 @@ package com.computablefacts.jupiter.filters;
 
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
 import com.computablefacts.asterix.Generated;
 import com.computablefacts.asterix.WildcardMatcher;
 import com.computablefacts.jupiter.BloomFilters;
@@ -21,6 +9,16 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 @CheckReturnValue
 public class TermStoreBucketFieldFilter extends Filter {
@@ -73,8 +71,8 @@ public class TermStoreBucketFieldFilter extends Filter {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options,
-      IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env)
+      throws IOException {
 
     super.init(source, options, env);
 
@@ -87,9 +85,8 @@ public class TermStoreBucketFieldFilter extends Filter {
       }
     }
 
-    keepFields_ = options.containsKey(FIELDS_CRITERION)
-        ? Sets.newHashSet(Splitter.on(SEPARATOR_NUL).split(options.get(FIELDS_CRITERION)))
-        : null;
+    keepFields_ = options.containsKey(FIELDS_CRITERION) ? Sets.newHashSet(
+        Splitter.on(SEPARATOR_NUL).split(options.get(FIELDS_CRITERION))) : null;
   }
 
   @Override

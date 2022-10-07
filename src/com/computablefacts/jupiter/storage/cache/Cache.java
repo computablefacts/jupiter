@@ -6,13 +6,25 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.TEXT_EMPTY;
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
+import com.computablefacts.asterix.Generated;
+import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.jupiter.Tables;
+import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
+import com.computablefacts.jupiter.iterators.MaskingIterator;
+import com.computablefacts.jupiter.storage.AbstractStorage;
+import com.computablefacts.jupiter.storage.blobstore.BlobStore;
+import com.computablefacts.logfmt.LogFormatter;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.Iterators;
+import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.Var;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -31,20 +43,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.computablefacts.asterix.Generated;
-import com.computablefacts.jupiter.Configurations;
-import com.computablefacts.jupiter.Tables;
-import com.computablefacts.jupiter.filters.AgeOffPeriodFilter;
-import com.computablefacts.jupiter.iterators.MaskingIterator;
-import com.computablefacts.jupiter.storage.AbstractStorage;
-import com.computablefacts.jupiter.storage.blobstore.BlobStore;
-import com.computablefacts.logfmt.LogFormatter;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterators;
-import com.google.errorprone.annotations.CheckReturnValue;
-import com.google.errorprone.annotations.Var;
 
 /**
  * <p>
@@ -72,7 +70,6 @@ import com.google.errorprone.annotations.Var;
  * ========================+========================+========================+========================+========================
  *  <dataset>\0<uuid>      | (empty)                | <hashed_string>        | (empty)                | <cached_string>
  * </pre>
- *
  */
 @Deprecated
 @CheckReturnValue
@@ -123,8 +120,7 @@ public final class Cache {
   /**
    * Initialize the storage layer.
    *
-   * @return true if the storage layer already exists or has been successfully initialized, false
-   *         otherwise.
+   * @return true if the storage layer already exists or has been successfully initialized, false otherwise.
    */
   @Generated
   public boolean create() {
@@ -138,18 +134,17 @@ public final class Cache {
     try {
 
       // Remove legacy iterators from the cache
-      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators =
-          configurations().tableOperations().listIterators(tableName());
+      Map<String, EnumSet<IteratorUtil.IteratorScope>> iterators = configurations().tableOperations()
+          .listIterators(tableName());
 
       if (iterators.containsKey("AgeOffPeriodFilter")) { // TODO : remove after migration
-        configurations().tableOperations().removeIterator(tableName(),
-            AgeOffPeriodFilter.class.getSimpleName(), EnumSet.of(IteratorUtil.IteratorScope.majc,
-                IteratorUtil.IteratorScope.minc, IteratorUtil.IteratorScope.scan));
+        configurations().tableOperations().removeIterator(tableName(), AgeOffPeriodFilter.class.getSimpleName(),
+            EnumSet.of(IteratorUtil.IteratorScope.majc, IteratorUtil.IteratorScope.minc,
+                IteratorUtil.IteratorScope.scan));
       }
 
       // Set a 3 hours TTL on all cached data
-      IteratorSetting settings =
-          new IteratorSetting(AGE_OFF_PERIOD_FILTER_PRIORITY, AgeOffPeriodFilter.class);
+      IteratorSetting settings = new IteratorSetting(AGE_OFF_PERIOD_FILTER_PRIORITY, AgeOffPeriodFilter.class);
       AgeOffPeriodFilter.setTtl(settings, 3);
       AgeOffPeriodFilter.setTtlUnits(settings, "HOURS");
 
@@ -174,8 +169,7 @@ public final class Cache {
     Preconditions.checkNotNull(dataset, "dataset should not be null");
 
     String begin = dataset + SEPARATOR_NUL;
-    String end =
-        begin.substring(0, begin.length() - 1) + (char) (begin.charAt(begin.length() - 1) + 1);
+    String end = begin.substring(0, begin.length() - 1) + (char) (begin.charAt(begin.length() - 1) + 1);
 
     return Tables.deleteRows(configurations().tableOperations(), tableName(), begin, end);
   }
@@ -183,8 +177,7 @@ public final class Cache {
   /**
    * Destroy the storage layer.
    *
-   * @return true if the storage layer does not exist or has been successfully destroyed, false
-   *         otherwise.
+   * @return true if the storage layer does not exist or has been successfully destroyed, false otherwise.
    */
   @Generated
   public boolean destroy() {
@@ -259,30 +252,29 @@ public final class Cache {
   /**
    * Get cached values.
    *
-   * @param scanner scanner.
-   * @param dataset dataset.
-   * @param cacheId the cache id.
+   * @param scanner   scanner.
+   * @param dataset   dataset.
+   * @param cacheId   the cache id.
    * @param nextValue where to start iterating.
    * @return a list of values.
    */
-  public Iterator<String> read(ScannerBase scanner, String dataset, String cacheId,
-      String nextValue) {
+  public Iterator<String> read(ScannerBase scanner, String dataset, String cacheId, String nextValue) {
     return read(scanner, dataset, cacheId, nextValue, false);
   }
 
   /**
    * Get cached values.
    *
-   * @param scanner scanner.
-   * @param dataset dataset.
-   * @param cacheId the cache id.
+   * @param scanner   scanner.
+   * @param dataset   dataset.
+   * @param cacheId   the cache id.
    * @param nextValue where to start iterating.
-   * @param isHashed if true, returns the value stored in the row value. If false, returns the value
-   *        stored in the row column qualifier.
+   * @param isHashed  if true, returns the value stored in the row value. If false, returns the value stored in the row
+   *                  column qualifier.
    * @return a list of values.
    */
-  public Iterator<String> read(ScannerBase scanner, String dataset, String cacheId,
-      String nextValue, boolean isHashed) {
+  public Iterator<String> read(ScannerBase scanner, String dataset, String cacheId, String nextValue,
+      boolean isHashed) {
 
     Preconditions.checkNotNull(scanner, "scanner should neither be null nor empty");
     Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
@@ -296,8 +288,7 @@ public final class Cache {
     if (nextValue == null) {
       range = Range.exact(dataset + SEPARATOR_NUL + cacheId);
     } else {
-      Key begin =
-          new Key(new Text(dataset + SEPARATOR_NUL + cacheId), TEXT_EMPTY, new Text(nextValue));
+      Key begin = new Key(new Text(dataset + SEPARATOR_NUL + cacheId), TEXT_EMPTY, new Text(nextValue));
       Key end = begin.followingKey(PartialKey.ROW);
       range = new Range(begin, true, end, false);
     }
@@ -305,17 +296,17 @@ public final class Cache {
     if (!AbstractStorage.setRange(scanner, range)) {
       return ITERATOR_EMPTY;
     }
-    return Iterators.transform(scanner.iterator(), entry -> isHashed ? entry.getValue().toString()
-        : entry.getKey().getColumnQualifier().toString());
+    return Iterators.transform(scanner.iterator(),
+        entry -> isHashed ? entry.getValue().toString() : entry.getKey().getColumnQualifier().toString());
   }
 
   /**
    * Cache values.
    *
-   * @param scanner scanner (optional).
-   * @param writer writer.
-   * @param dataset dataset.
-   * @param cacheId the cache id.
+   * @param scanner  scanner (optional).
+   * @param writer   writer.
+   * @param dataset  dataset.
+   * @param cacheId  the cache id.
    * @param iterator the values to cache.
    */
   public void write(ScannerBase scanner, BatchWriter writer, String dataset, String cacheId,
@@ -326,39 +317,38 @@ public final class Cache {
   /**
    * Cache values.
    *
-   * @param scanner scanner (optional).
-   * @param writer writer.
-   * @param dataset dataset.
-   * @param cacheId the cache id.
-   * @param iterator the values to cache.
-   * @param delegateToBackgroundThreadAfter synchronously write to cache until this number of
-   *        elements is reached. After that, delegate the remaining writes to a background thread.
-   *        If this number is less than or equals to zero, performs the whole operation
-   *        synchronously.
+   * @param scanner                         scanner (optional).
+   * @param writer                          writer.
+   * @param dataset                         dataset.
+   * @param cacheId                         the cache id.
+   * @param iterator                        the values to cache.
+   * @param delegateToBackgroundThreadAfter synchronously write to cache until this number of elements is reached. After
+   *                                        that, delegate the remaining writes to a background thread. If this number
+   *                                        is less than or equals to zero, performs the whole operation synchronously.
    */
-  public void write(ScannerBase scanner, BatchWriter writer, String dataset, String cacheId,
-      Iterator<String> iterator, @Var int delegateToBackgroundThreadAfter) {
+  public void write(ScannerBase scanner, BatchWriter writer, String dataset, String cacheId, Iterator<String> iterator,
+      @Var int delegateToBackgroundThreadAfter) {
     write(scanner, writer, dataset, cacheId, iterator, delegateToBackgroundThreadAfter, false);
   }
 
   /**
    * Cache values.
    *
-   * @param scanner scanners (optional).
-   * @param writer writers.
-   * @param dataset dataset.
-   * @param cacheId the cache id.
-   * @param iterator the values to cache.
-   * @param delegateToBackgroundThreadAfter synchronously write to cache until this number of
-   *        elements is reached. After that, delegate the remaining writes to a background thread.
-   *        If this number is less than or equals to zero, performs the whole operation
-   *        synchronously.
-   * @param hash if hash is true, the hash of the value to cache will be set in the row column
-   *        qualifier and the raw value to cache will be set in the row value. If hash is false, the
-   *        value to cache will be stored as-is in the row column qualifier.
+   * @param scanner                         scanners (optional).
+   * @param writer                          writers.
+   * @param dataset                         dataset.
+   * @param cacheId                         the cache id.
+   * @param iterator                        the values to cache.
+   * @param delegateToBackgroundThreadAfter synchronously write to cache until this number of elements is reached. After
+   *                                        that, delegate the remaining writes to a background thread. If this number
+   *                                        is less than or equals to zero, performs the whole operation synchronously.
+   * @param hash                            if hash is true, the hash of the value to cache will be set in the row
+   *                                        column qualifier and the raw value to cache will be set in the row value. If
+   *                                        hash is false, the value to cache will be stored as-is in the row column
+   *                                        qualifier.
    */
-  public void write(ScannerBase scanner, BatchWriter writer, String dataset, String cacheId,
-      Iterator<String> iterator, @Var int delegateToBackgroundThreadAfter, boolean hash) {
+  public void write(ScannerBase scanner, BatchWriter writer, String dataset, String cacheId, Iterator<String> iterator,
+      @Var int delegateToBackgroundThreadAfter, boolean hash) {
 
     Preconditions.checkNotNull(writer, "writer should not be null");
     Preconditions.checkNotNull(dataset, "dataset should neither be null nor empty");
@@ -368,10 +358,8 @@ public final class Cache {
     if (delegateToBackgroundThreadAfter <= 0) {
       writeCache(scanner, writer, dataset, cacheId, iterator, -1, hash);
     } else {
-      writeCache(scanner, writer, dataset, cacheId, iterator, delegateToBackgroundThreadAfter,
-          hash);
-      executorService_
-          .execute(() -> writeCache(scanner, writer, dataset, cacheId, iterator, -1, hash));
+      writeCache(scanner, writer, dataset, cacheId, iterator, delegateToBackgroundThreadAfter, hash);
+      executorService_.execute(() -> writeCache(scanner, writer, dataset, cacheId, iterator, -1, hash));
     }
   }
 
@@ -383,8 +371,7 @@ public final class Cache {
     Preconditions.checkNotNull(cacheId, "cacheId should not be null");
     Preconditions.checkNotNull(iterator, "iterator should not be null");
 
-    @Var
-    long nbElementsWritten = 0L;
+    @Var long nbElementsWritten = 0L;
 
     try {
       if (maxElementsToWrite < 0) {
@@ -429,21 +416,19 @@ public final class Cache {
       // Flush otherwise mutations might not have been written when read() is called. However,
       // sometimes, the first call to flush() returns but the data won't be available until a few
       // seconds later. Not OK for this particular use case!
-      @Var
-      int maxTries = 5;
+      @Var int maxTries = 5;
 
       do {
         try {
           writer.flush();
         } catch (MutationsRejectedException e) {
           logger_.error(LogFormatter.create(true).message(e).add("cache_id", cacheId)
-              .add("max_elements_to_write", maxElementsToWrite)
-              .add("nb_elements_written", nbElementsWritten).formatError());
+              .add("max_elements_to_write", maxElementsToWrite).add("nb_elements_written", nbElementsWritten)
+              .formatError());
           break;
         }
         maxTries--;
-      } while (scanner != null && maxTries > 0 && nbElementsWritten > 0
-          && !hasData(scanner, dataset, cacheId));
+      } while (scanner != null && maxTries > 0 && nbElementsWritten > 0 && !hasData(scanner, dataset, cacheId));
 
     } catch (MutationsRejectedException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());

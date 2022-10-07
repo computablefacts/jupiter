@@ -10,19 +10,6 @@ import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_FILE;
 import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_JSON;
 import static com.computablefacts.jupiter.storage.blobstore.BlobStore.TYPE_STRING;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.hadoop.io.Text;
-
 import com.computablefacts.asterix.Generated;
 import com.computablefacts.jupiter.storage.AbstractStorage;
 import com.google.common.base.Joiner;
@@ -33,6 +20,17 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
 
 @CheckReturnValue
 final public class Blob<T> {
@@ -44,8 +42,7 @@ final public class Blob<T> {
   private final List<String> properties_;
   private final T value_;
 
-  Blob(String dataset, String key, Set<String> labels, String type, T value,
-      List<String> properties) {
+  Blob(String dataset, String key, Set<String> labels, String type, T value, List<String> properties) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(key, "key should not be null");
@@ -63,23 +60,19 @@ final public class Blob<T> {
   }
 
   public static boolean isJson(Key key) {
-    return key != null && key.getColumnFamily() != null
-        && key.getColumnFamily().toString().equals(TYPE_JSON);
+    return key != null && key.getColumnFamily() != null && key.getColumnFamily().toString().equals(TYPE_JSON);
   }
 
   public static boolean isString(Key key) {
-    return key != null && key.getColumnFamily() != null
-        && key.getColumnFamily().toString().equals(TYPE_STRING);
+    return key != null && key.getColumnFamily() != null && key.getColumnFamily().toString().equals(TYPE_STRING);
   }
 
   public static boolean isFile(Key key) {
-    return key != null && key.getColumnFamily() != null
-        && key.getColumnFamily().toString().equals(TYPE_FILE);
+    return key != null && key.getColumnFamily() != null && key.getColumnFamily().toString().equals(TYPE_FILE);
   }
 
   public static boolean isArray(Key key) {
-    return key != null && key.getColumnFamily() != null
-        && key.getColumnFamily().toString().startsWith(TYPE_ARRAY);
+    return key != null && key.getColumnFamily() != null && key.getColumnFamily().toString().startsWith(TYPE_ARRAY);
   }
 
   public static Mutation fromString(String dataset, String key, Set<String> labels, String value) {
@@ -89,8 +82,7 @@ final public class Blob<T> {
     Preconditions.checkNotNull(labels, "labels should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    return newMutation(dataset, key, new HashSet<>(labels), TYPE_STRING,
-        value.getBytes(StandardCharsets.UTF_8), null);
+    return newMutation(dataset, key, new HashSet<>(labels), TYPE_STRING, value.getBytes(StandardCharsets.UTF_8), null);
   }
 
   public static Mutation fromJson(String dataset, String key, Set<String> labels, String value) {
@@ -100,12 +92,10 @@ final public class Blob<T> {
     Preconditions.checkNotNull(labels, "labels should not be null");
     Preconditions.checkNotNull(value, "value should not be null");
 
-    return newMutation(dataset, key, new HashSet<>(labels), TYPE_JSON,
-        value.getBytes(StandardCharsets.UTF_8), null);
+    return newMutation(dataset, key, new HashSet<>(labels), TYPE_JSON, value.getBytes(StandardCharsets.UTF_8), null);
   }
 
-  public static Mutation fromFile(String dataset, String key, Set<String> labels,
-      java.io.File file) {
+  public static Mutation fromFile(String dataset, String key, Set<String> labels, java.io.File file) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(key, "key should not be null");
@@ -145,8 +135,7 @@ final public class Blob<T> {
     String cv = key.getColumnVisibility().toString();
 
     // Extract visibility labels from CV
-    Set<String> labels =
-        Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
+    Set<String> labels = Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
     // Extract dataset from ROW
     int index = row.indexOf(SEPARATOR_NUL);
@@ -154,14 +143,13 @@ final public class Blob<T> {
     String identifier = row.substring(index + 1);
 
     // Extract misc. blob's properties from CQ
-    List<String> properties =
-        Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings().splitToList(cq);
+    List<String> properties = Splitter.on(SEPARATOR_NUL).trimResults().omitEmptyStrings().splitToList(cq);
 
     return new Blob<>(dataset, identifier, labels, cf, value, properties);
   }
 
-  private static Mutation newMutation(String dataset, String key, Set<String> labels, String type,
-      byte[] bytes, List<String> properties) {
+  private static Mutation newMutation(String dataset, String key, Set<String> labels, String type, byte[] bytes,
+      List<String> properties) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(key, "key should not be null");
@@ -196,9 +184,8 @@ final public class Blob<T> {
   @Generated
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("key", key_)
-        .add("labels", labels_).add("type", type_).add("properties", properties_)
-        .add("value", value_).toString();
+    return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("key", key_).add("labels", labels_)
+        .add("type", type_).add("properties", properties_).add("value", value_).toString();
   }
 
   @Override
@@ -210,9 +197,9 @@ final public class Blob<T> {
       return false;
     }
     Blob<?> blob = (Blob<?>) obj;
-    return Objects.equal(dataset_, blob.dataset_) && Objects.equal(key_, blob.key_)
-        && Objects.equal(labels_, blob.labels_) && Objects.equal(type_, blob.type_)
-        && Objects.equal(properties_, blob.properties_) && Objects.equal(value_, blob.value_);
+    return Objects.equal(dataset_, blob.dataset_) && Objects.equal(key_, blob.key_) && Objects.equal(labels_,
+        blob.labels_) && Objects.equal(type_, blob.type_) && Objects.equal(properties_, blob.properties_)
+        && Objects.equal(value_, blob.value_);
   }
 
   @Override

@@ -1,5 +1,9 @@
 package com.computablefacts.jupiter.storage.datastore;
 
+import com.computablefacts.jupiter.iterators.MaskingIterator;
+import com.computablefacts.logfmt.LogFormatter;
+import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -7,14 +11,8 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.zip.GZIPOutputStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.computablefacts.jupiter.iterators.MaskingIterator;
-import com.computablefacts.logfmt.LogFormatter;
-import com.google.common.base.Preconditions;
-import com.google.errorprone.annotations.CheckReturnValue;
 
 @CheckReturnValue
 final public class FileHashProcessor extends AbstractHashProcessor {
@@ -85,8 +83,8 @@ final public class FileHashProcessor extends AbstractHashProcessor {
   private BufferedWriter writer() {
     if (writer_ == null) {
       try {
-        writer_ = new BufferedWriter(new OutputStreamWriter(
-            new GZIPOutputStream(new FileOutputStream(filename_)), StandardCharsets.UTF_8));
+        writer_ = new BufferedWriter(
+            new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(filename_)), StandardCharsets.UTF_8));
       } catch (IOException e) {
         logger_.error(LogFormatter.create(true).message(e).formatError());
       }

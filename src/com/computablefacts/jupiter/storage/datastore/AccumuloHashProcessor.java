@@ -3,19 +3,17 @@ package com.computablefacts.jupiter.storage.datastore;
 import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_NUL;
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
 
-import java.util.Date;
-
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.data.Mutation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.computablefacts.jupiter.iterators.MaskingIterator;
 import com.computablefacts.jupiter.storage.termstore.TermStore;
 import com.computablefacts.logfmt.LogFormatter;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.util.Date;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.data.Mutation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @CheckReturnValue
 final public class AccumuloHashProcessor extends AbstractHashProcessor {
@@ -27,8 +25,7 @@ final public class AccumuloHashProcessor extends AbstractHashProcessor {
   private BatchWriter writer_;
 
   public AccumuloHashProcessor(TermStore termStore) {
-    termStore_ =
-        Preconditions.checkNotNull(termStore, "termStore should neither be null nor empty");
+    termStore_ = Preconditions.checkNotNull(termStore, "termStore should neither be null nor empty");
   }
 
   @Override

@@ -2,10 +2,14 @@ package com.computablefacts.jupiter.mr;
 
 import static com.computablefacts.jupiter.storage.Constants.STRING_ADM;
 
+import com.computablefacts.jupiter.Configurations;
+import com.computablefacts.logfmt.LogFormatter;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Set;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -27,12 +31,6 @@ import org.apache.hadoop.util.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.computablefacts.jupiter.Configurations;
-import com.computablefacts.logfmt.LogFormatter;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.errorprone.annotations.CheckReturnValue;
-
 @CheckReturnValue
 public abstract class AbstractMapReduceJob implements Tool {
 
@@ -48,11 +46,10 @@ public abstract class AbstractMapReduceJob implements Tool {
 
   private Configuration conf_;
 
-  public AbstractMapReduceJob(String jobName, Configurations input, String inputTableName,
-      Configurations output, String outputTableName) {
+  public AbstractMapReduceJob(String jobName, Configurations input, String inputTableName, Configurations output,
+      String outputTableName) {
 
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(jobName),
-        "jobName should neither be null nor empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(jobName), "jobName should neither be null nor empty");
     Preconditions.checkNotNull(input, "input should not be null");
     Preconditions.checkArgument(!Strings.isNullOrEmpty(inputTableName),
         "inputTableName should neither be null nor empty");
@@ -81,10 +78,9 @@ public abstract class AbstractMapReduceJob implements Tool {
       // Setup source
       job.setInputFormatClass(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, input_.username(),
-          new PasswordToken(input_.password()));
-      AccumuloInputFormat.setZooKeeperInstance(job, new ClientConfiguration()
-          .withInstance(input_.instanceName()).withZkHosts(input_.zooKeepers()));
+      AccumuloInputFormat.setConnectorInfo(job, input_.username(), new PasswordToken(input_.password()));
+      AccumuloInputFormat.setZooKeeperInstance(job,
+          new ClientConfiguration().withInstance(input_.instanceName()).withZkHosts(input_.zooKeepers()));
       AccumuloInputFormat.setInputTableName(job, inputTableName_);
       AccumuloInputFormat.setScanAuthorizations(job, scanAuthorizations());
       // AccumuloInputFormat.setRanges(job, scanRanges(MAX_MAPPERS));
@@ -96,10 +92,9 @@ public abstract class AbstractMapReduceJob implements Tool {
       job.setOutputFormatClass(AccumuloOutputFormat.class);
 
       AccumuloOutputFormat.setCreateTables(job, false);
-      AccumuloOutputFormat.setConnectorInfo(job, output_.username(),
-          new PasswordToken(output_.password()));
-      AccumuloOutputFormat.setZooKeeperInstance(job, new ClientConfiguration()
-          .withInstance(output_.instanceName()).withZkHosts(output_.zooKeepers()));
+      AccumuloOutputFormat.setConnectorInfo(job, output_.username(), new PasswordToken(output_.password()));
+      AccumuloOutputFormat.setZooKeeperInstance(job,
+          new ClientConfiguration().withInstance(output_.instanceName()).withZkHosts(output_.zooKeepers()));
       AccumuloOutputFormat.setDefaultTableName(job, outputTableName_);
 
       setupAccumuloOutput(job);
@@ -116,36 +111,32 @@ public abstract class AbstractMapReduceJob implements Tool {
 
       Date beginTime = new Date();
 
-      logger_.info(
-          LogFormatter.create(true).message(String.format("Job \"%s\" for table \"%s\" started: %s",
-              jobName_, inputTableName_, beginTime)).formatInfo());
+      logger_.info(LogFormatter.create(true)
+          .message(String.format("Job \"%s\" for table \"%s\" started: %s", jobName_, inputTableName_, beginTime))
+          .formatInfo());
 
       int exitCode = job.waitForCompletion(true) ? 0 : 1;
 
       if (exitCode != 0) {
 
         logger_.error(LogFormatter.create(true)
-            .message(
-                String.format("Job \"%s\" for table \"%s\" failed.", jobName_, inputTableName_))
-            .formatError());
+            .message(String.format("Job \"%s\" for table \"%s\" failed.", jobName_, inputTableName_)).formatError());
 
         return 1;
       }
 
       Date endTime = new Date();
 
-      logger_.info(LogFormatter.create(true).message(String
-          .format("Job \"%s\" for table \"%s\" finished: %s", jobName_, inputTableName_, endTime))
+      logger_.info(LogFormatter.create(true)
+          .message(String.format("Job \"%s\" for table \"%s\" finished: %s", jobName_, inputTableName_, endTime))
           .formatInfo());
 
-      logger_.info(LogFormatter.create(true)
-          .message(String.format("The job \"%s\" took %s seconds to complete.", jobName_,
-              (endTime.getTime() - beginTime.getTime()) / 1000))
-          .formatInfo());
+      logger_.info(LogFormatter.create(true).message(
+          String.format("The job \"%s\" took %s seconds to complete.", jobName_,
+              (endTime.getTime() - beginTime.getTime()) / 1000)).formatInfo());
 
       return 0;
-    } catch (IOException | InterruptedException | ClassNotFoundException
-        | AccumuloSecurityException e) {
+    } catch (IOException | InterruptedException | ClassNotFoundException | AccumuloSecurityException e) {
       logger_.error(LogFormatter.create(true).message(e).formatError());
     }
     return 1;
@@ -179,13 +170,14 @@ public abstract class AbstractMapReduceJob implements Tool {
     Preconditions.checkNotNull(range, "range should not be null");
     Preconditions.checkArgument(maxMappers > 0, "maxMappers must be > 0");
 
-    return input_.connector().tableOperations().splitRangeByTablets(inputTableName_, range,
-        maxMappers);
+    return input_.connector().tableOperations().splitRangeByTablets(inputTableName_, range, maxMappers);
   }
 
-  protected void setupAccumuloInput(Job job) {}
+  protected void setupAccumuloInput(Job job) {
+  }
 
-  protected void setupAccumuloOutput(Job job) {}
+  protected void setupAccumuloOutput(Job job) {
+  }
 
   protected abstract Class<? extends Mapper> mapper();
 

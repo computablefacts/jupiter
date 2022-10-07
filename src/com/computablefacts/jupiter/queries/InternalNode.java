@@ -1,13 +1,5 @@
 package com.computablefacts.jupiter.queries;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.accumulo.core.security.Authorizations;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.computablefacts.asterix.SpanSequence;
 import com.computablefacts.asterix.View;
 import com.computablefacts.jupiter.BloomFilters;
@@ -17,10 +9,16 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import org.apache.accumulo.core.security.Authorizations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Internal (non-leaf) expression node class.
- *
+ * <p>
  * See http://www.blackbeltcoder.com/Articles/data/easy-full-text-search-queries for details.
  */
 @CheckReturnValue
@@ -42,8 +40,8 @@ final public class InternalNode extends AbstractNode {
 
   @Override
   public String toString() {
-    return (exclude() ? "Not(" : "(") + (child1_ == null ? "" : child1_.toString()) + " "
-        + conjunction_.toString() + " " + (child2_ == null ? "" : child2_.toString()) + ")";
+    return (exclude() ? "Not(" : "(") + (child1_ == null ? "" : child1_.toString()) + " " + conjunction_.toString()
+        + " " + (child2_ == null ? "" : child2_.toString()) + ")";
   }
 
   @Override
@@ -68,9 +66,9 @@ final public class InternalNode extends AbstractNode {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_
-          .debug(LogFormatter.create(true).add("dataset", dataset).add("conjunction", conjunction_)
-              .add("child1", child1_).add("child2", child2_).formatDebug());
+      logger_.debug(
+          LogFormatter.create(true).add("dataset", dataset).add("conjunction", conjunction_).add("child1", child1_)
+              .add("child2", child2_).formatDebug());
     }
 
     long cardChild1;
@@ -131,9 +129,9 @@ final public class InternalNode extends AbstractNode {
     Preconditions.checkNotNull(dataStore, "dataStore should not be null");
 
     if (logger_.isDebugEnabled()) {
-      logger_
-          .debug(LogFormatter.create(true).add("dataset", dataset).add("conjunction", conjunction_)
-              .add("child1", child1_).add("child2", child2_).formatDebug());
+      logger_.debug(
+          LogFormatter.create(true).add("dataset", dataset).add("conjunction", conjunction_).add("child1", child1_)
+              .add("child2", child2_).formatDebug());
     }
 
     if (child1_ == null) {
@@ -147,9 +145,8 @@ final public class InternalNode extends AbstractNode {
         }
         return View.of();
       }
-      return eConjunctionTypes.Or.equals(conjunction_)
-          ? child2_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer)
-          : View.of();
+      return eConjunctionTypes.Or.equals(conjunction_) ? child2_.execute(dataStore, authorizations, dataset,
+          expectedDocsIds, tokenizer) : View.of();
     }
     if (child2_ == null) {
       if (child1_.exclude()) { // (NOT A AND/OR NULL) is not a valid construct
@@ -159,9 +156,8 @@ final public class InternalNode extends AbstractNode {
         }
         return View.of();
       }
-      return eConjunctionTypes.Or.equals(conjunction_)
-          ? child1_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer)
-          : View.of();
+      return eConjunctionTypes.Or.equals(conjunction_) ? child1_.execute(dataStore, authorizations, dataset,
+          expectedDocsIds, tokenizer) : View.of();
     }
 
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B, NOT A OR B, A OR NOT B, NOT
@@ -183,10 +179,8 @@ final public class InternalNode extends AbstractNode {
       return View.of();
     }
 
-    View<String> ids1 =
-        child1_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer);
-    View<String> ids2 =
-        child2_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer);
+    View<String> ids1 = child1_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer);
+    View<String> ids2 = child2_.execute(dataStore, authorizations, dataset, expectedDocsIds, tokenizer);
 
     // Here, the query is in {A OR B, A AND B, NOT A AND B, A AND NOT B}
     if (eConjunctionTypes.And.equals(conjunction_) && (child1_.exclude() || child2_.exclude())) {

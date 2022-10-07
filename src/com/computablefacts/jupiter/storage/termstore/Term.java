@@ -5,25 +5,30 @@ import static com.computablefacts.jupiter.storage.Constants.SEPARATOR_PIPE;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_INDEX;
 import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_INDEX;
 
-import java.util.*;
-
-import javax.validation.constraints.NotNull;
-
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.hadoop.io.Text;
-
 import com.computablefacts.asterix.Generated;
-import com.google.common.base.*;
+import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.validation.constraints.NotNull;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
 
 @CheckReturnValue
 final public class Term implements HasTerm, Comparable<Term> {
@@ -43,8 +48,7 @@ final public class Term implements HasTerm, Comparable<Term> {
   private final Set<String> labels_;
   private final long count_;
 
-  Term(String dataset, String bucketId, String field, int type, String term, Set<String> labels,
-      long count) {
+  Term(String dataset, String bucketId, String field, int type, String term, Set<String> labels, long count) {
 
     Preconditions.checkNotNull(dataset, "dataset should not be null");
     Preconditions.checkNotNull(bucketId, "bucketId should not be null");
@@ -61,25 +65,25 @@ final public class Term implements HasTerm, Comparable<Term> {
     count_ = count;
   }
 
-  public static Mutation newForwardMutation(String dataset, String docId, String field, int type,
-      String term, int count, Set<String> labels) {
+  public static Mutation newForwardMutation(String dataset, String docId, String field, int type, String term,
+      int count, Set<String> labels) {
     return newForwardMutation(null, dataset, docId, field, type, term, count, labels);
   }
 
-  public static Mutation newBackwardMutation(String dataset, String docId, String field, int type,
-      String term, int count, Set<String> labels) {
+  public static Mutation newBackwardMutation(String dataset, String docId, String field, int type, String term,
+      int count, Set<String> labels) {
     return newBackwardMutation(null, dataset, docId, field, type, term, count, labels);
   }
 
   @CanIgnoreReturnValue
-  public static Mutation newForwardMutation(Map<Text, Mutation> mutations, String dataset,
-      String docId, String field, int type, String term, int count, Set<String> labels) {
+  public static Mutation newForwardMutation(Map<Text, Mutation> mutations, String dataset, String docId, String field,
+      int type, String term, int count, Set<String> labels) {
     return newMutation(mutations, FORWARD_INDEX, dataset, docId, field, type, term, count, labels);
   }
 
   @CanIgnoreReturnValue
-  public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset,
-      String docId, String field, int type, String term, int count, Set<String> labels) {
+  public static Mutation newBackwardMutation(Map<Text, Mutation> mutations, String dataset, String docId, String field,
+      int type, String term, int count, Set<String> labels) {
     return newMutation(mutations, BACKWARD_INDEX, dataset, docId, field, type,
         new StringBuilder(term).reverse().toString(), count, labels);
   }
@@ -98,9 +102,8 @@ final public class Term implements HasTerm, Comparable<Term> {
     // Extract dataset and term from ROW
     int index = row.indexOf(SEPARATOR_NUL);
     String dataset = row.substring(0, index);
-    String term =
-        cf.equals(BACKWARD_INDEX) ? new StringBuilder(row.substring(index + 1)).reverse().toString()
-            : row.substring(index + 1);
+    String term = cf.equals(BACKWARD_INDEX) ? new StringBuilder(row.substring(index + 1)).reverse().toString()
+        : row.substring(index + 1);
 
     // Extract document id and field from CQ
     int index1 = cq.indexOf(SEPARATOR_NUL);
@@ -119,8 +122,7 @@ final public class Term implements HasTerm, Comparable<Term> {
     }
 
     // Extract visibility labels from CV
-    Set<String> labels =
-        Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
+    Set<String> labels = Sets.newHashSet(Splitter.on(SEPARATOR_PIPE).trimResults().omitEmptyStrings().split(cv));
 
     // Extract count and spans from VALUE
     List<String> spans = Splitter.on(SEPARATOR_NUL).splitToList(val);
@@ -129,9 +131,8 @@ final public class Term implements HasTerm, Comparable<Term> {
     return new Term(dataset, docId, field, type, term, labels, count);
   }
 
-  private static Mutation newMutation(Map<Text, Mutation> mutations, String mutationType,
-      String dataset, String docId, String field, int type, String term, int count,
-      Set<String> labels) {
+  private static Mutation newMutation(Map<Text, Mutation> mutations, String mutationType, String dataset, String docId,
+      String field, int type, String term, int count, Set<String> labels) {
 
     Preconditions.checkNotNull(mutationType, "mutationType should not be null");
     Preconditions.checkNotNull(dataset, "dataset should not be null");
@@ -170,9 +171,8 @@ final public class Term implements HasTerm, Comparable<Term> {
   @Generated
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("docId", bucketId_)
-        .add("field", field_).add("term", term_).add("type", type_).add("labels", labels_)
-        .add("count", count_).toString();
+    return MoreObjects.toStringHelper(this).add("dataset", dataset_).add("docId", bucketId_).add("field", field_)
+        .add("term", term_).add("type", type_).add("labels", labels_).add("count", count_).toString();
   }
 
   @Override
@@ -184,10 +184,9 @@ final public class Term implements HasTerm, Comparable<Term> {
       return false;
     }
     Term term = (Term) obj;
-    return Objects.equal(dataset_, term.dataset_) && Objects.equal(bucketId_, term.bucketId_)
-        && Objects.equal(field_, term.field_) && Objects.equal(type_, term.type_)
-        && Objects.equal(term_, term.term_) && Objects.equal(labels_, term.labels_)
-        && Objects.equal(count_, term.count_);
+    return Objects.equal(dataset_, term.dataset_) && Objects.equal(bucketId_, term.bucketId_) && Objects.equal(field_,
+        term.field_) && Objects.equal(type_, term.type_) && Objects.equal(term_, term.term_) && Objects.equal(labels_,
+        term.labels_) && Objects.equal(count_, term.count_);
   }
 
   @Override
@@ -198,10 +197,9 @@ final public class Term implements HasTerm, Comparable<Term> {
   @Override
   public int compareTo(@NotNull Term term) {
 
-    @Var
-    int cmp = ComparisonChain.start().compare(dataset_, term.dataset_)
-        .compare(bucketId_, term.bucketId_).compare(field_, term.field_).compare(type_, term.type_)
-        .compare(term_, term.term_).compare(count_, term.count_).result();
+    @Var int cmp = ComparisonChain.start().compare(dataset_, term.dataset_).compare(bucketId_, term.bucketId_)
+        .compare(field_, term.field_).compare(type_, term.type_).compare(term_, term.term_).compare(count_, term.count_)
+        .result();
 
     if (cmp != 0) {
       return cmp;
@@ -272,8 +270,7 @@ final public class Term implements HasTerm, Comparable<Term> {
 
   private <T extends Comparable<T>> int compare(Collection<T> l1, Collection<T> l2) {
 
-    @Var
-    int cmp = Integer.compare(l1.size(), l2.size());
+    @Var int cmp = Integer.compare(l1.size(), l2.size());
 
     if (cmp != 0) {
       return cmp;

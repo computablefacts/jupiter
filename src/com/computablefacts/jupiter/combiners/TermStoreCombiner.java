@@ -1,17 +1,18 @@
 package com.computablefacts.jupiter.combiners;
 
 import static com.computablefacts.jupiter.storage.Constants.VALUE_EMPTY;
-import static com.computablefacts.jupiter.storage.termstore.TermStore.*;
-
-import java.util.Iterator;
-
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Combiner;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_COUNT;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.BACKWARD_INDEX;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_COUNT;
+import static com.computablefacts.jupiter.storage.termstore.TermStore.FORWARD_INDEX;
 
 import com.computablefacts.jupiter.storage.Constants;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.Var;
+import java.util.Iterator;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
 
 @CheckReturnValue
 public class TermStoreCombiner extends Combiner {
@@ -36,8 +37,7 @@ public class TermStoreCombiner extends Combiner {
 
   private Value reduceCount(Iterator<Value> iter) {
 
-    @Var
-    long sum = 0L;
+    @Var long sum = 0L;
 
     while (iter.hasNext()) {
       sum += tryParseLong(iter.next().toString(), 0);
@@ -47,8 +47,7 @@ public class TermStoreCombiner extends Combiner {
 
   private Value reduceIndex(Iterator<Value> iter) {
 
-    @Var
-    long sum = 0L;
+    @Var long sum = 0L;
     StringBuilder builder = new StringBuilder();
 
     while (iter.hasNext()) {
