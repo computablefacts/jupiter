@@ -2,7 +2,7 @@ os: linux
 dist: focal
 language: java
 jdk:
-  - openjdk15
+  - openjdk11
 install: "/bin/true"
 script:
   - mvn clean install -q -B
