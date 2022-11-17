@@ -39,7 +39,7 @@
   </developers>
 
   <properties>
-    <asterix.version>0.13</asterix.version>
+    <asterix.version>0.14</asterix.version>
     <guava.version>31.1-jre</guava.version>
     <accumulo.version>1.10.1</accumulo.version>
     <zookeeper.version>3.4.14</zookeeper.version>
